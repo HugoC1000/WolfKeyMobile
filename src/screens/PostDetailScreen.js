@@ -1,0 +1,164 @@
+import React, { useState, useEffect } from 'react';
+import {
+  ScrollView,
+  StyleSheet,
+  View,
+  ActivityIndicator,
+  RefreshControl,
+  Text,
+  TouchableOpacity,
+} from 'react-native';
+import Animated from 'react-native-reanimated';
+import PostDetailCard from '../components/PostDetailCard';
+import SolutionCard from '../components/SolutionCard';
+import api from '../api/config';
+import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';
+import BackgroundSvg from '../components/BackgroundSVG';
+import { useUser } from '../context/userContext';
+
+const PostDetailScreen = ({ route, navigation }) => {
+  const { postId } = route.params;
+  const { user } = useUser();
+  const [post, setPost] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [userHasSolution, setUserHasSolution] = useState(false);
+
+  const fetchPostDetail = async () => {
+    try {
+      const response = await api.get(`/posts/${postId}/`);
+      console.log("Response 2: ", response);
+      setPost(response.data);
+      // Check if user has already submitted a solution
+      if (response.data.solutions) {
+        setUserHasSolution(
+          response.data.solutions.some((solution) => solution.author_id === user.id)
+        );
+      }
+    } catch (error) {
+      console.error('Error fetching post detail:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPostDetail();
+  }, [postId]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchPostDetail();
+  };
+
+  const renderSolutions = () => {
+    if (!post.solutions || post.solutions.length === 0) {
+      return (
+        <View style={styles.noSolutionsContainer}>
+          <Text style={styles.noSolutionsText}>
+            No solutions yet. Be the first to help!
+          </Text>
+        </View>
+      );
+    }
+
+    return post.solutions.map((solution) => (
+      <SolutionCard
+        key={solution.id}
+        solution={solution}
+        isAccepted={solution.id === post.accepted_solution_id}
+        postAuthorId={post.author_id}
+        onRefresh={fetchPostDetail}  // Pass refresh callback instead
+      />
+    ));
+  };
+
+  const renderAddSolutionButton = () => {
+    if (userHasSolution) return null;
+
+    return (
+      <TouchableOpacity
+        style={styles.addSolutionButton}
+        onPress={() => navigation.navigate('CreateSolution', { postId, post })}
+      >
+        <Text style={styles.addSolutionButtonText}>Add Solution</Text>
+      </TouchableOpacity>
+    );
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <BackgroundSvg hue={user?.background_hue} />
+      <ScrollableScreenWrapper title="Post Detail">
+        <Animated.ScrollView
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
+          {post && (
+            <>
+              <PostDetailCard post={post} />
+              {renderSolutions()}
+              {renderAddSolutionButton()}
+            </>
+          )}
+        </Animated.ScrollView>
+      </ScrollableScreenWrapper>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  noSolutionsContainer: {
+    padding: 16,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginTop: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  noSolutionsText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+  },
+  addSolutionButton: {
+    backgroundColor: '#2563EB',
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  addSolutionButtonText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+});
+
+export default PostDetailScreen;
