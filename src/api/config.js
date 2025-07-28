@@ -12,7 +12,6 @@ const API_URL = isDevelopment
   : 'https://wolfkey.net/api/';
 
 const api = axios.create({
-  withCredentials: true,
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
@@ -23,12 +22,13 @@ const api = axios.create({
 
 // Enhanced error logging
 api.interceptors.request.use(request => {
-  console.log('Starting Request:', {
+  console.log('API Request Started:', {
+    method: request.method?.toUpperCase(),
     url: request.url,
-    method: request.method,
-    data: request.data,
+    fullUrl: `${request.baseURL}${request.url}`,
     headers: request.headers,
-    baseURL: request.baseURL // Log the full URL
+    data: request.data,
+    timestamp: new Date().toISOString()
   });
   return request;
 }, error => {
@@ -42,42 +42,90 @@ api.interceptors.request.use(request => {
 
 // Add response logging
 api.interceptors.response.use(response => {
-  console.log('Response:', {
+  console.log('API Response Success:', {
+    method: response.config?.method?.toUpperCase(),
+    url: response.config?.url,
+    fullUrl: `${response.config?.baseURL}${response.config?.url}`,
     status: response.status,
-    data: response.data
+    statusText: response.statusText,
+    headers: response.headers,
+    data: response.data,
   });
   return response;
 }, error => {
-  console.error('Response Error:', {
+  console.error('API Response Error:', {
+    method: error.config?.method?.toUpperCase(),
+    url: error.config?.url,
+    fullUrl: `${error.config?.baseURL}${error.config?.url}`,
+    status: error.response?.status,
+    statusText: error.response?.statusText,
     message: error.message,
-    response: error.response?.data
+    responseData: error.response?.data,
+    requestData: error.config?.data
   });
   return Promise.reject(error);
 });
 
-export const getCSRFToken = async () => {
+// Add token authentication interceptor
+api.interceptors.request.use(async (config) => {
   try {
-    const response = await api.get('csrf/', {
-      withCredentials: true
-    });
-    return response.data.csrfToken;
+    const token = await AsyncStorage.getItem('authToken');
+    
+    if (token) {
+      config.headers.Authorization = `Token ${token}`;
+    } else {
+      console.log('No token - request will be unauthenticated');
+    }
   } catch (error) {
-    console.error('Error fetching CSRF token:', error);
+    console.error('Error retrieving auth token:', error);
+  }
+  return config;
+});
+
+// Token management functions
+export const setAuthToken = async (token) => {
+  try {
+    await AsyncStorage.setItem('authToken', token);
+  } catch (error) {
+    console.error('Error storing auth token:', error);
     throw error;
   }
 };
 
-// Add an interceptor to automatically add CSRF token to requests that need it
-api.interceptors.request.use(async (config) => {
-  if (['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase())) {
-    try {
-      const token = await getCSRFToken();
-      config.headers['X-CSRFToken'] = token;
-    } catch (error) {
-      console.error('Error setting CSRF token:', error);
-    }
+export const getAuthToken = async () => {
+  try {
+    return await AsyncStorage.getItem('authToken');
+  } catch (error) {
+    console.error('Error retrieving auth token:', error);
+    return null;
   }
-  return config;
-});
+};
+
+export const removeAuthToken = async () => {
+  try {
+    await AsyncStorage.removeItem('authToken');
+  } catch (error) {
+    console.error('Error removing auth token:', error);
+  }
+};
+
+export const getFullImageUrl = (imageUrl) => {
+  if (!imageUrl) return null;
+  
+  // If it's already a full URL (starts with http/https), return as is
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    return imageUrl;
+  }
+  
+  // If it's a relative path, construct the full URL
+  const baseUrl = isDevelopment 
+    ? `http://${localhost}:8000`  // Local development
+    : 'https://wolfkey.net';      // Production
+  
+  // Remove leading slash if present to avoid double slashes
+  const cleanPath = imageUrl.startsWith('/') ? imageUrl.slice(1) : imageUrl;
+  
+  return `${baseUrl}/${cleanPath}`;
+};
 
 export default api;

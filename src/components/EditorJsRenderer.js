@@ -1,15 +1,18 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
 import { globalStyles } from '../utils/styles';
+import { getFullImageUrl } from '../api/config';
 
 const EditorJsRenderer = ({ blocks }) => {
   if (!blocks) return null;
 
-  const renderBlock = (block) => {
+  const renderBlock = (block, index) => {
+    const key = block.id || `block-${index}`;
+    
     switch (block.type) {
       case 'paragraph':
         return (
-          <Text key={block.id} style={styles.paragraph}>
+          <Text key={key} style={styles.paragraph}>
             {block.data.text}
           </Text>
         );
@@ -17,7 +20,7 @@ const EditorJsRenderer = ({ blocks }) => {
       case 'header':
         return (
           <Text 
-            key={block.id} 
+            key={key} 
             style={[
               styles.header,
               block.data.level === 2 && styles.headerTwo,
@@ -30,7 +33,7 @@ const EditorJsRenderer = ({ blocks }) => {
 
       case 'list':
         return (
-          <View key={block.id} style={styles.list}>
+          <View key={key} style={styles.list}>
             {block.data.items.map((item, index) => (
               <View key={index} style={styles.listItem}>
                 <Text style={styles.bullet}>
@@ -43,10 +46,12 @@ const EditorJsRenderer = ({ blocks }) => {
         );
 
       case 'image':
+        const imageUrl = block.data.file?.url || block.data.url;
+        const fullImageUrl = getFullImageUrl(imageUrl);
         return (
-          <View key={block.id} style={styles.imageContainer}>
+          <View key={key} style={styles.imageContainer}>
             <Image
-              source={{ uri: block.data.url }}
+              source={{ uri: fullImageUrl }}
               style={styles.image}
               resizeMode="cover"
             />
@@ -63,60 +68,67 @@ const EditorJsRenderer = ({ blocks }) => {
 
   return (
     <View style={styles.container}>
-      {blocks.map(block => renderBlock(block))}
+      {blocks.map((block, index) => renderBlock(block, index))}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 0,
   },
   paragraph: {
     ...globalStyles.regularText,
-    marginVertical: 8,
-    lineHeight: 24,
+    marginVertical: 4,
+    lineHeight: 20,
+    fontSize: 14,
   },
   header: {
     ...globalStyles.headingText,
-    marginVertical: 12,
+    marginVertical: 8,
+    fontSize: 18,
+    fontWeight: '600',
   },
   headerTwo: {
-    fontSize: 20,
+    fontSize: 16,
   },
   headerThree: {
-    fontSize: 18,
+    fontSize: 15,
   },
   list: {
-    marginVertical: 8,
+    marginVertical: 4,
   },
   listItem: {
     flexDirection: 'row',
-    marginVertical: 4,
-    paddingLeft: 8,
+    marginVertical: 2,
+    paddingLeft: 4,
   },
   bullet: {
     ...globalStyles.regularText,
-    marginRight: 8,
-    minWidth: 20,
+    marginRight: 6,
+    minWidth: 16,
+    fontSize: 14,
   },
   listItemText: {
     ...globalStyles.regularText,
     flex: 1,
+    fontSize: 14,
+    lineHeight: 20,
   },
   imageContainer: {
-    marginVertical: 12,
+    marginVertical: 8,
   },
   image: {
     width: '100%',
-    height: 200,
-    borderRadius: 8,
+    height: 180,
+    borderRadius: 6,
   },
   imageCaption: {
     ...globalStyles.smallText,
     textAlign: 'center',
-    marginTop: 8,
+    marginTop: 4,
     color: '#666',
+    fontSize: 12,
   }
 });
 

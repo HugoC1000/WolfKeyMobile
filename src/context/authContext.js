@@ -25,7 +25,6 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (username, password, loadUser) => {
     const response = await authService.login(username, password, loadUser);
-    console.log("Response: ", response);
     setUser({ isAuthenticated: true, ...response.user });
   };
 

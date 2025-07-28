@@ -11,7 +11,6 @@ export const scheduleService = {
   getDailySchedule: async (date) => {
     try {
       const isoDate = formatDateToISO(date);
-      console.log('Fetching schedule for:', isoDate);
 
       const response = await api.get(`schedules/daily/${isoDate}/`, {
         headers: {
@@ -40,7 +39,6 @@ export const scheduleService = {
     try {
       const isoDate = formatDateToISO(date);
       const response = await api.get(`schedules/uniform/${encodeURIComponent(isoDate)}`, {
-        withCredentials: true,
         headers: {
           'Accept': 'application/json'
         }

@@ -9,10 +9,10 @@ import { BlurView } from 'expo-blur';
 
 import HomeStackNavigator from './src/navigation/HomeStackNavigator'; // <- New import for nested stack
 import ExploreScreen from './src/screens/ExploreScreen';
-import SubjectsScreen from './src/screens/SubjectsScreen';
 import BookmarksScreen from './src/screens/BookmarksScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import LoginScreen from './src/screens/LoginScreen';
+import CreatePostScreen from './src/screens/CreatePostScreen';
 
 import { COLORS } from './src/utils/constants';
 import { UserProvider } from './src/context/userContext';
@@ -87,12 +87,16 @@ const TabNavigator = () => (
       }}
     />
     <Tab.Screen
-      name="Subjects"
-      component={SubjectsScreen}
+      name="Ask"
+      component={CreatePostScreen}
       options={{
         tabBarIcon: ({ color, size }) => (
-          <Ionicons name="book-outline" size={size} color={color} />
+          <Ionicons name="add-circle" size={32} color={COLORS.primary} />
         ),
+        tabBarLabel: 'Ask',
+        tabBarLabelStyle: {
+          color: COLORS.primary,
+        }
       }}
     />
     <Tab.Screen

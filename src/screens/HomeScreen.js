@@ -10,10 +10,12 @@ import {
   StatusBar,
   ActivityIndicator,
   Platform,
+  RefreshControl,
 } from 'react-native';
 import Schedule from '../components/ScheduleCard';
 import PostCard from '../components/PostCard';
 import api from '../api/config';
+import { getAuthToken } from '../api/config';
 import BackgroundSvg from '../components/BackgroundSVG';
 import { useUser } from '../context/userContext';
 import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';
@@ -44,6 +46,17 @@ const HomeScreen = () => {
                                   : setLoadingMore(true);
 
     try {
+      // Check if user is authenticated before making request
+      const token = await getAuthToken();
+      console.log('🏠 HOME SCREEN: Fetching posts for page:', pageNum);
+      console.log('🏠 HOME SCREEN: Auth token present:', !!token);
+      console.log('🏠 HOME SCREEN: User ID:', user?.id);
+      
+      if (!token) {
+        console.error('🏠 HOME SCREEN: No auth token found, cannot fetch posts');
+        throw new Error('Not authenticated');
+      }
+
       const res = await api.get(`for-you/?page=${pageNum}&limit=${PAGE_SIZE}`);
       const data = res.data;
 
@@ -54,6 +67,12 @@ const HomeScreen = () => {
       setPage(pageNum);
     } catch (err) {
       console.error('Error fetching posts:', err);
+      
+      // If it's an auth error, maybe redirect to login
+      if (err.response?.status === 401) {
+        console.error('🏠 HOME SCREEN: Authentication failed - user needs to login');
+        // You might want to redirect to login screen here
+      }
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -103,21 +122,29 @@ const HomeScreen = () => {
 
   return (
     <View style={styles.rootContainer}>
+      <ScrollableScreenWrapper title="Home" isHome={true}>
+          <Animated.FlatList
+            data={posts}
+            renderItem={({ item }) => <PostCard post={item} />}
+            keyExtractor={(item) => item.id.toString()}
+            ListHeaderComponent={ListHeader}
+            contentContainerStyle={{ ...styles.container, flexGrow: 1 }}
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.5}
+            onMomentumScrollBegin={() => {
+              onEndReachedCalledDuringMomentum.current = false;
+            }}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                colors={['#4A90E2']}
+                tintColor="#4A90E2"
+                progressBackgroundColor="#ffffff"
+                progressViewOffset={HEADER_HEIGHT +70}
+              />
+            }
 
-      <ScrollableScreenWrapper title="Home" isHome = {true}>
-        <Animated.FlatList
-          data={posts}
-          renderItem={({ item }) => <PostCard post={item} />}
-          keyExtractor={(item) => item.id.toString()}
-          ListHeaderComponent={ListHeader}
-          contentContainerStyle={styles.container}
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.5}
-          onMomentumScrollBegin={() => {
-            onEndReachedCalledDuringMomentum.current = false;
-          }}
-          refreshing={refreshing}
-          onRefresh={handleRefresh}
           ListFooterComponent={
             loadingMore && hasNext ? (
               <ActivityIndicator style={styles.loader} />
@@ -132,7 +159,6 @@ const HomeScreen = () => {
           }
         />
       </ScrollableScreenWrapper>
-      
     </View>
   );
 };

@@ -36,8 +36,6 @@ const Schedule = () => {
   };
   
   const processSchedule = (rawSchedule) => {
-
-    console.log("Raw schedule: ", rawSchedule);
     if (!rawSchedule?.blocks?.length || !rawSchedule.times) {
       return [{ block: 'No School Today', time: null }];
     }
@@ -55,7 +53,6 @@ const Schedule = () => {
       if (normalized.toLowerCase() in BLOCK_MAPPING) {
         return { block: BLOCK_MAPPING[normalized.toLowerCase()], time: rawSchedule.times[index] };
       }
-      console.log(user?.courses);
       if (user?.courses?.[`block_${normalized}`]) {
         return { block: user.courses[`block_${normalized}`], time: rawSchedule.times[index] };
       }
@@ -65,7 +62,6 @@ const Schedule = () => {
   };
 
   useEffect(() => {
-    console.log("Schedule component updating for user:", user?.id);
     setSchedules({ today: null, tomorrow: null });
     const fetchBothSchedules = async () => {
       setLoading(true);

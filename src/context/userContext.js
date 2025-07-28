@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authService } from '../api/authService';
+import { getAuthToken } from '../api/config';
 
 const UserContext = createContext(null);
 
@@ -16,20 +17,19 @@ export const UserProvider = ({ children }) => {
 
   const loadUser = async () => {
     try {
-      console.log("Loading user from storage...");
       const savedUser = await AsyncStorage.getItem('user');
-      console.log("Raw saved user data:", savedUser);
-      
-      if (savedUser) {
+      const authToken = await getAuthToken();
+
+      if (savedUser && authToken) {
         const parsedUser = JSON.parse(savedUser);
-        console.log("Parsed user data:", parsedUser);
         setUser(parsedUser);
+      } else if (savedUser && !authToken) {
+        await AsyncStorage.removeItem('user');
+        setUser(null);
       } else {
-        console.log("No user found in storage");
         setUser(null);
       }
     } catch (err) {
-      console.error('Error loading user data:', err);
       setUser(null);
     } finally {
       setLoading(false);
@@ -38,14 +38,9 @@ export const UserProvider = ({ children }) => {
 
   const clearUser = async () => {
     try {
-      console.log("Clearing user data...");
       await AsyncStorage.removeItem('user');
       setUser(null);
       setError(null);
-      
-      // Verify clear
-      const remainingUser = await AsyncStorage.getItem('user');
-      console.log("Remaining user data after clear:", remainingUser);
     } catch (err) {
       console.error('Error clearing user data:', err);
     }

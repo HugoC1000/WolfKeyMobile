@@ -31,6 +31,7 @@ export const globalStyles = StyleSheet.create({
   },
   regularText: {
     fontSize: 14,
+    fontWeight: '500',
     color: COLORS.text.primary,
     fontFamily: 'Nunito-Regular' 
   },

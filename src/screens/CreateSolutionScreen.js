@@ -10,12 +10,29 @@ const CreateSolutionScreen = ({ route, navigation }) => {
   const [solution, setSolution] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const hasValidContent = () => {
+    if (!solution) return false;
+    return solution.blocks && solution.blocks.some(block => {
+      if (block.type === 'paragraph' && block.data.text.trim()) return true;
+      if (block.type === 'image' && block.data.file?.url) return true;
+      return false;
+    });
+  };
+
   const handleSubmit = async () => {
     if (!solution) return;
+    
+    const hasContent = solution.blocks && solution.blocks.some(block => {
+      if (block.type === 'paragraph' && block.data.text.trim()) return true;
+      if (block.type === 'image' && block.data.file?.url) return true;
+      return false;
+    });
+    
+    if (!hasContent) return;
+    
     setIsSubmitting(true);
-    console.log(solution);
     try {
-      await api.post(`/solution/${postId}/create/`, {
+      await api.post(`/posts/${postId}/solutions/create/`, {
         content: solution
       });
       navigation.goBack();
@@ -36,9 +53,9 @@ const CreateSolutionScreen = ({ route, navigation }) => {
           placeholder="Write your solution here..."
         />
         <TouchableOpacity 
-          style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
+          style={[styles.submitButton, (isSubmitting || !hasValidContent()) && styles.submitButtonDisabled]}
           onPress={handleSubmit}
-          disabled={isSubmitting || !solution}
+          disabled={isSubmitting || !hasValidContent()}
         >
           <Text style={styles.submitButtonText}>
             {isSubmitting ? 'Submitting...' : 'Submit Solution'}
@@ -52,6 +69,7 @@ const CreateSolutionScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    marginBottom: 50
   },
   contentContainer: {
     padding: 16,
