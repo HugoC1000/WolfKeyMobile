@@ -1,5 +1,5 @@
 // screens/ExploreScreen.js
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -59,6 +59,11 @@ const ExploreScreen = () => {
   const handleRefresh = () => {
     fetchPosts(1, true);
   };
+
+  // Fetch posts when component mounts
+  useEffect(() => {
+    fetchPosts(1);
+  }, []);
 
   const ListHeader = useCallback(() => (
     <View>

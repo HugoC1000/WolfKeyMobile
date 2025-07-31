@@ -1,13 +1,20 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import EditorJsRenderer from './EditorJsRenderer';
 import { globalStyles } from '../utils/styles';
 import CommentList from './CommentList';
 import api from '../api/config';
+import { deleteComment } from '../api/commentService';
 import { useUser } from '../context/userContext';
 
-const SolutionCard = ({ solution, isAccepted: initialIsAccepted, postAuthorId, onRefresh }) => {
+const SolutionCard = ({ 
+  solution, 
+  isAccepted: initialIsAccepted, 
+  postAuthorId, 
+  onRefresh,
+  onCommentAction
+}) => {
   const { user } = useUser();
   const [votes, setVotes] = useState(solution.upvotes - solution.downvotes);
   const [userVote, setUserVote] = useState(solution.user_vote || 0);
@@ -24,14 +31,65 @@ const SolutionCard = ({ solution, isAccepted: initialIsAccepted, postAuthorId, o
     }
   };
 
-  const handleAcceptSolution = async () => {
+  const handleToggleAcceptSolution = async () => {
     try {
       await api.post(`solutions/${solution.id}/accept/`);
-      setIsAccepted(true);
+      if (isAccepted) {
+        setIsAccepted(false);
+      } else {
+        setIsAccepted(true);
+      }
       onRefresh();
     } catch (error) {
-      console.error('Error accepting solution:', error);
+      console.error('Error toggling solution acceptance:', error);
     }
+  };
+
+  // Comment handlers
+  const handleAddComment = () => {
+    onCommentAction?.({
+      type: 'add',
+      solutionId: solution.id
+    });
+  };
+
+  const handleReplyToComment = (comment) => {
+    onCommentAction?.({
+      type: 'reply',
+      solutionId: solution.id,
+      parentComment: comment
+    });
+  };
+
+  const handleEditComment = (comment) => {
+    onCommentAction?.({
+      type: 'edit',
+      solutionId: solution.id,
+      editingComment: comment
+    });
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    Alert.alert(
+      'Delete Comment',
+      'Are you sure you want to delete this comment?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteComment(commentId);
+              onRefresh();
+            } catch (error) {
+              console.error('Error deleting comment:', error);
+              Alert.alert('Error', 'Failed to delete comment. Please try again.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const renderVoteButtons = () => (
@@ -69,13 +127,6 @@ const SolutionCard = ({ solution, isAccepted: initialIsAccepted, postAuthorId, o
       styles.container,
       isAccepted && styles.acceptedContainer
     ]}>
-      {isAccepted && (
-        <View style={styles.acceptedBadge}>
-          <MaterialIcons name="check-circle" size={16} color="#4CAF50" />
-          <Text style={styles.acceptedText}>✓ Accepted</Text>
-        </View>
-      )}
-      
       <View style={styles.header}>
         <View style={styles.authorInfo}>
           {solution.author.userprofile.profile_picture ? (
@@ -103,19 +154,44 @@ const SolutionCard = ({ solution, isAccepted: initialIsAccepted, postAuthorId, o
         {renderVoteButtons()}
         
         <View style={styles.actionsContainer}>
-          {user?.id === postAuthorId && !isAccepted && (
+          <TouchableOpacity
+            style={styles.commentButton}
+            onPress={handleAddComment}
+          >
+            <MaterialIcons name="comment" size={16} color="#666" />
+            <Text style={styles.commentButtonText}>Comment</Text>
+          </TouchableOpacity>
+          
+          {user?.id === postAuthorId && (
             <TouchableOpacity
-              style={styles.acceptButton}
-              onPress={handleAcceptSolution}
+              style={[
+                styles.acceptButton,
+                isAccepted && styles.acceptedButton
+              ]}
+              onPress={handleToggleAcceptSolution}
             >
-              <MaterialIcons name="check" size={16} color="#4CAF50" />
-              <Text style={styles.acceptButtonText}>Accept</Text>
+              <MaterialIcons 
+                name={isAccepted ? "check-circle" : "check"} 
+                size={16} 
+                color={isAccepted ? "white" : "#4CAF50"} 
+              />
+              <Text style={[
+                styles.acceptButtonText,
+                isAccepted && styles.acceptedButtonText
+              ]}>
+                {isAccepted ? "Accepted" : "Accept"}
+              </Text>
             </TouchableOpacity>
           )}
         </View>
       </View>
       
-      <CommentList comments={solution.comments} />
+      <CommentList 
+        comments={solution.comments || []} 
+        onReply={handleReplyToComment}
+        onEdit={handleEditComment}
+        onDelete={handleDeleteComment}
+      />
     </View>
   );
 };
@@ -137,21 +213,6 @@ const styles = StyleSheet.create({
     borderLeftColor: '#4CAF50',
     shadowColor: '#4CAF50',
     shadowOpacity: 0.1,
-  },
-  acceptedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E8F5E9',
-    padding: 6,
-    borderRadius: 4,
-    marginBottom: 8,
-    alignSelf: 'flex-start',
-  },
-  acceptedText: {
-    color: '#4CAF50',
-    marginLeft: 4,
-    fontSize: 12,
-    fontWeight: '600',
   },
   header: {
     flexDirection: 'row',
@@ -229,6 +290,21 @@ const styles = StyleSheet.create({
   actionsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
+  },
+  commentButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  commentButtonText: {
+    color: '#666',
+    marginLeft: 4,
+    fontSize: 12,
+    fontWeight: '500',
   },
   acceptButton: {
     flexDirection: 'row',
@@ -238,11 +314,17 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 4,
   },
+  acceptedButton: {
+    backgroundColor: '#4CAF50',
+  },
   acceptButtonText: {
     color: '#4CAF50',
     marginLeft: 2,
     fontSize: 12,
     fontWeight: '600',
+  },
+  acceptedButtonText: {
+    color: 'white',
   },
 });
 

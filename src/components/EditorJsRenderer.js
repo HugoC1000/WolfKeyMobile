@@ -6,6 +6,19 @@ import { getFullImageUrl } from '../api/config';
 const EditorJsRenderer = ({ blocks }) => {
   if (!blocks) return null;
 
+  // Helper function to strip HTML tags and decode entities
+  const stripHtmlAndDecode = (text) => {
+    if (!text) return '';
+    return text
+      .replace(/<[^>]*>/g, '') // Remove HTML tags
+      .replace(/&nbsp;/g, ' ') // Replace &nbsp; with regular space
+      .replace(/&amp;/g, '&') // Replace &amp; with &
+      .replace(/&lt;/g, '<') // Replace &lt; with <
+      .replace(/&gt;/g, '>') // Replace &gt; with >
+      .replace(/&quot;/g, '"') // Replace &quot; with "
+      .replace(/&#39;/g, "'"); // Replace &#39; with '
+  };
+
   const renderBlock = (block, index) => {
     const key = block.id || `block-${index}`;
     
@@ -13,7 +26,7 @@ const EditorJsRenderer = ({ blocks }) => {
       case 'paragraph':
         return (
           <Text key={key} style={styles.paragraph}>
-            {block.data.text}
+            {stripHtmlAndDecode(block.data.text)}
           </Text>
         );
 
@@ -27,7 +40,7 @@ const EditorJsRenderer = ({ blocks }) => {
               block.data.level === 3 && styles.headerThree
             ]}
           >
-            {block.data.text}
+            {stripHtmlAndDecode(block.data.text)}
           </Text>
         );
 
@@ -39,7 +52,9 @@ const EditorJsRenderer = ({ blocks }) => {
                 <Text style={styles.bullet}>
                   {block.data.style === 'ordered' ? `${index + 1}.` : '•'}
                 </Text>
-                <Text style={styles.listItemText}>{item}</Text>
+                <Text style={styles.listItemText}>
+                  {typeof item === 'string' ? item : item.content}
+                </Text>
               </View>
             ))}
           </View>
@@ -58,6 +73,23 @@ const EditorJsRenderer = ({ blocks }) => {
             {block.data.caption && (
               <Text style={styles.imageCaption}>{block.data.caption}</Text>
             )}
+          </View>
+        );
+
+      case 'code':
+        return (
+          <View key={key} style={styles.codeContainer}>
+            <Text style={styles.codeText}>{block.data.code}</Text>
+            {block.data.language && (
+              <Text style={styles.codeLanguage}>{block.data.language}</Text>
+            )}
+          </View>
+        );
+
+      case 'math':
+        return (
+          <View key={key} style={styles.mathContainer}>
+            <Text style={styles.mathText}>{block.data.content}</Text>
           </View>
         );
 
@@ -129,6 +161,39 @@ const styles = StyleSheet.create({
     marginTop: 4,
     color: '#666',
     fontSize: 12,
+  },
+  codeContainer: {
+    backgroundColor: '#f5f5f5',
+    borderRadius: 6,
+    padding: 12,
+    marginVertical: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#007acc',
+  },
+  codeText: {
+    fontFamily: 'Courier',
+    fontSize: 13,
+    lineHeight: 18,
+    color: '#333',
+  },
+  codeLanguage: {
+    fontSize: 11,
+    color: '#666',
+    marginTop: 4,
+    fontWeight: '500',
+  },
+  mathContainer: {
+    backgroundColor: '#f9f9f9',
+    borderRadius: 6,
+    padding: 12,
+    marginVertical: 8,
+    alignItems: 'center',
+  },
+  mathText: {
+    fontFamily: 'Courier',
+    fontSize: 14,
+    color: '#333',
+    textAlign: 'center',
   }
 });
 

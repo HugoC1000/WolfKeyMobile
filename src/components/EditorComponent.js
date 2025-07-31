@@ -8,9 +8,34 @@ import { getFullImageUrl } from '../api/config';
 
 
 const EditorComponent = ({ onSave, initialContent = '', placeholder = 'Write your content here...' }) => {
-  const [content, setContent] = useState(initialContent);
+  const [content, setContent] = useState('');
   const [blocks, setBlocks] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
+
+  // Parse initialContent when component mounts or initialContent changes
+  useEffect(() => {
+    if (initialContent) {
+      if (typeof initialContent === 'string') {
+        // If it's a string, use it directly
+        setContent(initialContent);
+      } else if (initialContent.blocks && Array.isArray(initialContent.blocks)) {
+        // If it's EditorJS format, parse it
+        const textBlocks = [];
+        const imageBlocks = [];
+        
+        initialContent.blocks.forEach(block => {
+          if (block.type === 'paragraph' && block.data?.text) {
+            textBlocks.push(block.data.text);
+          } else if (block.type === 'image' && block.data?.file?.url) {
+            imageBlocks.push(block);
+          }
+        });
+        
+        setContent(textBlocks.join('\n'));
+        setBlocks(imageBlocks);
+      }
+    }
+  }, [initialContent]);
 
   // Real-time content updates
   useEffect(() => {
@@ -63,7 +88,6 @@ const EditorComponent = ({ onSave, initialContent = '', placeholder = 'Write you
         setIsUploading(true);
         
         try {
-          // Upload image immediately
           const uploadedUrl = await uploadImage(result.assets[0].uri);
           
           const newBlock = {
@@ -99,10 +123,11 @@ const EditorComponent = ({ onSave, initialContent = '', placeholder = 'Write you
 
   const updateContent = async (currentBlocks = blocks, shouldValidate = false) => {
     try {
-      // Split content by line breaks and create paragraph blocks
-      const paragraphBlocks = content
+      const textContent = content || '';
+      
+      const paragraphBlocks = textContent
         .split('\n')
-        .filter(line => line.trim() !== '') // Remove empty lines
+        .filter(line => line.trim() !== '')
         .map(line => ({
           type: 'paragraph',
           data: {
@@ -130,12 +155,10 @@ const EditorComponent = ({ onSave, initialContent = '', placeholder = 'Write you
         version: '2.27.2'
       };
 
-      // Only validate when explicitly requested
-      if (shouldValidate && !content.trim() && currentBlocks.length === 0) {
+      if (shouldValidate && !(textContent.trim()) && currentBlocks.length === 0) {
         throw new Error('Content cannot be empty');
       }
       
-      // Return EditorJS object instead of FormData
       if (typeof onSave === 'function') {
         await onSave(editorData);
       }
@@ -152,7 +175,7 @@ const EditorComponent = ({ onSave, initialContent = '', placeholder = 'Write you
   };
 
   const handleSubmit = () => {
-    updateContent(blocks, true); // Only validate on submit
+    updateContent(blocks, true);
   };
 
   const getMimeType = (uri) => {
@@ -208,7 +231,7 @@ const styles = StyleSheet.create({
   },
   editor: {
     ...globalStyles.regularText,
-    minHeight: 80,
+    minHeight: 50,
   },
   imageContainer: {
     marginVertical: 8,

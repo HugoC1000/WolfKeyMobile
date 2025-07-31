@@ -7,10 +7,12 @@ import {
   RefreshControl,
   Text,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import Animated from 'react-native-reanimated';
 import PostDetailCard from '../components/PostDetailCard';
 import SolutionCard from '../components/SolutionCard';
+import CommentBottomSheet from '../components/CommentBottomSheet';
 import api from '../api/config';
 import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';
 import BackgroundSvg from '../components/BackgroundSVG';
@@ -23,13 +25,16 @@ const PostDetailScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [userHasSolution, setUserHasSolution] = useState(false);
+  
+  const [isCommentSheetVisible, setIsCommentSheetVisible] = useState(false);
+  const [currentSolutionId, setCurrentSolutionId] = useState(null);
+  const [replyingToComment, setReplyingToComment] = useState(null);
+  const [editingComment, setEditingComment] = useState(null);
 
   const fetchPostDetail = async () => {
     try {
       const response = await api.get(`/posts/${postId}/`);
-      console.log("Response 2: ", response);
       setPost(response.data);
-      // Check if user has already submitted a solution
       if (response.data.solutions) {
         setUserHasSolution(
           response.data.solutions.some((solution) => solution.author_id === user.id)
@@ -52,6 +57,47 @@ const PostDetailScreen = ({ route, navigation }) => {
     fetchPostDetail();
   };
 
+  // Comment handlers
+  const handleCommentAction = (action) => {
+    setCurrentSolutionId(action.solutionId);
+    
+    switch (action.type) {
+      case 'add':
+        setReplyingToComment(null);
+        setEditingComment(null);
+        setIsCommentSheetVisible(true);
+        break;
+      case 'reply':
+        setReplyingToComment(action.parentComment);
+        setEditingComment(null);
+        setIsCommentSheetVisible(true);
+        break;
+      case 'edit':
+        setEditingComment(action.editingComment);
+        setReplyingToComment(null);
+        setIsCommentSheetVisible(true);
+        break;
+    }
+  };
+
+  const handleCommentSubmitted = (newComment) => {
+    fetchPostDetail();
+    setIsCommentSheetVisible(false);
+    setReplyingToComment(null);
+    setEditingComment(null);
+    setCurrentSolutionId(null);
+    
+    const action = editingComment ? 'updated' : 'posted';
+    Alert.alert('Success', `Comment ${action} successfully!`);
+  };
+
+  const handleCloseCommentSheet = () => {
+    setIsCommentSheetVisible(false);
+    setReplyingToComment(null);
+    setEditingComment(null);
+    setCurrentSolutionId(null);
+  };
+
   const renderSolutions = () => {
     if (!post.solutions || post.solutions.length === 0) {
       return (
@@ -68,8 +114,9 @@ const PostDetailScreen = ({ route, navigation }) => {
         key={solution.id}
         solution={solution}
         isAccepted={solution.id === post.accepted_solution_id}
-        postAuthorId={post.author_id}
-        onRefresh={fetchPostDetail}  // Pass refresh callback instead
+        postAuthorId={post.author.id}
+        onRefresh={fetchPostDetail}
+        onCommentAction={handleCommentAction}
       />
     ));
   };
@@ -114,6 +161,15 @@ const PostDetailScreen = ({ route, navigation }) => {
           )}
         </Animated.ScrollView>
       </ScrollableScreenWrapper>
+      
+      <CommentBottomSheet
+        isVisible={isCommentSheetVisible}
+        onClose={handleCloseCommentSheet}
+        solutionId={currentSolutionId}
+        parentComment={replyingToComment}
+        editingComment={editingComment}
+        onCommentSubmitted={handleCommentSubmitted}
+      />
     </View>
   );
 };
@@ -153,6 +209,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     marginVertical: 16,
+    marginBottom: 75,
   },
   addSolutionButtonText: {
     color: 'white',

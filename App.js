@@ -6,6 +6,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import HomeStackNavigator from './src/navigation/HomeStackNavigator'; // <- New import for nested stack
 import ExploreScreen from './src/screens/ExploreScreen';
@@ -13,6 +14,8 @@ import BookmarksScreen from './src/screens/BookmarksScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import CreatePostScreen from './src/screens/CreatePostScreen';
+import PostDetailScreen from './src/screens/PostDetailScreen';
+import CreateSolutionScreen from './src/screens/CreateSolutionScreen';
 
 import { COLORS } from './src/utils/constants';
 import { UserProvider } from './src/context/userContext';
@@ -21,9 +24,27 @@ import { AuthProvider, useAuth } from './src/context/authContext';
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-const MainStack = () => (
+const ExploreStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
-    <Stack.Screen name="Home" component={HomeStackNavigator} />
+    <Stack.Screen name="ExploreScreen" component={ExploreScreen} />
+    <Stack.Screen name="PostDetail" component={PostDetailScreen} />
+    <Stack.Screen name="CreateSolution" component={CreateSolutionScreen} />
+  </Stack.Navigator>
+);
+
+const BookmarksStack = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="BookmarksScreen" component={BookmarksScreen} />
+    <Stack.Screen name="PostDetail" component={PostDetailScreen} />
+    <Stack.Screen name="CreateSolution" component={CreateSolutionScreen} />
+  </Stack.Navigator>
+);
+
+const ProfileStack = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
+    <Stack.Screen name="PostDetail" component={PostDetailScreen} />
+    <Stack.Screen name="CreateSolution" component={CreateSolutionScreen} />
   </Stack.Navigator>
 );
 
@@ -63,7 +84,7 @@ const TabNavigator = () => (
   >
     <Tab.Screen
       name="MainStack"
-      component={MainStack}
+      component={HomeStackNavigator}
       options={{
         title: 'Home',
         tabBarIcon: ({ color, size }) => (
@@ -79,7 +100,7 @@ const TabNavigator = () => (
     />
     <Tab.Screen
       name="Explore"
-      component={ExploreScreen}
+      component={ExploreStack}
       options={{
         tabBarIcon: ({ color, size }) => (
           <Ionicons name="compass-outline" size={size} color={color} />
@@ -101,7 +122,7 @@ const TabNavigator = () => (
     />
     <Tab.Screen
       name="Bookmarks"
-      component={BookmarksScreen}
+      component={BookmarksStack}
       options={{
         tabBarIcon: ({ color, size }) => (
           <Ionicons name="bookmark-outline" size={size} color={color} />
@@ -110,7 +131,7 @@ const TabNavigator = () => (
     />
     <Tab.Screen
       name="Profile"
-      component={ProfileScreen}
+      component={ProfileStack}
       options={{
         tabBarIcon: ({ color, size }) => (
           <Ionicons name="person-outline" size={size} color={color} />
@@ -152,18 +173,20 @@ const ForceBackgroundDebug = () => (
 
 const App = () => {
   return (
-    <NavigationContainer>
-      <AuthProvider>
-        <UserProvider>
-          <View style={styles.container}>
-            <ForceBackgroundDebug />
-            <View style={[styles.content, { backgroundColor: 'transparent' }]}>
-              <AppContent />
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <NavigationContainer>
+        <AuthProvider>
+          <UserProvider>
+            <View style={styles.container}>
+              <ForceBackgroundDebug />
+              <View style={[styles.content, { backgroundColor: 'transparent' }]}>
+                <AppContent />
+              </View>
             </View>
-          </View>
-        </UserProvider>
-      </AuthProvider>
-    </NavigationContainer>
+          </UserProvider>
+        </AuthProvider>
+      </NavigationContainer>
+    </GestureHandlerRootView>
   );
 };
 
