@@ -25,9 +25,6 @@ const HEADER_HEIGHT = 45; // Height of the header
 const PAGE_SIZE = 10;
 
 
-
-
-
 const HomeScreen = () => {
   const [posts, setPosts] = useState([]);
   const [page, setPage] = useState(1);

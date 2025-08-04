@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   Dimensions,
   Animated,
+  AppState,
 } from 'react-native';
 import { scheduleService } from '../api/scheduleService';
 import { useUser } from '../context/userContext';
@@ -27,6 +28,7 @@ const Schedule = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [schedules, setSchedules] = useState({ today: null, tomorrow: null });
   const [loading, setLoading] = useState(true);
+  const lastFetchDate = useRef(new Date().toDateString());
 
   const getDateString = (offset = 0) => {
     const date = new Date();
@@ -71,21 +73,42 @@ const Schedule = () => {
           scheduleService.getDailySchedule(getDateString(1)),
         ]);
 
+        let todayUniform = false;
+        let tomorrowUniform = false;
+        
+        try {
+          [todayUniform, tomorrowUniform] = await Promise.all([
+            scheduleService.getCeremonialUniform(getDateString(0)),
+            scheduleService.getCeremonialUniform(getDateString(1)),
+          ]);
+        } catch (uniformError) {
+          console.warn('Failed to fetch uniform data:', uniformError);
+        }
+
         setSchedules({
           today: {
             blocks: processSchedule(todayData),
-            uniformRequired: todayData.ceremonial_uniform,
+            uniformRequired: todayUniform,
           },
           tomorrow: {
             blocks: processSchedule(tomorrowData),
-            uniformRequired: tomorrowData.ceremonial_uniform,
+            uniformRequired: tomorrowUniform,
           },
         });
+        
+        // Update last fetch date
+        lastFetchDate.current = new Date().toDateString();
       } catch (error) {
         console.error('Schedule fetch failed:', error);
         setSchedules({
-          today: { blocks: [{ block: 'Error loading schedule', time: null }] },
-          tomorrow: { blocks: [{ block: 'Error loading schedule', time: null }] },
+          today: { 
+            blocks: [{ block: 'Error loading schedule', time: null }],
+            uniformRequired: false 
+          },
+          tomorrow: { 
+            blocks: [{ block: 'Error loading schedule', time: null }],
+            uniformRequired: false 
+          },
         });
       } finally {
         setLoading(false);
@@ -93,6 +116,65 @@ const Schedule = () => {
     };
 
     fetchBothSchedules();
+  }, [user?.id]);
+
+  // Listen for app state changes to refresh data when app comes to foreground
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState) => {
+      if (nextAppState === 'active') {
+        const currentDate = new Date().toDateString();
+        
+        if (currentDate !== lastFetchDate.current) {
+          console.log('Date changed, refreshing schedule data...');
+          setSchedules({ today: null, tomorrow: null });
+          
+          const fetchBothSchedules = async () => {
+            setLoading(true);
+            try {
+              const [todayData, tomorrowData] = await Promise.all([
+                scheduleService.getDailySchedule(getDateString(0)),
+                scheduleService.getDailySchedule(getDateString(1)),
+              ]);
+
+              let todayUniform = false;
+              let tomorrowUniform = false;
+              
+              try {
+                [todayUniform, tomorrowUniform] = await Promise.all([
+                  scheduleService.getCeremonialUniform(getDateString(0)),
+                  scheduleService.getCeremonialUniform(getDateString(1)),
+                ]);
+              } catch (uniformError) {
+                console.warn('Failed to fetch uniform data:', uniformError);
+              }
+
+              setSchedules({
+                today: {
+                  blocks: processSchedule(todayData),
+                  uniformRequired: todayUniform,
+                },
+                tomorrow: {
+                  blocks: processSchedule(tomorrowData),
+                  uniformRequired: tomorrowUniform,
+                },
+              });
+              
+              lastFetchDate.current = currentDate;
+            } catch (error) {
+              console.error('Schedule refresh failed:', error);
+            } finally {
+              setLoading(false);
+            }
+          };
+
+          fetchBothSchedules();
+        }
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    
+    return () => subscription?.remove();
   }, [user?.id]);
 
   // Handle scroll events and update pagination
@@ -234,7 +316,7 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: 11,
-    color: '#6B7280', // Muted text color
+    color: '#6B7280',
     fontWeight: '400',
   },
   uniformAlert: {

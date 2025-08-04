@@ -38,14 +38,24 @@ export const scheduleService = {
   getCeremonialUniform: async (date) => {
     try {
       const isoDate = formatDateToISO(date);
-      const response = await api.get(`schedules/uniform/${encodeURIComponent(isoDate)}`, {
+      const response = await api.get(`schedules/uniform/${encodeURIComponent(isoDate)}/`, {
         headers: {
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        // Add timestamp to prevent caching
+        params: {
+          t: new Date().getTime()
         }
       });
-      return response.data.required;
+      return response.data.ceremonial_uniform_required;
     } catch (error) {
-      console.error('Error checking ceremonial uniform:', error);
+      console.error('Error checking ceremonial uniform:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message,
+        url: error.config?.url
+      });
       throw error;
     }
   }
