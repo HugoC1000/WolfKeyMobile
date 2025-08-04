@@ -199,7 +199,7 @@ const SolutionCard = ({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: 'white',
-    borderRadius: 8,
+    borderRadius: 12,
     marginBottom: 8,
     padding: 12,
     shadowColor: '#000',

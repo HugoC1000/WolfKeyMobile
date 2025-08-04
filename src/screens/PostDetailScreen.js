@@ -33,7 +33,7 @@ const PostDetailScreen = ({ route, navigation }) => {
 
   const fetchPostDetail = async () => {
     try {
-      const response = await api.get(`/posts/${postId}/`);
+      const response = await api.get(`posts/${postId}/`);
       setPost(response.data);
       if (response.data.solutions) {
         setUserHasSolution(
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
   addSolutionButton: {
     backgroundColor: '#2563EB',
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 12,
     alignItems: 'center',
     marginVertical: 16,
     marginBottom: 75,

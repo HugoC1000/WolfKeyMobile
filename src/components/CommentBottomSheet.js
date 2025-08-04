@@ -247,10 +247,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    paddingVertical: 12,
+    paddingVertical: 4,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
-    minHeight: 60,
+    minHeight: 30,
   },
   headerLeft: {
     flex: 1,

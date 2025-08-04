@@ -10,7 +10,7 @@ const STATUS_BAR_HEIGHT = Platform.OS === 'ios'
   ? (Device.modelName === 'iPhone SE' ? 0 : 44)
   : StatusBar.currentHeight || 0;
 
-const ScrollableScreenWrapper = ({ children, title, isHome }) => {
+const ScrollableScreenWrapper = ({ children, title, isHome, backgroundHue }) => {
   const { user } = useUser();
   const scrollY = useRef(new Animated.Value(0)).current;
   const [isScrollingUp, setIsScrollingUp] = useState(true);
@@ -44,14 +44,7 @@ const ScrollableScreenWrapper = ({ children, title, isHome }) => {
         backgroundColor="transparent" 
         barStyle="dark-content" 
       />
-      <BackgroundSvg hue={user?.background_hue} />
-
-      <BlurView
-        style={styles.statusBarBlur}
-        tint="light"
-        intensity={50}
-        reducedTransparencyFallbackColor="white"
-      />
+      <BackgroundSvg hue={backgroundHue || user?.background_hue} />
       
       <View style={styles.container}>
         <SharedHeader 
@@ -79,14 +72,6 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-  },
-  statusBarBlur: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: STATUS_BAR_HEIGHT,
-    zIndex: 100,
   }
 });
 

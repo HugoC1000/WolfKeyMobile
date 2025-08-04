@@ -70,10 +70,27 @@ const EditorComponent = ({ onSave, initialContent = '', placeholder = 'Write you
 
   const pickImage = async () => {
     try {
+      Alert.alert(
+        'Add Image',
+        'Choose an option',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Choose from Gallery', onPress: selectFromGallery },
+          { text: 'Take Photo', onPress: takePhoto },
+        ]
+      );
+    } catch (error) {
+      console.error('Error showing image options:', error);
+      Alert.alert('Error', 'Failed to show image options');
+    }
+  };
+
+  const selectFromGallery = async () => {
+    try {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
       if (permissionResult.granted === false) {
-        alert('Permission to access camera roll is required!');
+        Alert.alert('Permission required', 'Please grant camera roll permissions to upload images.');
         return;
       }
 
@@ -81,42 +98,68 @@ const EditorComponent = ({ onSave, initialContent = '', placeholder = 'Write you
         mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [4, 3],
-        quality: 1,
+        quality: 0.8,
       });
 
       if (!result.canceled && result.assets?.[0]?.uri) {
-        setIsUploading(true);
-        
-        try {
-          const uploadedUrl = await uploadImage(result.assets[0].uri);
-          
-          const newBlock = {
-            type: 'image',
-            data: {
-              file: {
-                url: getFullImageUrl(uploadedUrl),
-              },
-              caption: '',
-              withBorder: false,
-              withBackground: false,
-              stretched: false
-            }
-          };
-          
-          const updatedBlocks = [...blocks, newBlock];
-          setBlocks(updatedBlocks);
-          
-          await updateContent(updatedBlocks);
-        } catch (uploadError) {
-          console.error('Failed to upload image:', uploadError);
-          Alert.alert('Upload Error', 'Failed to upload image. Please try again.');
-        } finally {
-          setIsUploading(false);
-        }
+        await handleImageUpload(result.assets[0]);
       }
     } catch (error) {
-      console.error('Error picking image:', error);
-      Alert.alert('Error', 'Failed to add image');
+      console.error('Error selecting from gallery:', error);
+      Alert.alert('Error', 'Failed to select image');
+    }
+  };
+
+  const takePhoto = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission required', 'Please grant camera permissions to take photos.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets?.[0]?.uri) {
+        await handleImageUpload(result.assets[0]);
+      }
+    } catch (error) {
+      console.error('Error taking photo:', error);
+      Alert.alert('Error', 'Failed to take photo');
+    }
+  };
+
+  const handleImageUpload = async (imageAsset) => {
+    setIsUploading(true);
+    
+    try {
+      const uploadedUrl = await uploadImage(imageAsset.uri);
+      
+      const newBlock = {
+        type: 'image',
+        data: {
+          file: {
+            url: getFullImageUrl(uploadedUrl),
+          },
+          caption: '',
+          withBorder: false,
+          withBackground: false,
+          stretched: false
+        }
+      };
+      
+      const updatedBlocks = [...blocks, newBlock];
+      setBlocks(updatedBlocks);
+      
+      await updateContent(updatedBlocks);
+    } catch (uploadError) {
+      console.error('Failed to upload image:', uploadError);
+      Alert.alert('Upload Error', 'Failed to upload image. Please try again.');
+    } finally {
       setIsUploading(false);
     }
   };

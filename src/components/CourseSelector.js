@@ -106,7 +106,6 @@ const CourseSelector = ({ onCourseSelect }) => {
                     <Text style={[styles.courseName, isSelected && styles.courseNameSelected]}>
                       {course.name} {isSelected ? '✓' : ''}
                     </Text>
-                    <Text style={styles.courseCode}>{course.code}</Text>
                     <Text style={styles.experienceCount}>
                       {course.experienced_count} students experienced
                     </Text>
@@ -206,11 +205,6 @@ const styles = StyleSheet.create({
   },
   courseNameSelected: {
     color: '#4CAF50',
-  },
-  courseCode: {
-    color: '#666',
-    fontSize: 14,
-    marginTop: 2,
   },
   experienceCount: {
     color: '#4CAF50',

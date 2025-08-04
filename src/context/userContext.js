@@ -46,6 +46,18 @@ export const UserProvider = ({ children }) => {
     }
   };
 
+  const updateUser = async (updates) => {
+    try {
+      if (user) {
+        const updatedUser = { ...user, ...updates };
+        setUser(updatedUser);
+        await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+      }
+    } catch (err) {
+      console.error('Error updating user data:', err);
+    }
+  };
+
   return (
     <UserContext.Provider value={{
       user,
@@ -53,6 +65,7 @@ export const UserProvider = ({ children }) => {
       error,
       clearUser,
       loadUser,
+      updateUser,
     }}>
       {children}
     </UserContext.Provider>

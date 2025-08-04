@@ -11,13 +11,6 @@ const HomeStackNavigator = () => (
   <Stack.Navigator
     screenOptions={{
       headerShown: false,
-      headerBackground: () => (
-        <BlurView
-          intensity={40}
-          tint="light"
-          style={StyleSheet.absoluteFill}
-        />
-      ),
       headerTransparent: true,
     }}
   >

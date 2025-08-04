@@ -16,6 +16,7 @@ import LoginScreen from './src/screens/LoginScreen';
 import CreatePostScreen from './src/screens/CreatePostScreen';
 import PostDetailScreen from './src/screens/PostDetailScreen';
 import CreateSolutionScreen from './src/screens/CreateSolutionScreen';
+import EditProfileScreen from './src/screens/EditProfileScreen';
 
 import { COLORS } from './src/utils/constants';
 import { UserProvider } from './src/context/userContext';
@@ -43,6 +44,7 @@ const BookmarksStack = () => (
 const ProfileStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
+    <Stack.Screen name="EditProfile" component={EditProfileScreen} />
     <Stack.Screen name="PostDetail" component={PostDetailScreen} />
     <Stack.Screen name="CreateSolution" component={CreateSolutionScreen} />
   </Stack.Navigator>
@@ -71,13 +73,6 @@ const TabNavigator = () => (
       headerStyle: {
         backgroundColor: 'transparent',
       },
-      headerBackground: () => (
-        <BlurView
-          intensity={40}
-          tint="light"
-          style={StyleSheet.absoluteFill}
-        />
-      ),
       headerTransparent: true,
       headerShown: false,
     }}
@@ -159,18 +154,6 @@ const AppContent = () => {
   );
 };
 
-const ForceBackgroundDebug = () => (
-  <View
-    style={{
-      ...StyleSheet.absoluteFillObject,
-      backgroundColor: 'transparent',
-      opacity: 0,
-      zIndex: 9999,
-      pointerEvents: 'none',
-    }}
-  />
-);
-
 const App = () => {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -178,7 +161,6 @@ const App = () => {
         <AuthProvider>
           <UserProvider>
             <View style={styles.container}>
-              <ForceBackgroundDebug />
               <View style={[styles.content, { backgroundColor: 'transparent' }]}>
                 <AppContent />
               </View>
