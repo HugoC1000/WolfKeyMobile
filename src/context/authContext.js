@@ -28,13 +28,19 @@ export const AuthProvider = ({ children }) => {
     setUser({ isAuthenticated: true, ...response.user });
   };
 
+  const register = async (userData, loadUser) => {
+    const response = await authService.register(userData, loadUser);
+    setUser({ isAuthenticated: true, ...response.user });
+    return response;
+  };
+
   const logout = async () => {
     await authService.logout();
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

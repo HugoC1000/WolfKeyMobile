@@ -1,13 +1,24 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Animated } from 'react-native';
 import api from '../api/config';
 import { debounce } from 'lodash';
 
-const CourseSelector = ({ onCourseSelect }) => {
+const CourseSelector = React.memo(({ onCourseSelect, selectedCourses = [] }) => {
   const [courseQuery, setCourseQuery] = useState('');
   const [courses, setCourses] = useState([]);
-  const [selectedCourses, setSelectedCourses] = useState([]);
+  const [internalSelectedCourses, setInternalSelectedCourses] = useState(selectedCourses);
   const [fadeAnim] = useState(new Animated.Value(0));
+
+  // Memoize selectedCourses to prevent unnecessary updates
+  const memoizedSelectedCourses = useMemo(() => selectedCourses, [
+    selectedCourses.length,
+    selectedCourses.map(course => course.id).join(',')
+  ]);
+
+  // Update internal selected courses when prop changes
+  useEffect(() => {
+    setInternalSelectedCourses(memoizedSelectedCourses);
+  }, [memoizedSelectedCourses]);
 
   const debouncedSearch = useCallback(
     debounce(async (query) => {
@@ -42,28 +53,28 @@ const CourseSelector = ({ onCourseSelect }) => {
     return () => debouncedSearch.cancel();
   }, [courseQuery]);
 
-  const handleSelectCourse = (course) => {
-    const isAlreadySelected = selectedCourses.find(c => c.id === course.id);
+  const handleSelectCourse = useCallback((course) => {
+    const isAlreadySelected = internalSelectedCourses.find(c => c.id === course.id);
     
     let updatedCourses;
     if (isAlreadySelected) {
       // Remove if already selected
-      updatedCourses = selectedCourses.filter(c => c.id !== course.id);
+      updatedCourses = internalSelectedCourses.filter(c => c.id !== course.id);
     } else {
       // Add if not selected
-      updatedCourses = [...selectedCourses, course];
+      updatedCourses = [...internalSelectedCourses, course];
     }
     
-    setSelectedCourses(updatedCourses);
+    setInternalSelectedCourses(updatedCourses);
     setCourseQuery('');
     onCourseSelect(updatedCourses);
-  };
+  }, [internalSelectedCourses, onCourseSelect]);
 
-  const removeCourse = (courseToRemove) => {
-    const updatedCourses = selectedCourses.filter(c => c.id !== courseToRemove.id);
-    setSelectedCourses(updatedCourses);
+  const removeCourse = useCallback((courseToRemove) => {
+    const updatedCourses = internalSelectedCourses.filter(c => c.id !== courseToRemove.id);
+    setInternalSelectedCourses(updatedCourses);
     onCourseSelect(updatedCourses);
-  };
+  }, [internalSelectedCourses, onCourseSelect]);
 
   return (
     <View style={styles.container}>
@@ -96,7 +107,7 @@ const CourseSelector = ({ onCourseSelect }) => {
           >
             {courses.length > 0 ? (
               courses.map(course => {
-                const isSelected = selectedCourses.find(c => c.id === course.id);
+                const isSelected = internalSelectedCourses.find(c => c.id === course.id);
                 return (
                   <TouchableOpacity
                     key={course.id}
@@ -121,10 +132,9 @@ const CourseSelector = ({ onCourseSelect }) => {
         </Animated.View>
       )}
 
-            {/* Selected courses as chips - always below search box */}
-      {selectedCourses.length > 0 && (
+      {internalSelectedCourses.length > 0 && (
         <View style={styles.chipsContainer}>
-          {selectedCourses.map(course => (
+          {internalSelectedCourses.map(course => (
             <View key={course.id} style={styles.chip}>
               <Text style={styles.chipText}>{course.name}</Text>
               <TouchableOpacity onPress={() => removeCourse(course)} style={styles.chipRemove}>
@@ -136,11 +146,11 @@ const CourseSelector = ({ onCourseSelect }) => {
       )}
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 16,
+    marginVertical: 14,
   },
   searchContainer: {
     position: 'relative',
@@ -232,15 +242,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#E5E7EB',
     borderRadius: 20,
-    paddingVertical: 6,
-    paddingLeft: 12,
+    paddingVertical: 4,
+    paddingLeft: 8,
     paddingRight: 4,
     borderColor: '#383838',
     borderWidth: 2,
   },
   chipText: {
     color: '#374151',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '500',
   },
   chipRemove: {

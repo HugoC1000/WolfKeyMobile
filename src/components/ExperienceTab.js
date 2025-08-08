@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
-const ExperienceTab = ({ 
+const ExperienceTab = React.memo(({ 
   experiencedCourses = [], 
   helpNeededCourses = [],
   isCurrentUser = false,
@@ -19,11 +19,8 @@ const ExperienceTab = ({
   onAddExperience,
   onAddHelp
 }) => {
-  // Debug logging
-  console.log('ExperienceTab - Experienced courses:', experiencedCourses);
-  console.log('ExperienceTab - Help needed courses:', helpNeededCourses);
 
-  const renderCourseItem = ({ item, type }) => {
+  const renderCourseItem = useCallback(({ item, type }) => {
     // Handle both flat and nested course data structures
     const course = item.course || item;
     const courseName = course.name || 'Unknown Course';
@@ -61,9 +58,9 @@ const ExperienceTab = ({
         )}
       </TouchableOpacity>
     );
-  };
+  }, [isCurrentUser, onRemoveExperience, onRemoveHelp, onCoursePress]);
 
-  const renderScrollableSection = (title, data, type, emptyMessage, iconName, iconColor, onAddPress) => (
+  const renderScrollableSection = useCallback((title, data, type, emptyMessage, iconName, iconColor, onAddPress) => (
     <View style={styles.scrollSection}>
       <View style={styles.sectionHeader}>
         <View style={styles.headerLeft}>
@@ -103,7 +100,7 @@ const ExperienceTab = ({
         )}
       </View>
     </View>
-  );
+  ), [renderCourseItem, isCurrentUser]);
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -134,7 +131,7 @@ const ExperienceTab = ({
       </View>
     </ScrollView>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {

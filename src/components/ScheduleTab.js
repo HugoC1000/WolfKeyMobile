@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+
+const BLOCKS = ['1A', '1B', '1D', '1E', '2A', '2B', '2C', '2D', '2E'];
 
 const ScheduleTab = ({ 
   schedule, 
@@ -20,29 +22,20 @@ const ScheduleTab = ({
   onAutoComplete,
   autoCompleteLoading = false
 }) => {
-  const blocks = ['1A', '1B', '1D', '1E', '2A', '2B', '2C', '2D', '2E'];
-  
-  const getBlockSchedule = () => {
+  // Memoize the block schedule to prevent recreation on every render
+  const blockSchedule = useMemo(() => {
     const scheduleMap = {};
-    blocks.forEach(block => {
+    BLOCKS.forEach(block => {
       const blockKey = `block_${block}`;
       scheduleMap[block] = schedule[blockKey] || null;
     });
     console.log("Schedule map: ", scheduleMap);
     return scheduleMap;
-  };
+  }, [schedule]);
 
-  const blockSchedule = getBlockSchedule();
-
-  const renderCourseActions = (course, block) => {
+  const renderCourseActions = useCallback((course, block) => {
     if (!isCurrentUser || !course) return null;
 
-    // Debug logging
-    console.log('ScheduleTab - Course for actions:', course);
-    console.log('ScheduleTab - Experienced courses:', experiencedCourses);
-    console.log('ScheduleTab - Help needed courses:', helpNeededCourses);
-
-    // Handle both flat and nested course data structures
     const isExperienced = experiencedCourses.some(exp => {
       const courseId = exp.course_id || exp.course?.id;
       return courseId === course.id;
@@ -71,9 +64,9 @@ const ScheduleTab = ({
         </TouchableOpacity>
       </View>
     );
-  };
+  }, [isCurrentUser, experiencedCourses, helpNeededCourses, onAddExperience, onAddHelp]);
 
-  const renderCourseCard = (course, block) => {
+  const renderCourseCard = useCallback((course, block) => {
     if (!course) {
       return (
         <View style={[styles.courseCard, styles.emptyCourseCard]}>
@@ -108,11 +101,11 @@ const ScheduleTab = ({
         {renderCourseActions(course, block)}
       </View>
     );
-  };
+  }, [renderCourseActions, isCurrentUser, onCoursePress]);
 
-  const renderBlockRow = (period1Block, period2Block) => (
+  const renderBlockRow = useCallback((period1Block, period2Block) => (
     <View key={`${period1Block}-${period2Block || 'empty'}`} style={styles.blockRow}>
-      {/* Period 1 Block */}
+      {/* Day 1*/}
       <View style={styles.blockColumn}>
         {period1Block ? (
           <View style={styles.courseContainer}>
@@ -124,7 +117,7 @@ const ScheduleTab = ({
         )}
       </View>
       
-      {/* Period 2 Block */}
+      {/* Day 2*/}
       <View style={styles.blockColumn}>
         {period2Block ? (
           <View style={styles.courseContainer}>
@@ -136,7 +129,7 @@ const ScheduleTab = ({
         )}
       </View>
     </View>
-  );
+  ), [blockSchedule, renderCourseCard]);
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>

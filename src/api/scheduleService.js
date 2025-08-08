@@ -58,5 +58,19 @@ export const scheduleService = {
       });
       throw error;
     }
+  },
+
+
+  autoCompleteCoursesWithPassword: async (wolfnetPassword, schoolEmail) => {
+    try {
+      const response = await api.post('auto-complete-courses-registration/', {
+        wolfnet_password: wolfnetPassword,
+        school_email: schoolEmail
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error auto-completing courses with password:', error);
+      throw error;
+    }
   }
 };

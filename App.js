@@ -13,6 +13,7 @@ import ExploreScreen from './src/screens/ExploreScreen';
 import BookmarksScreen from './src/screens/BookmarksScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import LoginScreen from './src/screens/LoginScreen';
+import RegisterScreen from './src/screens/RegisterScreen';
 import CreatePostScreen from './src/screens/CreatePostScreen';
 import PostDetailScreen from './src/screens/PostDetailScreen';
 import CreateSolutionScreen from './src/screens/CreateSolutionScreen';
@@ -146,7 +147,10 @@ const AppContent = () => {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {!user ? (
-        <Stack.Screen name="Login" component={LoginScreen} />
+        <>
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Register" component={RegisterScreen} />
+        </>
       ) : (
         <Stack.Screen name="Main" component={TabNavigator} />
       )}

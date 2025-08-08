@@ -81,6 +81,13 @@ const LoginScreen = () => {
         </Text>
       </TouchableOpacity>
       {error && <Text style={styles.errorText}>{error}</Text>}
+      
+      <View style={styles.registerContainer}>
+        <Text style={styles.registerText}>Don't have an account? </Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+          <Text style={styles.registerLink}>Sign up here</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -128,6 +135,20 @@ const styles = StyleSheet.create({
     color: 'red',
     marginTop: 10,
     textAlign: 'center',
+  },
+  registerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 20,
+  },
+  registerText: {
+    color: '#6b7280',
+    fontSize: 16,
+  },
+  registerLink: {
+    color: '#6366F1',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

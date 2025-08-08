@@ -26,10 +26,9 @@ export const authService = {
         device_info: getDeviceInfo()
       });
 
-      if (response.data.success) {
-        const { token } = response.data.data.auth;
-        const userData = response.data.data.user;
-        
+      if (response.data.token && response.data.user) {
+        const { token } = response.data;
+        const userData = response.data.user;
         
         // Store user data
         await AsyncStorage.clear();
@@ -45,10 +44,10 @@ export const authService = {
         return {
           success: true,
           user: userData,
-          ...response.data.data
+          token: token
         };
       } else {
-        throw new Error(response.data.error?.message || 'Login failed');
+        throw new Error('Login failed');
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -74,15 +73,15 @@ export const authService = {
 
       const response = await api.post('auth/register/', registrationData);
 
-      if (response.data.success) {
-        const { token } = response.data.data.auth;
-        const user = response.data.data.user;
+      if (response.data.token && response.data.user) {
+        const { token } = response.data;
+        const user = response.data.user;
         
+        await AsyncStorage.clear();
         // Store auth token
         await setAuthToken(token);
         
         // Store user data
-        await AsyncStorage.clear();
         await AsyncStorage.setItem('user', JSON.stringify(user));
         
         if (typeof loadUser === 'function') {
@@ -92,10 +91,10 @@ export const authService = {
         return {
           success: true,
           user: user,
-          ...response.data.data
+          token: token
         };
       } else {
-        throw new Error(response.data.error?.message || 'Registration failed');
+        throw new Error('Registration failed');
       }
     } catch (error) {
       console.error('Registration error:', error);
