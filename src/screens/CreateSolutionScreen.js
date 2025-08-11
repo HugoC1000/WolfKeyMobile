@@ -9,6 +9,7 @@ const CreateSolutionScreen = ({ route, navigation }) => {
   const { postId, post } = route.params;
   const [solution, setSolution] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [clearEditor, setClearEditor] = useState(null);
 
   const hasValidContent = () => {
     if (!solution) return false;
@@ -35,6 +36,11 @@ const CreateSolutionScreen = ({ route, navigation }) => {
       await api.post(`/posts/${postId}/solutions/create/`, {
         content: solution
       });
+      
+      setSolution(null);
+      if (clearEditor) {
+        clearEditor();
+      }
       navigation.goBack();
     } catch (error) {
       console.error('Error creating solution:', error);
@@ -50,6 +56,7 @@ const CreateSolutionScreen = ({ route, navigation }) => {
         <Text style={styles.sectionTitle}>Your Solution</Text>
         <EditorComponent 
           onSave={setSolution}
+          onClearRef={setClearEditor}
           placeholder="Write your solution here..."
         />
         <TouchableOpacity 

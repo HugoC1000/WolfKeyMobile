@@ -7,6 +7,7 @@ import CommentList from './CommentList';
 import api from '../api/config';
 import { deleteComment } from '../api/commentService';
 import { useUser } from '../context/userContext';
+import { formatDateTime } from '../utils/timeUtils';
 
 const SolutionCard = ({ 
   solution, 
@@ -140,7 +141,7 @@ const SolutionCard = ({
           <View>
             <Text style={styles.author}>{solution.author_name}</Text>
             <Text style={styles.date}>
-              {new Date(solution.created_at).toLocaleDateString()}
+              {formatDateTime(solution.created_at)}
             </Text>
           </View>
         </View>

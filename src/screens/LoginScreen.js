@@ -142,11 +142,11 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   registerText: {
-    color: '#6b7280',
+    color: '#282b30ff',
     fontSize: 16,
   },
   registerLink: {
-    color: '#6366F1',
+    color: '#4648abff',
     fontSize: 16,
     fontWeight: 'bold',
   },

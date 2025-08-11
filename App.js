@@ -1,6 +1,6 @@
 // App.js
-import React from 'react';
-import { View, StyleSheet, Image, ActivityIndicator } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, StyleSheet, Image, ActivityIndicator, AppState } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -10,7 +10,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import HomeStackNavigator from './src/navigation/HomeStackNavigator'; // <- New import for nested stack
 import ExploreScreen from './src/screens/ExploreScreen';
-import BookmarksScreen from './src/screens/BookmarksScreen';
+import NotificationsScreen from './src/screens/NotificationsScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
@@ -21,7 +21,9 @@ import EditProfileScreen from './src/screens/EditProfileScreen';
 
 import { COLORS } from './src/utils/constants';
 import { UserProvider } from './src/context/userContext';
+import { attachBasicNotificationListeners } from './src/utils/notifications';
 import { AuthProvider, useAuth } from './src/context/authContext';
+import badgeManager from './src/utils/badgeManager';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -34,9 +36,9 @@ const ExploreStack = () => (
   </Stack.Navigator>
 );
 
-const BookmarksStack = () => (
+const NotificationsStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
-    <Stack.Screen name="BookmarksScreen" component={BookmarksScreen} />
+    <Stack.Screen name="NotificationsScreen" component={NotificationsScreen} />
     <Stack.Screen name="PostDetail" component={PostDetailScreen} />
     <Stack.Screen name="CreateSolution" component={CreateSolutionScreen} />
   </Stack.Navigator>
@@ -117,11 +119,11 @@ const TabNavigator = () => (
       }}
     />
     <Tab.Screen
-      name="Bookmarks"
-      component={BookmarksStack}
+      name="Notifications"
+      component={NotificationsStack}
       options={{
         tabBarIcon: ({ color, size }) => (
-          <Ionicons name="bookmark-outline" size={size} color={color} />
+          <Ionicons name="notifications-outline" size={size} color={color} />
         ),
       }}
     />
@@ -139,6 +141,25 @@ const TabNavigator = () => (
 
 const AppContent = () => {
   const { user, loading } = useAuth();
+
+  useEffect(() => {
+    // Initialize badge manager when user is authenticated
+    if (user && !loading) {
+      badgeManager.initialize();
+    }
+  }, [user, loading]);
+
+  useEffect(() => {
+    // Handle app state changes for badge sync
+    const handleAppStateChange = (nextAppState) => {
+      if (nextAppState === 'active' && user) {
+        badgeManager.onAppForeground();
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    return () => subscription?.remove();
+  }, [user]);
 
   if (loading) {
     return <ActivityIndicator size="large" color={COLORS.primary} />;
@@ -159,9 +180,87 @@ const AppContent = () => {
 };
 
 const App = () => {
+  const navigationRef = useRef();
+
+  const handleNotificationResponse = (response) => {
+    const data = response?.notification?.request?.content?.data;
+    
+    badgeManager.updateBadge();
+    
+    if (!data || !navigationRef.current) return;
+
+    try {
+      switch (data.type) {
+        case 'post_detail':
+        case 'comment':
+          if (data.post_id) {
+            navigationRef.current.navigate('Main', {
+              screen: 'MainStack',
+              params: {
+                screen: 'PostDetail',
+                params: { 
+                  postId: parseInt(data.post_id),
+                  commentId: data.comment_id ? parseInt(data.comment_id) : undefined
+                }
+              }
+            });
+          }
+          break;
+          
+        case 'solution_detail':
+          if (data.post_id) {
+            navigationRef.current.navigate('Main', {
+              screen: 'MainStack',
+              params: {
+                screen: 'PostDetail',
+                params: { 
+                  postId: parseInt(data.post_id),
+                  solutionId: data.solution_id ? parseInt(data.solution_id) : undefined
+                }
+              }
+            });
+          }
+          break;
+          
+        case 'profile':
+          if (data.username) {
+            navigationRef.current.navigate('Main', {
+              screen: 'Profile',
+              params: { username: data.username }
+            });
+          }
+          break;
+  
+          
+        case 'notifications':
+          navigationRef.current.navigate('Main', {
+            screen: 'Notifications'
+          });
+          break;
+          
+        default:
+          break;
+      }
+    } catch (error) {
+      console.error('Error handling notification navigation:', error);
+    }
+  };
+
+  const handleNotificationReceived = (notification) => {
+    badgeManager.updateBadge();
+  };
+
+  useEffect(() => {
+    const detach = attachBasicNotificationListeners({
+      onReceive: handleNotificationReceived,
+      onRespond: handleNotificationResponse,
+    });
+    return () => detach?.();
+  }, []);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <NavigationContainer>
+      <NavigationContainer ref={navigationRef}>
         <AuthProvider>
           <UserProvider>
             <View style={styles.container}>

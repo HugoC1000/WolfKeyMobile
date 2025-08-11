@@ -5,6 +5,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useUser } from '../context/userContext';
 import { likePost, unlikePost, followPost, unfollowPost } from '../api/postService';
 import { getFullImageUrl } from '../api/config';
+import { formatDateTime } from '../utils/timeUtils';
 
 
 const PostCard = ({ post }) => {
@@ -77,8 +78,6 @@ const PostCard = ({ post }) => {
     navigation.navigate('PostDetail', { postId: post.id });
   };
 
-  console.log(post);
-  
   return (
     <TouchableOpacity 
       onPress={handleCardPress}
@@ -108,7 +107,7 @@ const PostCard = ({ post }) => {
                 {post.is_anonymous ? 'Anonymous' : post.author_name}
               </Text>
               <Text style={styles.timestamp}>
-                {new Date(post.created_at).toLocaleString()}
+                {formatDateTime(post.created_at)}
               </Text>
             </View>
           </View>

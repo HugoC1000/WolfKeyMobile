@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "WolfKeyMobile",
-    "slug": "WolfKeyMobile",
+    "slug": "wolfkey-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,14 +13,31 @@
       "backgroundColor": "transparent"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSUserTrackingUsageDescription": "This identifier is used to deliver relevant notifications.",
+        "UIBackgroundModes": [
+          "remote-notification"
+        ],
+        "FirebaseAppDelegateProxyEnabled": false
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "useNextNotificationsApi": true,
+      "permissions": [
+        "com.google.android.c2dm.permission.RECEIVE",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "notification": {
+        "icon": "./assets/icon.png",
+        "color": "#2563eb",
+        "channelId": "default"
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -36,6 +53,12 @@
           "photosPermission": "The app accesses your photos to let you share them with your community."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "e33a2ce5-4211-437c-8175-c313f7d6a90c"
+      }
+    },
+    "owner": "hugoc1000"
   }
 }

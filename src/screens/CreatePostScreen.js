@@ -14,6 +14,7 @@ const CreatePostScreen = ({ navigation }) => {
   const [error, setError] = useState(null);
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [showAnonInfo, setShowAnonInfo] = useState(false);
+  const [clearEditor, setClearEditor] = useState(null);
 
   const handleSubmit = async () => {
     if (!content || !title) return;
@@ -39,6 +40,14 @@ const CreatePostScreen = ({ navigation }) => {
       });
 
       if (response.status === 201) {
+        setTitle('');
+        setContent(null);
+        setSelectedCourses([]);
+        setIsAnonymous(false);
+        setShowAnonInfo(false);
+        if (clearEditor) {
+          clearEditor();
+        }
         navigation.goBack();
       }
     } catch (error) {
@@ -62,6 +71,7 @@ const CreatePostScreen = ({ navigation }) => {
         
         <EditorComponent 
           onSave={setContent}
+          onClearRef={setClearEditor}
           placeholder="Provide more details about your question..."
         />
 

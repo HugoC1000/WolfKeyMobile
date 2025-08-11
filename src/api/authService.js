@@ -1,7 +1,10 @@
 import api, { setAuthToken, getAuthToken, removeAuthToken } from './config';
+import { registerPushToken, unregisterPushToken } from './notificationService';
+import { registerForPushNotificationsAsync } from '../utils/notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
+import badgeManager from '../utils/badgeManager';
 
 // Get device information for backend logging
 const getDeviceInfo = () => {
@@ -15,6 +18,19 @@ const getDeviceInfo = () => {
 };
 
 export const authService = {
+  _safeResetAuthStorage: async () => {
+    try {
+      await AsyncStorage.multiRemove([
+        'authToken',
+        'user',
+        'posts',
+        'schedule',
+        'preferences',
+      ]);
+    } catch (e) {
+      console.log('Storage reset warning:', e?.message || e);
+    }
+  },
   /**
    * Login user with school email and password
    */
@@ -26,12 +42,12 @@ export const authService = {
         device_info: getDeviceInfo()
       });
 
-      if (response.data.token && response.data.user) {
+  if (response.data.token && response.data.user) {
         const { token } = response.data;
         const userData = response.data.user;
         
-        // Store user data
-        await AsyncStorage.clear();
+        // Reset relevant storage keys
+        await authService._safeResetAuthStorage();
         await AsyncStorage.setItem('user', JSON.stringify(userData));
         
         // Store auth token
@@ -39,6 +55,16 @@ export const authService = {
 
         if (typeof loadUser === 'function') {
           await loadUser();
+        }
+
+        // Register push token in background
+        try {
+          const expoToken = await registerForPushNotificationsAsync();
+          if (expoToken) {
+            await registerPushToken(expoToken);
+          }
+        } catch (e) {
+          console.log('Skipping push token registration:', e?.message || e);
         }
 
         return {
@@ -73,11 +99,12 @@ export const authService = {
 
       const response = await api.post('auth/register/', registrationData);
 
-      if (response.data.token && response.data.user) {
+  if (response.data.token && response.data.user) {
         const { token } = response.data;
         const user = response.data.user;
         
-        await AsyncStorage.clear();
+        // Reset relevant storage keys
+        await authService._safeResetAuthStorage();
         // Store auth token
         await setAuthToken(token);
         
@@ -86,6 +113,16 @@ export const authService = {
         
         if (typeof loadUser === 'function') {
           await loadUser();
+        }
+
+        // Register push tokens
+        try {
+          const expoToken = await registerForPushNotificationsAsync();
+          if (expoToken) {
+            await registerPushToken(expoToken);
+          }
+        } catch (e) {
+          console.log('Skipping push token registration:', e?.message || e);
         }
 
         return {
@@ -111,6 +148,14 @@ export const authService = {
    * Logout user and invalidate token
    */
   logout: async (clearUser) => {
+    // Get current push token before clearing auth
+    let currentPushToken = null;
+    try {
+      currentPushToken = await registerForPushNotificationsAsync();
+    } catch (e) {
+      console.log('Could not get push token for logout cleanup:', e?.message);
+    }
+
     try {
       // Call logout endpoint to invalidate token on server
       await api.post('auth/logout/');
@@ -122,6 +167,14 @@ export const authService = {
       });
       // Continue with local logout even if server call fails
     } finally {
+      try {
+        await unregisterPushToken(currentPushToken);
+        
+        await badgeManager.clearBadge();
+      } catch (e) {
+        console.log('Push token cleanup warning:', e?.message);
+      }
+      
       // Always clear local data
       if (clearUser && typeof clearUser === 'function') {
         await clearUser();

@@ -3,6 +3,7 @@ import { StyleSheet, Text, View, Image } from 'react-native';
 import EditorJsRenderer from './EditorJsRenderer';
 import { globalStyles } from '../utils/styles';
 import BackgroundSvg from '../components/BackgroundSVG';
+import { formatDateTime } from '../utils/timeUtils';
 
 
 const PostDetailCard = ({ post, isReference }) => {
@@ -22,7 +23,7 @@ const PostDetailCard = ({ post, isReference }) => {
             <View>
               <Text style={styles.authorName}>{post.author.full_name}</Text>
               <Text style={styles.timestamp}>
-                {new Date(post.created_at).toLocaleDateString()}
+                {formatDateTime(post.created_at)}
               </Text>
             </View>
           </View>
@@ -46,7 +47,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
-    marginTop: 45,
+    marginTop: 50,
     marginBottom: 20,
   },
   title: {

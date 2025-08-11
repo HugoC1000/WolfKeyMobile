@@ -83,27 +83,20 @@ const ProfileScreen = ({ route, navigation }) => {
         last_name: profileData.user?.last_name,
         school_email: profileData.user?.school_email,
         personal_email: profileData.user?.personal_email,
-        phone_number: profileData.user?.phone_number,
         profile_picture: profileData.user?.profile_picture_url,
         bio: profileData.user?.bio,
         background_hue: profileData.user?.background_hue,
-        date_joined: profileData.user?.date_joined,
-        major: profileData.user?.major,
-        graduation_year: profileData.user?.graduation_year,
         
         // Schedule blocks
         schedule_blocks: profileData.user?.schedule_blocks || {},
-        
-        // Stats
+  
         post_count: profileData.stats?.posts_count || 0,
         solution_count: profileData.stats?.solutions_count || 0,
-        
-        // Courses
+
         experience_courses: profileData.courses?.experienced_courses || [],
         help_needed_courses: profileData.courses?.help_needed_courses || [],
         schedule_courses: profileData.courses?.schedule_courses || {},
         
-        // Additional data
         recent_posts: profileData.recent_posts || [],
         can_compare: profileData.can_compare || false,
         has_wolfnet_password: profileData.user?.has_wolfnet_password || false,
@@ -203,7 +196,7 @@ const ProfileScreen = ({ route, navigation }) => {
       };
       
       await uploadProfilePicture(imageData);
-      await fetchProfile(); // Refresh to get updated profile picture
+      await fetchProfile();
       Alert.alert('Success', 'Profile picture updated successfully!');
     } catch (error) {
       console.error('Error uploading image:', error);

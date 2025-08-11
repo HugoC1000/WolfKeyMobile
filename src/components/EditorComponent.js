@@ -7,10 +7,28 @@ import api from '../api/config';
 import { getFullImageUrl } from '../api/config';
 
 
-const EditorComponent = ({ onSave, initialContent = '', placeholder = 'Write your content here...' }) => {
+const EditorComponent = ({ onSave, initialContent = '', placeholder = 'Write your content here...', onClearRef }) => {
   const [content, setContent] = useState('');
   const [blocks, setBlocks] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
+
+  const clearContent = useCallback(() => {
+    setContent('');
+    setBlocks([]);
+    if (typeof onSave === 'function') {
+      onSave({
+        time: new Date().getTime(),
+        blocks: [],
+        version: '2.27.2'
+      });
+    }
+  }, [onSave]);
+
+  useEffect(() => {
+    if (onClearRef && typeof onClearRef === 'function') {
+      onClearRef(clearContent);
+    }
+  }, [onClearRef, clearContent]);
 
   // Parse initialContent when component mounts or initialContent changes
   useEffect(() => {
@@ -138,12 +156,14 @@ const EditorComponent = ({ onSave, initialContent = '', placeholder = 'Write you
     
     try {
       const uploadedUrl = await uploadImage(imageAsset.uri);
+
+      console.log("Uploaded url: ", uploadedUrl);
       
       const newBlock = {
         type: 'image',
         data: {
           file: {
-            url: getFullImageUrl(uploadedUrl),
+            url: uploadedUrl,
           },
           caption: '',
           withBorder: false,
@@ -186,7 +206,7 @@ const EditorComponent = ({ onSave, initialContent = '', placeholder = 'Write you
             type: 'image',
             data: {
               file: {
-                url: block.data.file?.url || block.data.url
+                url: getFullImageUrl(block.data.file?.url) || getFullImageUrl(block.data.url)
               },
               caption: block.data.caption || '',
               withBorder: false,
@@ -247,7 +267,7 @@ const EditorComponent = ({ onSave, initialContent = '', placeholder = 'Write you
       {blocks.map((block, index) => (
         block.type === 'image' && (
           <View key={index} style={styles.imageContainer}>
-            <Image source={{ uri: block.data.file?.url || block.data.url }} style={styles.image} />
+            <Image source={{ uri: getFullImageUrl(block.data.file?.url) || getFullImageUrl(block.data.url) }} style={styles.image} />
           </View>
         )
       ))}

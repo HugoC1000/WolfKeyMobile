@@ -1,15 +1,48 @@
 import axios from 'axios';
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const isDevelopment = __DEV__;
-console.log(isDevelopment);
-// Get the local IP address from Expo constants
-const localhost = Constants.manifest?.debuggerHost?.split(':').shift() || 'localhost';
 
-const API_URL = isDevelopment 
-  ? `http://${localhost}:8000/api/`  // Use dynamic localhost for Expo
+// Resolve the dev server host so a physical device doesn't call its own localhost
+function resolveDevApiBaseUrl() {
+  // 1) EXPO_PUBLIC_API_URL full override (recommended)
+  const envUrl = process.env.EXPO_PUBLIC_API_URL;
+  if (envUrl) return envUrl.endsWith('/') ? envUrl : envUrl + '/';
+
+  // 2) Parse host from Expo runtime (SDK 49+)
+  // hostUri looks like '192.168.1.10:19000'
+  const hostFromExpo = Constants?.expoConfig?.hostUri?.split(':')?.[0];
+  if (hostFromExpo) return `http://${hostFromExpo}:8000/api/`;
+
+  // 3) Web fallback
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    const host = window.location.hostname || 'localhost';
+    return `http://${host}:8000/api/`;
+  }
+
+  // 4) Emulator/simulator heuristics
+  if (Platform.OS === 'android') {
+    // Android Emulator maps host loopback to 10.0.2.2
+    return 'http://10.0.2.2:8000/api/';
+  }
+  if (Platform.OS === 'ios') {
+    // iOS Simulator can use localhost; physical devices cannot
+    return 'http://localhost:8000/api/';
+  }
+
+  // 5) Last resort
+  return 'http://localhost:8000/api/';
+}
+
+const API_URL = isDevelopment
+  ? resolveDevApiBaseUrl()
   : 'https://wolfkey.net/api/';
+
+console.log('API Base URL:', API_URL);
+
+console.log(API_URL);
 
 const api = axios.create({
   baseURL: API_URL,
@@ -117,14 +150,13 @@ export const getFullImageUrl = (imageUrl) => {
     return imageUrl;
   }
   
-  // If it's a relative path, construct the full URL
   const baseUrl = isDevelopment 
-    ? `http://${localhost}:8000`  // Local development
+    ? resolveDevApiBaseUrl().replace('/api/', '')  // Remove /api/ suffix for images
     : 'https://wolfkey.net';      // Production
   
-  // Remove leading slash if present to avoid double slashes
-  const cleanPath = imageUrl.startsWith('/') ? imageUrl.slice(1) : imageUrl;
-  
+    // Remove leading slash if present to avoid double slashes
+    const cleanPath = imageUrl.startsWith('/') ? imageUrl.slice(1) : imageUrl;
+
   return `${baseUrl}/${cleanPath}`;
 };
 
