@@ -11,13 +11,15 @@ import {
   ActivityIndicator,
   Platform,
   RefreshControl,
+  AppState,
 } from 'react-native';
 import Schedule from '../components/ScheduleCard';
 import PostCard from '../components/PostCard';
 import api from '../api/config';
-import { getAuthToken } from '../api/config';
+import { getAuthToken, removeAuthToken } from '../api/config';
 import BackgroundSvg from '../components/BackgroundSVG';
 import { useUser } from '../context/userContext';
+import { useAuth } from '../context/authContext';
 import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';
 
 
@@ -32,11 +34,29 @@ const HomeScreen = () => {
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [authError, setAuthError] = useState(false);
   const { user } = useUser();
+  const { logout } = useAuth();
   const onEndReachedCalledDuringMomentum = useRef(false);
+  const appStateRef = useRef(AppState.currentState);
 
-  const fetchPosts = async (pageNum, shouldRefresh = false) => {
+  // Handle token expiration and authentication errors
+  const handleAuthError = useCallback(async () => {
+    console.error('🔐 AUTH ERROR: Token expired or invalid, logging out user');
+    setAuthError(true);
+    try {
+      await removeAuthToken();
+      await logout();
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
+  }, [logout]);
+
+  const fetchPosts = useCallback(async (pageNum, shouldRefresh = false) => {
     if ((pageNum > 1 && !hasNext) || loadingMore) return;
+
+    // Reset auth error state when trying to fetch
+    if (authError) setAuthError(false);
 
     shouldRefresh ? setRefreshing(true)
                   : pageNum === 1 ? setLoading(true)
@@ -45,13 +65,14 @@ const HomeScreen = () => {
     try {
       // Check if user is authenticated before making request
       const token = await getAuthToken();
-      console.log('🏠 HOME SCREEN: Fetching posts for page:', pageNum);
-      console.log('🏠 HOME SCREEN: Auth token present:', !!token);
-      console.log('🏠 HOME SCREEN: User ID:', user?.id);
+      // console.log('HOME SCREEN: Fetching posts for page:', pageNum);
+      // console.log('HOME SCREEN: Auth token present:', !!token);
+      // console.log('HOME SCREEN: User ID:', user?.id);
       
       if (!token) {
-        console.error('🏠 HOME SCREEN: No auth token found, cannot fetch posts');
-        throw new Error('Not authenticated');
+        console.error('HOME SCREEN: No auth token found, cannot fetch posts');
+        await handleAuthError();
+        return;
       }
 
       const res = await api.get(`for-you/?page=${pageNum}&limit=${PAGE_SIZE}`);
@@ -65,19 +86,20 @@ const HomeScreen = () => {
     } catch (err) {
       console.error('Error fetching posts:', err);
       
-      // If it's an auth error, maybe redirect to login
+      // Handle token expiration and authentication errors
       if (err.response?.status === 401) {
-        console.error('🏠 HOME SCREEN: Authentication failed - user needs to login');
-        // You might want to redirect to login screen here
+        await handleAuthError();
+        return;
       }
     } finally {
       setLoading(false);
       setLoadingMore(false);
       setRefreshing(false);
     }
-  };
+  }, [user?.id, hasNext, loadingMore, handleAuthError, authError]);
 
   useEffect(() => {
+
     if (!user) {
       setPosts([]);
       setPage(1);
@@ -90,7 +112,15 @@ const HomeScreen = () => {
     setHasNext(true);
     setLoading(true);
     fetchPosts(1);
-  }, [user?.id]);
+  }, [user?.id, fetchPosts]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    
+    return () => {
+      subscription?.remove();
+    };
+  }, [handleAppStateChange]);
 
   const handleLoadMore = () => {
     if (!onEndReachedCalledDuringMomentum.current) {
@@ -102,6 +132,22 @@ const HomeScreen = () => {
   const handleRefresh = () => {
     fetchPosts(1, true);
   };
+
+  const handleAppStateChange = useCallback((nextAppState) => {
+    
+    if (
+      nextAppState === 'active' &&
+      appStateRef.current !== 'active' &&
+      user &&
+      !loading &&
+      !loadingMore &&
+      !refreshing &&
+      !authError
+    ) {
+      fetchPosts(1, true);
+    }
+    appStateRef.current = nextAppState;
+  }, [user, fetchPosts, loading, loadingMore, refreshing, authError]);
 
   const ListHeader = useCallback(() => (
     <View>
@@ -151,7 +197,12 @@ const HomeScreen = () => {
           }
           ListEmptyComponent={
             !loading && posts.length === 0 ? (
-              <Text style={styles.emptyText}>No posts available</Text>
+              <Text style={styles.emptyText}>
+                {authError 
+                  ? 'Session expired. Please login again.' 
+                  : 'No posts available'
+                }
+              </Text>
             ) : null
           }
         />
