@@ -206,7 +206,7 @@ const EditorComponent = ({ onSave, initialContent = '', placeholder = 'Write you
             type: 'image',
             data: {
               file: {
-                url: getFullImageUrl(block.data.file?.url) || getFullImageUrl(block.data.url)
+                url: block.data.file?.url || block.data.url
               },
               caption: block.data.caption || '',
               withBorder: false,
