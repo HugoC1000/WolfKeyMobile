@@ -11,14 +11,6 @@ import {
 import { scheduleService } from '../api/scheduleService';
 import { useUser } from '../context/userContext';
 
-const BLOCK_MAPPING = {
-  '1ca': 'Academics',
-  '1cp': 'PEAKS',
-  '1cap': 'Advisory',
-  'assm': 'Assembly',
-  'tfr': 'Terry Fox Run',
-};
-
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
 const Schedule = () => {
@@ -36,31 +28,22 @@ const Schedule = () => {
     const options = { weekday: 'short', month: 'short', day: 'numeric' };
     return date.toLocaleDateString('en-US', options);
   };
-  
-  const processSchedule = (rawSchedule) => {
-    if (!rawSchedule?.blocks?.length || !rawSchedule.times) {
+
+  const transformScheduleData = (scheduleArray) => {
+    if (!scheduleArray || !Array.isArray(scheduleArray)) {
       return [{ block: 'No School Today', time: null }];
     }
 
-    if (!rawSchedule.blocks.some(block => block)) {
-      return [{ block: 'No School Today', time: null }];
+    // If it's a simple string array from the server
+    if (scheduleArray.length > 0 && typeof scheduleArray[0] === 'string') {
+      return scheduleArray.map(item => ({
+        block: item,
+        time: null
+      }));
     }
 
-    return rawSchedule.blocks.map((block, index) => {
-      if (!block) {
-        return { block: 'No Block', time: rawSchedule.times[index] };
-      }
-
-      const normalized = block.toString().trim().toUpperCase();
-      if (normalized.toLowerCase() in BLOCK_MAPPING) {
-        return { block: BLOCK_MAPPING[normalized.toLowerCase()], time: rawSchedule.times[index] };
-      }
-      if (user?.courses?.[`block_${normalized}`]) {
-        return { block: user.courses[`block_${normalized}`], time: rawSchedule.times[index] };
-      }
-
-      return { block: 'Add courses in profile', time: rawSchedule.times[index] };
-    });
+    // If it's already in the expected format (objects with block and time)
+    return scheduleArray;
   };
 
   useEffect(() => {
@@ -68,9 +51,24 @@ const Schedule = () => {
     const fetchBothSchedules = async () => {
       setLoading(true);
       try {
+        if (!user?.id) {
+          console.warn('No user ID available for schedule processing');
+          setSchedules({
+            today: { 
+              blocks: [{ block: 'Please log in to view schedule', time: null }],
+              uniformRequired: false 
+            },
+            tomorrow: { 
+              blocks: [{ block: 'Please log in to view schedule', time: null }],
+              uniformRequired: false 
+            },
+          });
+          return;
+        }
+
         const [todayData, tomorrowData] = await Promise.all([
-          scheduleService.getDailySchedule(getDateString(0)),
-          scheduleService.getDailySchedule(getDateString(1)),
+          scheduleService.getProcessedSchedule(user.id, getDateString(0)),
+          scheduleService.getProcessedSchedule(user.id, getDateString(1)),
         ]);
 
         let todayUniform = false;
@@ -87,11 +85,11 @@ const Schedule = () => {
 
         setSchedules({
           today: {
-            blocks: processSchedule(todayData),
+            blocks: transformScheduleData(todayData),
             uniformRequired: todayUniform,
           },
           tomorrow: {
-            blocks: processSchedule(tomorrowData),
+            blocks: transformScheduleData(tomorrowData),
             uniformRequired: tomorrowUniform,
           },
         });
@@ -131,9 +129,24 @@ const Schedule = () => {
           const fetchBothSchedules = async () => {
             setLoading(true);
             try {
+              if (!user?.id) {
+                console.warn('No user ID available for schedule processing');
+                setSchedules({
+                  today: { 
+                    blocks: [{ block: 'Please log in to view schedule', time: null }],
+                    uniformRequired: false 
+                  },
+                  tomorrow: { 
+                    blocks: [{ block: 'Please log in to view schedule', time: null }],
+                    uniformRequired: false 
+                  },
+                });
+                return;
+              }
+
               const [todayData, tomorrowData] = await Promise.all([
-                scheduleService.getDailySchedule(getDateString(0)),
-                scheduleService.getDailySchedule(getDateString(1)),
+                scheduleService.getProcessedSchedule(user.id, getDateString(0)),
+                scheduleService.getProcessedSchedule(user.id, getDateString(1)),
               ]);
 
               let todayUniform = false;
@@ -150,11 +163,11 @@ const Schedule = () => {
 
               setSchedules({
                 today: {
-                  blocks: processSchedule(todayData),
+                  blocks: transformScheduleData(todayData),
                   uniformRequired: todayUniform,
                 },
                 tomorrow: {
-                  blocks: processSchedule(tomorrowData),
+                  blocks: transformScheduleData(tomorrowData),
                   uniformRequired: tomorrowUniform,
                 },
               });

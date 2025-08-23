@@ -8,6 +8,7 @@ function formatDateToISO(dateString) {
 }
 
 export const scheduleService = {
+  //UNUSED. movde to process_schedule
   getDailySchedule: async (date) => {
     try {
       const isoDate = formatDateToISO(date);
@@ -60,6 +61,37 @@ export const scheduleService = {
     }
   },
 
+
+  getProcessedSchedule: async (userId, date) => {
+    try {
+      const isoDate = formatDateToISO(date);
+
+      const params = {
+        t: new Date().getTime()
+      };
+      if (isoDate && isoDate !== formatDateToISO(new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }))) {
+        params.date = isoDate;
+      }
+
+      const response = await api.get(`process-schedule/${userId}/`, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        params: params
+      });
+
+      return response.data.schedule;
+    } catch (error) {
+      console.error('Error fetching processed schedule:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message,
+        url: error.config?.url
+      });
+      throw error;
+    }
+  },
 
   autoCompleteCoursesWithPassword: async (wolfnetPassword, schoolEmail) => {
     try {
