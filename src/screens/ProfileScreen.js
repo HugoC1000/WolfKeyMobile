@@ -87,8 +87,15 @@ const ProfileScreen = ({ route, navigation }) => {
         bio: profileData.user?.bio,
         background_hue: profileData.user?.background_hue,
         
-        // Schedule blocks
-        schedule_blocks: profileData.user?.schedule_blocks || {},
+  // Schedule blocks - use schedule_blocks directly as it already contains the course data
+  // Expected shape:
+  // {
+  //   "block_1A": { id: number, name: string, category: string, ... },
+  //   "block_1B": { id: number, name: string, category: string, ... },
+  //   // ... other blocks (block_1D, block_1E, block_2A, ...)
+  // }
+  // This is the format `ScheduleTab` expects (keys prefixed with "block_").
+  schedule_blocks: profileData.user?.schedule_blocks || {},
   
         post_count: profileData.stats?.posts_count || 0,
         solution_count: profileData.stats?.solutions_count || 0,
@@ -298,7 +305,7 @@ const ProfileScreen = ({ route, navigation }) => {
       setAutoCompleteLoading(true);
       const result = await autoCompleteCourses();
       await fetchProfile();
-      Alert.alert('Success', `Auto-completed ${result.courses_added || 0} courses from WolfNet!`);
+      Alert.alert('Success', `Auto-completed courses from WolfNet!`);
     } catch (error) {
       console.error('Error auto-completing courses:', error);
       Alert.alert('Error', 'Failed to auto-complete courses from WolfNet');
@@ -431,7 +438,7 @@ const ProfileScreen = ({ route, navigation }) => {
       case 'schedule':
         return (
           <ScheduleTab
-            schedule={profile.schedule_blocks || profile.schedule_courses || {}}
+            schedule={profile.schedule_blocks || {}}
             isCurrentUser={isCurrentUser}
             onCoursePress={handleCoursePress}
             onAddExperience={handleAddExperience}
