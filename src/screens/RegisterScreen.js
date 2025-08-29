@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -20,6 +20,7 @@ import { useUser } from '../context/userContext';
 import BackgroundSvg from '../components/BackgroundSVG';
 import CourseSelector from '../components/CourseSelector';
 import ScheduleTab from '../components/ScheduleTab';
+import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import { scheduleService } from '../api/scheduleService';
 
 const RegisterScreen = ({ navigation }) => {
@@ -34,10 +35,15 @@ const RegisterScreen = ({ navigation }) => {
     last_name: '',
     school_email: '',
     personal_email: '',
-    password: '',
+  password: '',
     confirm_password: '',
     wolfnet_password: ''
   });
+
+
+  // Grade level choices (8-13 where 13 represents alumni)
+  const [gradeLevels] = useState(['8', '9', '10', '11', '12', '13']);
+  const [showGradeOptions, setShowGradeOptions] = useState(false);
   
   const [errors, setErrors] = useState({});
   
@@ -61,6 +67,14 @@ const RegisterScreen = ({ navigation }) => {
   
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
+
+  // Bottom sheet for selecting courses (registration flow)
+  const bottomSheetRef = useRef(null);
+  const [showCourseSelector, setShowCourseSelector] = useState(false);
+  const [selectedBlock, setSelectedBlock] = useState(null);
+  const [selectedCourses, setSelectedCourses] = useState([]);
+  const [bsSubmitting, setBsSubmitting] = useState(false);
+  const snapPoints = useMemo(() => ['45%', '70%', '90%'], []);
 
   const validateStep = (step) => {
     const newErrors = {};
@@ -107,6 +121,14 @@ const RegisterScreen = ({ navigation }) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: null }));
+    }
+  };
+
+  const handleGradeLevelChange = (value) => {
+    setFormData(prev => ({ ...prev, grade_level: value }));
+    setShowGradeOptions(false);
+    if (errors.grade_level) {
+      setErrors(prev => ({ ...prev, grade_level: null }));
     }
   };
 
@@ -229,7 +251,7 @@ const RegisterScreen = ({ navigation }) => {
   };
 
   const handleAutoComplete = async () => {
-    if (!formData.wolfnet_password.trim()) {
+  if (!formData.wolfnet_password.trim()) {
       Alert.alert('Error', 'Please enter your WolfNet password first');
       return;
     }
@@ -247,10 +269,13 @@ const RegisterScreen = ({ navigation }) => {
     
     try {
       // Auto-complete courses with password during registration
+      console.log('Register: auto-complete starting for', formData.school_email, 'hasPassword:', !!formData.wolfnet_password);
       const result = await scheduleService.autoCompleteCoursesWithPassword(
-        formData.wolfnet_password, 
+        formData.wolfnet_password,
         formData.school_email
       );
+      console.log('Register: auto-complete result (raw):', result);
+      console.log('Register: auto-complete schedule_courses:', result?.schedule_courses || result);
       setAutoCompleteResult(result);
     } catch (error) {
       console.error('Auto-complete error:', error);
@@ -312,26 +337,117 @@ const RegisterScreen = ({ navigation }) => {
 
   // Add courses from schedule tab
   const handleAddExperience = (courseId) => {
-    // This would be called from ScheduleTab when user clicks "Proficient"
-    // We need to find the course in autoCompleteResult and add it to experiencedCourses
-    if (autoCompleteResult && autoCompleteResult.schedule_courses) {
-      const course = Object.values(autoCompleteResult.schedule_courses)
-        .find(c => c && c.id === courseId);
-      if (course && !experiencedCourses.find(c => c.id === courseId)) {
-        setExperiencedCourses(prev => [...prev, course]);
+    if (courseId == null) return;
+    const scheduleSource = autoCompleteResult?.user_data?.schedule;
+    if (!scheduleSource) return;
+    const courseObj = Object.values(scheduleSource).find(c => c && c.course_id === courseId);
+    if (!courseObj) return;
+    const experienceEntry = {
+      id: courseObj.course_id,
+      name: courseObj.course,
+      category: 'Unknown',
+    };
+    setExperiencedCourses(prev => {
+      const exists = prev.some(c => c.id === courseId);
+      return exists ? prev : [...prev, experienceEntry];
+    });
+  };
+
+  const handleAddHelp = (courseId) => {
+    if (courseId == null) return;
+    const scheduleSource = autoCompleteResult?.user_data?.schedule;
+    if (!scheduleSource) return;
+    const courseObj = Object.values(scheduleSource).find(c => c && c.course_id === courseId);
+    if (!courseObj) return;
+    const helpEntry = {
+      id: courseObj.course_id,
+      name: courseObj.course,
+      category: 'Unknown',
+    };
+    setHelpNeededCourses(prev => {
+      const exists = prev.some(c => c.id === courseId);
+      return exists ? prev : [...prev, helpEntry];
+    });
+  };
+
+  // Registration bottom sheet handlers (mirror ProfileScreen behavior)
+  const handleCoursePress = (courseOrBlock, block) => {
+    const blockToEdit = block || courseOrBlock;
+    setSelectedBlock(blockToEdit);
+    setShowCourseSelector(true);
+    bottomSheetRef.current?.snapToIndex(1);
+  };
+
+  const handleCourseSelection = (courses) => {
+    setSelectedCourses(courses);
+  };
+
+  const handleSubmitCourseSelection = async () => {
+    if (selectedCourses.length > 0 && selectedBlock) {
+      const course = selectedCourses[0];
+      setBsSubmitting(true);
+      try {
+        if (selectedBlock === 'experience') {
+          setExperiencedCourses(prev => {
+            const deriveKey = (c) => (c?.id !== undefined && c?.id !== null) ? String(c.id) : (c?.name || c?.raw_text ? `raw:${c.name ?? c.raw_text}` : null);
+            const key = deriveKey(course);
+            return prev.some(c => deriveKey(c) === key) ? prev : [...prev, course];
+          });
+        } else if (selectedBlock === 'help') {
+          setHelpNeededCourses(prev => {
+            const deriveKey = (c) => (c?.id !== undefined && c?.id !== null) ? String(c.id) : (c?.name || c?.raw_text ? `raw:${c.name ?? c.raw_text}` : null);
+            const key = deriveKey(course);
+            return prev.some(c => deriveKey(c) === key) ? prev : [...prev, course];
+          });
+        } else {
+          // This is a schedule block update (e.g., editing 1A, 1B, etc.)
+          // Just update the schedule, don't automatically add to experiencedCourses
+          // Also update the in-memory autoCompleteResult schedule so ScheduleTab re-renders
+          try {
+            const newResult = autoCompleteResult ? { ...autoCompleteResult } : {};
+            // prefer raw_data, then schedule_courses, then user_data.schedule
+            // normalize the selected course into the canonical schedule shape
+            const normalizedScheduleEntry = {
+              course: course?.name ?? course?.raw_text ?? null,
+              course_id: course?.id ?? null,
+              raw_text: course?.raw_text ?? null,
+            };
+
+            const blockKey = `block_${selectedBlock}`;
+            // ScheduleTab reads from user_data.schedule, so prioritize updating that
+            if (newResult.user_data && newResult.user_data.schedule) {
+              const cleanedSched = { ...(newResult.user_data.schedule || {}) };
+              if (cleanedSched[selectedBlock] !== undefined) delete cleanedSched[selectedBlock];
+              cleanedSched[blockKey] = normalizedScheduleEntry;
+              newResult.user_data = { ...newResult.user_data, schedule: cleanedSched };
+            } else {
+              newResult.user_data = { 
+                ...(newResult.user_data || {}), 
+                schedule: { [blockKey]: normalizedScheduleEntry } 
+              };
+            }
+            setAutoCompleteResult(newResult);
+          } catch (err) {
+            console.error('Error updating in-memory schedule after selection:', err);
+          }
+        }
+
+        // close sheet
+        bottomSheetRef.current?.close();
+        setSelectedCourses([]);
+        setSelectedBlock(null);
+        setShowCourseSelector(false);
+      } catch (error) {
+        console.error('Error selecting course in registration sheet:', error);
+      } finally {
+        setBsSubmitting(false);
       }
     }
   };
 
-  const handleAddHelp = (courseId) => {
-    // This would be called from ScheduleTab when user clicks "Need Help"
-    if (autoCompleteResult && autoCompleteResult.schedule_courses) {
-      const course = Object.values(autoCompleteResult.schedule_courses)
-        .find(c => c && c.id === courseId);
-      if (course && !helpNeededCourses.find(c => c.id === courseId)) {
-        setHelpNeededCourses(prev => [...prev, course]);
-      }
-    }
+  const handleCloseCourseSelector = () => {
+    setSelectedCourses([]);
+    bottomSheetRef.current?.close();
   };
 
   // Final submission
@@ -341,12 +457,20 @@ const RegisterScreen = ({ navigation }) => {
     setIsSubmitting(true);
     
     try {
+      // Build schedule data as { block_1A: course_id, ... }
+      let scheduleData = {};
+      const scheduleSource = autoCompleteResult?.user_data?.schedule || {};
+      Object.keys(scheduleSource).forEach(blockKey => {
+        scheduleData[blockKey] = scheduleSource[blockKey]?.course_id ?? null;
+      });
+
       const registrationData = {
         ...formData,
         password1: formData.password,
         password2: formData.confirm_password,
         experienced_courses: experiencedCourses.map(c => c.id),
         help_needed_courses: helpNeededCourses.map(c => c.id),
+        schedule: scheduleData,
       };
       
       // Remove the original password fields as we're using password1/password2
@@ -509,6 +633,33 @@ const RegisterScreen = ({ navigation }) => {
           autoCorrect={false}
         />
         <Text style={styles.helperText}>NOTE: You can not reset your password without this</Text>
+      </View>
+
+      <View style={styles.inputContainer}>
+        <Text style={styles.inputLabel}>Grade Level (Optional)</Text>
+        <TouchableOpacity
+          style={[styles.input, styles.selectInput]}
+          onPress={() => setShowGradeOptions(!showGradeOptions)}
+        >
+          <Text style={{ color: formData.grade_level ? '#111827' : '#6b7280' }}>
+            {formData.grade_level ? (formData.grade_level === '13' ? 'Alumni (13)' : `Grade ${formData.grade_level}`) : 'Select your grade level'}
+          </Text>
+        </TouchableOpacity>
+
+        {showGradeOptions && (
+          <View style={styles.selectOptions}>
+            {gradeLevels.map(g => (
+              <TouchableOpacity
+                key={g}
+                style={styles.selectOption}
+                onPress={() => handleGradeLevelChange(g)}
+              >
+                <Text style={styles.selectOptionText}>{g === '13' ? 'Alumni (13)' : `Grade ${g}`}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+        <Text style={styles.helperText}>Your current grade level (8 - 13 for alumni). If in summer, grade level in Sept</Text>
       </View>
     </View>
   );
@@ -707,12 +858,16 @@ const RegisterScreen = ({ navigation }) => {
         <>
           <View style={styles.scheduleContainer}>
             <ScheduleTab
-              schedule={autoCompleteResult?.schedule_courses || {}}
+              // backend returns schedule under user_data.schedule
+              schedule={
+                autoCompleteResult?.user_data?.schedule || {}
+              }
               isCurrentUser={true}
               experiencedCourses={experiencedCourses}
               helpNeededCourses={helpNeededCourses}
               onAddExperience={handleAddExperience}
               onAddHelp={handleAddHelp}
+              onCoursePress={handleCoursePress}
               onAutoComplete={() => {}} // Already completed
               autoCompleteLoading={false}
             />
@@ -828,6 +983,42 @@ const RegisterScreen = ({ navigation }) => {
         </ScrollView>
         
         {renderNavigationButtons()}
+        {/* Bottom sheet for course selection during registration */}
+        {showCourseSelector && (
+          <BottomSheet
+            ref={bottomSheetRef}
+            index={1}
+            snapPoints={snapPoints}
+            onChange={() => {}}
+            enablePanDownToClose={false}
+            backgroundStyle={styles.bottomSheetBackground}
+            handleIndicatorStyle={styles.handleIndicator}
+          >
+            <BottomSheetView style={styles.bottomSheetContainer}>
+              <View style={styles.bottomSheetHeader}>
+                <Text style={styles.bottomSheetTitle}>Select Course</Text>
+                <TouchableOpacity onPress={handleCloseCourseSelector} style={styles.closeButton}>
+                  <MaterialIcons name="close" size={24} color="#666" />
+                </TouchableOpacity>
+              </View>
+
+              <CourseSelector onCourseSelect={handleCourseSelection} />
+
+              <View style={styles.bottomSheetFooter}>
+                <TouchableOpacity style={styles.cancelButton} onPress={handleCloseCourseSelector}>
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.submitButton, (selectedCourses.length === 0 || bsSubmitting) && styles.submitButtonDisabled]}
+                  onPress={handleSubmitCourseSelection}
+                  disabled={selectedCourses.length === 0 || bsSubmitting}
+                >
+                  <Text style={styles.submitButtonText}>{bsSubmitting ? 'Adding...' : 'Add Course'}</Text>
+                </TouchableOpacity>
+              </View>
+            </BottomSheetView>
+          </BottomSheet>
+        )}
       </KeyboardAvoidingView>
     </View>
   );
@@ -892,6 +1083,8 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
     marginBottom: 100,
+    minHeight: 520,
+    overflow: 'visible',
   },
   stepHeader: {
     alignItems: 'center',
@@ -1081,8 +1274,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   scheduleContainer: {
-    marginBottom: 20,
-    maxHeight: 400,
+  marginBottom: 20,
+  maxHeight: 400,
+  height: 360,
   },
   navigationContainer: {
     position: 'absolute',
@@ -1200,6 +1394,76 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6b7280',
     textAlign: 'center',
+  },
+  selectInput: {
+    justifyContent: 'center',
+  },
+  selectOptions: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 8,
+    marginTop: 8,
+    overflow: 'hidden',
+  },
+  selectOption: {
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  selectOptionText: {
+    fontSize: 16,
+    color: '#111827',
+  },
+  bottomSheetBackground: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  handleIndicator: {
+    backgroundColor: '#ddd',
+    width: 40,
+    height: 4,
+  },
+  bottomSheetContainer: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingBottom: 20,
+  },
+  bottomSheetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingVertical: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    minHeight: 30,
+  },
+  bottomSheetTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1a1a1b',
+    marginBottom: 4,
+  },
+  bottomSheetFooter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingBottom: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    gap: 12,
+    backgroundColor: 'white',
+  },
+  closeButton: {
+    padding: 4,
   },
 });
 

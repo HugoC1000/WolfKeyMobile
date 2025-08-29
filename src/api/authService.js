@@ -99,9 +99,10 @@ export const authService = {
 
       const response = await api.post('auth/register/', registrationData);
 
-  if (response.data.token && response.data.user) {
-        const { token } = response.data;
-        const user = response.data.user;
+      if (response.data?.data) {
+        // The backend returns auth as an object { token, token_type, expires_in }
+        const token = response.data?.data?.auth?.token ?? null;
+        const user = response.data?.data?.user ?? null;
         
         // Reset relevant storage keys
         await authService._safeResetAuthStorage();

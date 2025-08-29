@@ -99,9 +99,44 @@ export const scheduleService = {
         wolfnet_password: wolfnetPassword,
         school_email: schoolEmail
       });
-      return response.data;
+
+      // Normalize schedule shapes so frontend always receives block_<code> keys
+      const data = response.data || {};
+
+      const mapToBlockKeys = (obj) => {
+        if (!obj || typeof obj !== 'object') return {};
+        const out = {};
+        Object.keys(obj).forEach((k) => {
+          const normalizedKey = k.startsWith('block_') ? k : `block_${k}`;
+          out[normalizedKey] = obj[k];
+        });
+        return out;
+      };
+
+      // Build a canonical schedule map
+      const canonicalSchedule = data.raw_data ? mapToBlockKeys(data.raw_data) : (data.schedule_courses ? mapToBlockKeys(data.schedule_courses) : (data.user_data?.schedule ? mapToBlockKeys(data.user_data.schedule) : {}));
+
+      // Return a normalized object but keep raw_data for debugging
+      const normalized = {
+        ...data,
+        // canonical schedule under multiple keys used by the app
+        schedule_blocks: canonicalSchedule,
+        schedule_courses: canonicalSchedule,
+        user_data: {
+          ...(data.user_data || {}),
+          schedule: canonicalSchedule,
+        },
+        raw_data: data.raw_data || data.schedule_courses || data.user_data?.schedule || {},
+      };
+
+      return normalized;
     } catch (error) {
-      console.error('Error auto-completing courses with password:', error);
+      console.error('Error auto-completing courses with password:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+        url: error.config?.url
+      });
       throw error;
     }
   }

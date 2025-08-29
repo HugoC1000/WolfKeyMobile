@@ -408,6 +408,26 @@ const ProfileScreen = ({ route, navigation }) => {
     </TouchableOpacity>
   );
 
+  // Transform schedule_blocks (block_1A, block_1B, ...) to normalized objects for ScheduleTab
+  const scheduleForTab = useMemo(() => {
+    const blocks = profile?.schedule_blocks || {};
+    const result = {};
+    Object.entries(blocks).forEach(([blockKey, courseObj]) => {
+      result[blockKey] = courseObj
+        ? {
+            course: courseObj.name || null,
+            course_id: courseObj.id || null,
+            category: courseObj.category || null,
+          }
+        : {
+            course: null,
+            course_id: null,
+            category: null,
+          };
+    });
+    return result;
+  }, [profile]);
+
   const renderTabContent = () => {
     if (!profile) return null;
 
@@ -438,7 +458,7 @@ const ProfileScreen = ({ route, navigation }) => {
       case 'schedule':
         return (
           <ScheduleTab
-            schedule={profile.schedule_blocks || {}}
+            schedule={scheduleForTab}
             isCurrentUser={isCurrentUser}
             onCoursePress={handleCoursePress}
             onAddExperience={handleAddExperience}

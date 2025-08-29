@@ -12,8 +12,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 const BLOCKS = ['1A', '1B', '1D', '1E', '2A', '2B', '2C', '2D', '2E'];
 
+/**
+ * Clean ScheduleTab component that works with normalized backend data:
+ * - schedule: { [block]: { course: string|null, course_id: number|null } }
+ * - experiencedCourses: Array<{ id: number, name: string, category: string }>
+ * - helpNeededCourses: Array<{ id: number, name: string, category: string }>
+ */
 const ScheduleTab = ({ 
-  schedule, 
+  schedule = {}, 
   isCurrentUser = false, 
   onCoursePress,
   onAddExperience,
@@ -23,29 +29,27 @@ const ScheduleTab = ({
   onAutoComplete,
   autoCompleteLoading = false
 }) => {
-  // Memoize the block schedule to prevent recreation on every render
+  // Create block schedule map - no normalization needed, backend sends correct format
   const blockSchedule = useMemo(() => {
     const scheduleMap = {};
     BLOCKS.forEach(block => {
       const blockKey = `block_${block}`;
       scheduleMap[block] = schedule[blockKey] || null;
     });
-    console.log("Schedule map: ", scheduleMap);
     return scheduleMap;
   }, [schedule]);
 
   const renderCourseActions = useCallback((course, block) => {
-    if (!isCurrentUser || !course) return null;
+    if (!isCurrentUser || !course || !course.course_id) return null;
 
-    const isExperienced = experiencedCourses.some(exp => {
-      const courseId = exp.course_id || exp.course?.id;
-      return courseId === course.id;
-    });
-    
-    const needsHelp = helpNeededCourses.some(help => {
-      const courseId = help.course_id || help.course?.id;
-      return courseId === course.id;
-    });
+    const courseId = course.course_id;
+
+  // Only support normalized array: {id, name, category}
+  const experiencedIds = experiencedCourses.map(exp => exp.id);
+  const helpNeededIds = helpNeededCourses.map(help => help.id);
+
+    const isExperienced = experiencedIds.includes(courseId);
+    const needsHelp = helpNeededIds.includes(courseId);
 
     if (isExperienced || needsHelp) return null;
 
@@ -53,13 +57,19 @@ const ScheduleTab = ({
       <View style={styles.courseActions}>
         <TouchableOpacity
           style={[styles.actionButton, styles.experienceButton]}
-          onPress={() => onAddExperience(course.id)}
+          onPress={() => {
+            if (typeof onAddExperience !== 'function') return;
+            onAddExperience(courseId);
+          }}
         >
           <Text style={styles.actionButtonText}>Proficient</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.actionButton, styles.helpButton]}
-          onPress={() => onAddHelp(course.id)}
+          onPress={() => {
+            if (typeof onAddHelp !== 'function') return;
+            onAddHelp(courseId);
+          }}
         >
           <Text style={styles.actionButtonText}>Need Help</Text>
         </TouchableOpacity>
@@ -75,7 +85,7 @@ const ScheduleTab = ({
           {isCurrentUser && (
             <TouchableOpacity
               style={styles.addCourseButton}
-              onPress={() => onCoursePress(block)}
+              onPress={() => typeof onCoursePress === 'function' && onCoursePress(block)}
             >
               <MaterialIcons name="add" size={20} color="#2563eb" />
               <Text style={styles.addCourseText}>Add Course</Text>
@@ -84,21 +94,21 @@ const ScheduleTab = ({
         </View>
       );
     }
-
+    
     return (
       <View style={styles.courseCard}>
         <View style={styles.courseHeader}>
-          <Text style={styles.courseName}>{course.name || 'Unknown'}</Text>
+          <Text style={styles.courseName}>{course.course || 'Unknown'}</Text>
           {isCurrentUser && (
             <TouchableOpacity
               style={styles.editButton}
-              onPress={() => onCoursePress(course, block)}
+              onPress={() => typeof onCoursePress === 'function' && onCoursePress(course, block)}
             >
               <MaterialIcons name="edit" size={16} color="#666" />
             </TouchableOpacity>
           )}
         </View>
-        
+
         {renderCourseActions(course, block)}
       </View>
     );
@@ -280,14 +290,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   courseCard: {
-    backgroundColor: 'white',
-    borderRadius: 8,
-    padding: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 2,
-    minHeight: 40,
+  backgroundColor: 'white',
+  borderRadius: 8,
+  padding: 12,
+  shadowColor: '#000',
+  shadowOpacity: 0.2,
+  shadowRadius: 3,
+  elevation: 2,
+  minHeight: 40,
   },
   emptyCourseCard: {
     alignItems: 'center',
@@ -369,6 +379,13 @@ const styles = StyleSheet.create({
     padding: 4,
     borderRadius: 4,
     backgroundColor: '#f3f4f6',
+  },
+  debugSummary: {
+    display: 'none',
+  },
+  debugText: {
+    fontSize: 12,
+    color: '#111827',
   },
 });
 
