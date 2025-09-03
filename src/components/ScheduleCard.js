@@ -231,7 +231,7 @@ const Schedule = () => {
         </View>
         {data.uniformRequired && (
           <View style={styles.uniformAlert}>
-            <Text style={styles.uniformText}>Ceremonial Uniform Required</Text>
+            <Text style={styles.uniformText}>👔 Ceremonial Uniform Required</Text>
           </View>
         )}
         {data.blocks.map((block, index) => (
@@ -334,9 +334,8 @@ const styles = StyleSheet.create({
   },
   uniformAlert: {
     backgroundColor: '#FEF3C7',
-    padding: 12,
+    padding: 10,
     borderRadius: 10,
-    marginBottom: 16,
   },
   uniformText: {
     color: '#92400E',

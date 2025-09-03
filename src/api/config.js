@@ -150,9 +150,11 @@ export const getFullImageUrl = (imageUrl) => {
     return imageUrl;
   }
   
-  const baseUrl = isDevelopment 
-    ? resolveDevApiBaseUrl().replace('/api/', '')  // Remove /api/ suffix for images
-    : 'https://wolfkey.net';      // Production
+  // Prefer explicit EXPO_PUBLIC_IMAGE_BASE when provided (EAS env or runtime extra)
+  const envImageBase = process.env.EXPO_PUBLIC_IMAGE_BASE || Constants?.expoConfig?.extra?.imageBase;
+  const baseUrl = isDevelopment
+    ? resolveDevApiBaseUrl().replace('/api/', '') // Remove /api/ suffix for images
+    : (envImageBase || 'https://wolfkey.net'); // Production
   
     // Remove leading slash if present to avoid double slashes
     const cleanPath = imageUrl.startsWith('/') ? imageUrl.slice(1) : imageUrl;
