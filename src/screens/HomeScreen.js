@@ -75,7 +75,7 @@ const HomeScreen = () => {
         return;
       }
 
-      const res = await api.get(`for-you/?page=${pageNum}&limit=${PAGE_SIZE}`);
+      const res = await api.get(`all-posts/?page=${pageNum}&limit=${PAGE_SIZE}`);
       const data = res.data;
 
       setPosts(prev =>

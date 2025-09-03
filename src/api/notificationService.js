@@ -3,20 +3,35 @@ import api from './config';
 export async function registerPushToken(pushToken) {
   if (!pushToken) return { success: false, error: 'MISSING_TOKEN' };
   try {
+    console.log('registerPushToken: sending token to server', { pushToken });
     const res = await api.post('notifications/register-push-token/', { push_token: pushToken });
+    console.log('registerPushToken: server response', {
+      status: res.status,
+      data: res.data
+    });
     return res.data || { success: true };
   } catch (e) {
-    console.error('registerPushToken error:', e?.response?.data || e.message);
+    console.error('registerPushToken error:', {
+      message: e.message,
+      responseData: e?.response?.data,
+      responseStatus: e?.response?.status
+    });
     return { success: false, error: e?.response?.data || e.message };
   }
 }
 
 export async function unregisterPushToken(pushToken) {
   try {
+    console.log('unregisterPushToken: sending token to server', { pushToken });
     const res = await api.post('notifications/unregister-push-token/', pushToken ? { push_token: pushToken } : {});
+    console.log('unregisterPushToken: server response', { status: res.status, data: res.data });
     return res.data || { success: true };
   } catch (e) {
-    console.error('unregisterPushToken error:', e?.response?.data || e.message);
+    console.error('unregisterPushToken error:', {
+      message: e.message,
+      responseData: e?.response?.data,
+      responseStatus: e?.response?.status
+    });
     return { success: false, error: e?.response?.data || e.message };
   }
 }
