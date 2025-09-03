@@ -2,7 +2,7 @@
   "expo": {
     "name": "WolfKeyMobile",
     "slug": "wolfkey-mobile",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -14,7 +14,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.hugoc1000.wolfkeymobile",
-      "buildNumber": "2",
+      "buildNumber": "3",
       "supportsTablet": true,
       "infoPlist": {
         "NSUserTrackingUsageDescription": "This identifier is used to deliver relevant notifications.",
