@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "WolfKeyMobile",
+    "name": "WolfKey",
     "slug": "wolfkey-mobile",
-    "version": "1.0.2",
+    "version": "1.0.10",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -13,17 +13,15 @@
       "backgroundColor": "transparent"
     },
     "ios": {
+      "supportsTablet": false,
       "bundleIdentifier": "com.hugoc1000.wolfkeymobile",
-      "buildNumber": "3",
-      "supportsTablet": true,
+      "buildNumber": "10",
       "infoPlist": {
-        "NSUserTrackingUsageDescription": "This identifier is used to deliver relevant notifications.",
-        "UIBackgroundModes": [
-          "remote-notification",
-          "remote-notification"
-        ],
-        "FirebaseAppDelegateProxyEnabled": false,
-        "ITSAppUsesNonExemptEncryption": false
+        "UIBackgroundModes": ["remote-notification"],
+         "ITSAppUsesNonExemptEncryption": false
+      },
+      "entitlements": {
+        "aps-environment": "production"
       }
     },
     "android": {

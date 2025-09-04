@@ -2,7 +2,6 @@ import { Platform } from 'react-native';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
-import { sendClientLog } from '../api/debugService';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -23,62 +22,42 @@ const getProjectId = () => {
 
 export async function registerForPushNotificationsAsync() {
   try {
-    if (Platform.OS === 'web') {
-      return null;
-    }
-
     if (!Device.isDevice) {
-      const msg = 'registerForPushNotificationsAsync: not a physical device, skipping push registration';
-      console.log(msg);
-      try { await sendClientLog('warn', msg, { device: 'not-a-physical-device' }); } catch {}
+      console.log('Not a physical device, skipping push registration');
       return null;
-    }
-
-    if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('default', {
-        name: 'default',
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#FF231F7C',
-      });
     }
 
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  console.log('registerForPushNotificationsAsync: existingStatus=', existingStatus);
-  try { await sendClientLog('debug', 'existingStatus', { existingStatus }); } catch {}
     let finalStatus = existingStatus;
     if (existingStatus !== 'granted') {
       const { status } = await Notifications.requestPermissionsAsync();
-  console.log('registerForPushNotificationsAsync: requested permission status=', status);
-  try { await sendClientLog('debug', 'requestedPermissionStatus', { status }); } catch {}
       finalStatus = status;
     }
     if (finalStatus !== 'granted') {
-  const msg = 'registerForPushNotificationsAsync: permission not granted, skipping push registration';
-  console.log(msg);
-  try { await sendClientLog('warn', msg, { finalStatus }); } catch {}
-  return null;
-    }
-
-    const projectId = getProjectId();
-  console.log('registerForPushNotificationsAsync: resolved projectId=', projectId);
-  try { await sendClientLog('debug', 'resolvedProjectId', { projectId }); } catch {}
-    const tokenResponse = await Notifications.getExpoPushTokenAsync(
-      projectId ? { projectId } : undefined
-    );
-  console.log('registerForPushNotificationsAsync: raw tokenResponse=', tokenResponse);
-  try { await sendClientLog('debug', 'rawTokenResponse', { tokenResponse }); } catch {}
-    // tokenResponse may be an object { data: 'ExponentPushToken[...]' } or a string in older SDKs
-    const pushToken = tokenResponse?.data || tokenResponse || null;
-    if (!pushToken) {
-      const msg = 'registerForPushNotificationsAsync: no push token returned';
-      console.log(msg);
-      try { await sendClientLog('warn', msg, { tokenResponse }); } catch {}
+      console.log('Push notification permission not granted');
       return null;
     }
 
-    console.log('registerForPushNotificationsAsync: returning pushToken=', pushToken);
-    try { await sendClientLog('info', 'returningPushToken', { pushToken }); } catch {}
+    const projectId = getProjectId();
+  
+    // Get Expo push token
+    let tokenResponse;
+    try {
+      tokenResponse = await Notifications.getExpoPushTokenAsync(
+        projectId ? { projectId } : undefined
+      );
+    } catch (tokenError) {
+      console.error('Failed to get push token:', tokenError);
+      return null;
+    }
+
+    // Extract token from response
+    const pushToken = tokenResponse?.data || tokenResponse || null;
+    if (!pushToken) {
+      console.log('No push token returned');
+      return null;
+    }
+
     return pushToken;
   } catch (e) {
     console.error('registerForPushNotificationsAsync error:', e);
