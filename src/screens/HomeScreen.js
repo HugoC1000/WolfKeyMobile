@@ -96,7 +96,7 @@ const HomeScreen = () => {
       setLoadingMore(false);
       setRefreshing(false);
     }
-  }, [user?.id, hasNext, loadingMore, handleAuthError, authError]);
+  }, [hasNext, loadingMore, authError, handleAuthError]);
 
   useEffect(() => {
 

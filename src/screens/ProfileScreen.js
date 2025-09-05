@@ -15,6 +15,7 @@ import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import { useAuth } from '../context/authContext';
 import { useUser } from '../context/userContext';
 import BackgroundSvg from '../components/BackgroundSVG';
+import { deleteAccount } from '../api/deleteAccountService';
 import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';
 import ProfileCard from '../components/ProfileCard';
 import ScheduleTab from '../components/ScheduleTab';
@@ -135,6 +136,31 @@ const ProfileScreen = ({ route, navigation }) => {
     } catch (error) {
       console.error('Logout failed:', error);
     }
+  };
+
+  const handleDeleteAccount = async () => {
+    Alert.alert(
+      'Delete Account',
+      'Are you sure you want to permanently delete your account? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteAccount();
+              await logout(clearUser);
+              Alert.alert('Account Deleted', 'Your account has been deleted.');
+              navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+            } catch (error) {
+              console.error('Account deletion failed:', error);
+              Alert.alert('Error', 'Failed to delete account.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleImagePress = async () => {
@@ -450,6 +476,13 @@ const ProfileScreen = ({ route, navigation }) => {
                 >
                   <MaterialIcons name="logout" size={20} color="white" />
                   <Text style={styles.logoutButtonText}>Logout</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.logoutButton, { backgroundColor: '#6b7280', marginTop: 8 }]}
+                  onPress={handleDeleteAccount}
+                >
+                  <MaterialIcons name="delete" size={20} color="white" />
+                  <Text style={styles.logoutButtonText}>Delete Account</Text>
                 </TouchableOpacity>
               </View>
             )}
