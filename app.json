@@ -2,7 +2,7 @@
   "expo": {
     "name": "WolfKey",
     "slug": "wolfkey-mobile",
-    "version": "1.0.10",
+    "version": "1.0.11",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -15,7 +15,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.hugoc1000.wolfkeymobile",
-      "buildNumber": "10",
+      "buildNumber": "11",
       "infoPlist": {
         "UIBackgroundModes": ["remote-notification"],
          "ITSAppUsesNonExemptEncryption": false

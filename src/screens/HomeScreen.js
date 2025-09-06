@@ -112,7 +112,7 @@ const HomeScreen = () => {
     setHasNext(true);
     setLoading(true);
     fetchPosts(1);
-  }, [user?.id, fetchPosts]);
+  }, [user?.id]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', handleAppStateChange);
