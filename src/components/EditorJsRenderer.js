@@ -68,7 +68,7 @@ const EditorJsRenderer = ({ blocks }) => {
             <Image
               source={{ uri: fullImageUrl }}
               style={styles.image}
-              resizeMode="cover"
+              resizeMode="contain"
             />
             {block.data.caption && (
               <Text style={styles.imageCaption}>{block.data.caption}</Text>
@@ -142,18 +142,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   listItemText: {
-    ...globalStyles.regularText,
+  ...globalStyles.regularText,
     flex: 1,
     fontSize: 14,
     lineHeight: 20,
   },
   imageContainer: {
-    marginVertical: 8,
+    marginVertical: 2,
+    borderRadius: 12,
+    overflow: 'hidden',
   },
   image: {
     width: '100%',
-    height: 180,
-    borderRadius: 6,
+    height: 300,
+    borderRadius: 12,
   },
   imageCaption: {
     ...globalStyles.smallText,

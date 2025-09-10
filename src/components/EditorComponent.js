@@ -45,7 +45,12 @@ const EditorComponent = ({ onSave, initialContent = '', placeholder = 'Write you
           if (block.type === 'paragraph' && block.data?.text) {
             textBlocks.push(block.data.text);
           } else if (block.type === 'image' && block.data?.file?.url) {
-            imageBlocks.push(block);
+            // Add ID if it doesn't exist for existing images
+            const imageBlock = {
+              ...block,
+              id: block.id || Date.now() + Math.random()
+            };
+            imageBlocks.push(imageBlock);
           }
         });
         
@@ -114,8 +119,6 @@ const EditorComponent = ({ onSave, initialContent = '', placeholder = 'Write you
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [4, 3],
         quality: 0.8,
       });
 
@@ -137,8 +140,6 @@ const EditorComponent = ({ onSave, initialContent = '', placeholder = 'Write you
       }
 
       const result = await ImagePicker.launchCameraAsync({
-        allowsEditing: true,
-        aspect: [4, 3],
         quality: 0.8,
       });
 
@@ -160,6 +161,7 @@ const EditorComponent = ({ onSave, initialContent = '', placeholder = 'Write you
       console.log("Uploaded url: ", uploadedUrl);
       
       const newBlock = {
+        id: Date.now(), // Add unique ID for easy removal
         type: 'image',
         data: {
           file: {
@@ -182,6 +184,25 @@ const EditorComponent = ({ onSave, initialContent = '', placeholder = 'Write you
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const removeImage = (blockId) => {
+    Alert.alert(
+      'Remove Image',
+      'Are you sure you want to remove this image?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Remove', 
+          style: 'destructive',
+          onPress: () => {
+            const updatedBlocks = blocks.filter(block => block.id !== blockId);
+            setBlocks(updatedBlocks);
+            updateContent(updatedBlocks);
+          }
+        },
+      ]
+    );
   };
 
   const updateContent = async (currentBlocks = blocks, shouldValidate = false) => {
@@ -266,8 +287,14 @@ const EditorComponent = ({ onSave, initialContent = '', placeholder = 'Write you
       
       {blocks.map((block, index) => (
         block.type === 'image' && (
-          <View key={index} style={styles.imageContainer}>
+          <View key={block.id || index} style={styles.imageContainer}>
             <Image source={{ uri: getFullImageUrl(block.data.file?.url) || getFullImageUrl(block.data.url) }} style={styles.image} />
+            <TouchableOpacity 
+              style={styles.removeImageButton}
+              onPress={() => removeImage(block.id || index)}
+            >
+              <MaterialIcons name="close" size={20} color="#fff" />
+            </TouchableOpacity>
           </View>
         )
       ))}
@@ -300,11 +327,24 @@ const styles = StyleSheet.create({
     marginVertical: 8,
     borderRadius: 8,
     overflow: 'hidden',
+    position: 'relative',
   },
   image: {
     width: '100%',
     height: 200,
-    resizeMode: 'cover',
+    resizeMode: 'contain',
+    backgroundColor: '#f5f5f5',
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 15,
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   addImageButton: {
     flexDirection: 'row',
