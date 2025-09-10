@@ -336,7 +336,6 @@ const styles = StyleSheet.create({
   courseActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 8,
   },
   actionButton: {
     flexDirection: 'row',
