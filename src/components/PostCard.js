@@ -114,7 +114,7 @@ const PostCard = ({ post }) => {
         </View>
         
         <Text style={styles.title}>{post.title}</Text>
-        <Text style={styles.text}>{post.preview_text}</Text>
+        {post.preview_text ? <Text style={styles.text}>{post.preview_text}</Text> : <View></View>}
         
         {/* First Image */}
         {post.first_image_url && (

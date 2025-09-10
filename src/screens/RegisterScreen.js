@@ -201,18 +201,20 @@ const RegisterScreen = ({ navigation }) => {
         if (wolfnetSkipped) {
           transitionToStep(5); // Go to courses step
         } else {
-          // WolfNet password entered, will start background loading
-          transitionToStep(5); // Go to courses step
+          // DISABLED: Auto-complete functionality - go directly to courses step
+          transitionToStep(5); // Go to courses step (no auto-complete)
         }
       } else if (currentStep === 5) {
-        // Coming from courses step
+        // Coming from courses step - DISABLED: Skip schedule review, go to submission
+        handleSubmit(); // Always submit after courses step
+        /* // DISABLED: Schedule review step
         if (autoCompleteResult || autoCompleteLoading || autoCompleteError) {
           transitionToStep(6); 
         } else if (wolfnetSkipped) {
           handleSubmit(); // Skip to submission if error or skipped
         } else {
           handleSubmit(); // No auto-complete attempted
-        }
+        } */
       } else if (currentStep === 6) {
         handleSubmit(); // Submit from schedule step
       } else {
@@ -250,7 +252,8 @@ const RegisterScreen = ({ navigation }) => {
     handleSubmit();
   };
 
-  const handleAutoComplete = async () => {
+  // DISABLED: Auto-complete functionality - commented out due to WolfNet integration issues
+  /* const handleAutoComplete = async () => {
   if (!formData.wolfnet_password.trim()) {
       Alert.alert('Error', 'Please enter your WolfNet password first');
       return;
@@ -318,7 +321,7 @@ const RegisterScreen = ({ navigation }) => {
     } finally {
       setAutoCompleteLoading(false);
     }
-  };
+  }; */
 
   // Course selection handlers
   const handleExperiencedCoursesChange = (courses) => {
@@ -523,7 +526,8 @@ const RegisterScreen = ({ navigation }) => {
 
   // Progress indicator
   const renderProgressIndicator = () => {
-    const totalSteps = wolfnetSkipped ? 5 : (autoCompleteResult || autoCompleteLoading? 6 : 5);
+    // DISABLED: Auto-complete functionality - always use 5 steps now
+    const totalSteps = 5; // wolfnetSkipped ? 5 : (autoCompleteResult || autoCompleteLoading? 6 : 5);
     const progress = stepProgress.interpolate({
       inputRange: [1, totalSteps],
       outputRange: ['16%', '100%'],
@@ -556,7 +560,8 @@ const RegisterScreen = ({ navigation }) => {
         {currentStep === 3 && renderPasswordStep()}
         {currentStep === 4 && renderWolfnetStep()}
         {currentStep === 5 && renderCoursesStep()}
-        {currentStep === 6 && renderScheduleStep()}
+        {/* DISABLED: Schedule step removed due to auto-complete issues */}
+        {/* {currentStep === 6 && renderScheduleStep()} */}
       </Animated.View>
     );
   };
@@ -893,8 +898,8 @@ const RegisterScreen = ({ navigation }) => {
         
         <View style={styles.navigationSpacer} />
         
-        {((currentStep === 5 && wolfnetSkipped) || 
-          (currentStep === 6 && (autoCompleteResult || autoCompleteError))) ? (
+        {/* DISABLED: Auto-complete functionality - simplified navigation */}
+        {currentStep === 5 ? (
           <TouchableOpacity
             style={[styles.submitButton, isSubmitting && styles.buttonDisabled]}
             onPress={handleSubmit}
@@ -911,7 +916,8 @@ const RegisterScreen = ({ navigation }) => {
           </TouchableOpacity>
         ) : (currentStep === 4 && !wolfnetSkipped) ? (
           <>
-            <TouchableOpacity
+            {/* DISABLED: Auto-complete WolfNet integration has issues */}
+            {/* <TouchableOpacity
               style={[styles.autoCompleteButton, !formData.wolfnet_password.trim() && styles.autoCompleteButtonDisabled]}
               onPress={handleAutoComplete}
               disabled={!formData.wolfnet_password.trim()}
@@ -927,9 +933,19 @@ const RegisterScreen = ({ navigation }) => {
                 <MaterialIcons name="auto-fix-high" size={22} style={styles.autoCompleteIcon} />
                 <Text style={styles.autoCompleteButtonText}>Connect WolfNet</Text>
               </View>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
+
+            {/* Temporary message about disabled feature */}
+            <View style={styles.disabledFeatureContainer}>
+              <MaterialIcons name="info" size={20} color="#f59e0b" />
+              <Text style={styles.disabledFeatureText}>
+                WolfNet integration is temporarily disabled due to technical issues
+              </Text>
+            </View>
 
           </>
+        ) : (
+          /* DISABLED: Removed schedule loading and review steps
         ) : (currentStep === 6 && autoCompleteLoading) ? (
           <TouchableOpacity
             style={[styles.nextButton, styles.buttonDisabled]}
@@ -948,7 +964,7 @@ const RegisterScreen = ({ navigation }) => {
             </Text>
             <MaterialIcons name="arrow-forward" size={20} color="white" />
           </TouchableOpacity>
-        ) : (
+        ) : ( */
           <TouchableOpacity
             style={styles.nextButton}
             onPress={handleNext}
@@ -1221,6 +1237,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#6b7280',
   },
+  /* DISABLED: Auto-complete button styles - commented out due to WolfNet issues
   autoCompleteButton: {
     flex: 2,
     flexDirection: 'row',
@@ -1258,6 +1275,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: 'white',
+  }, */
+  disabledFeatureContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fef3c7',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#f59e0b',
+    gap: 8,
+  },
+  disabledFeatureText: {
+    fontSize: 14,
+    color: '#92400e',
+    flex: 1,
+    fontWeight: '500',
   },
   courseSection: {
     marginBottom: 8,

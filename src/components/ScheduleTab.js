@@ -145,8 +145,8 @@ const ScheduleTab = ({
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.content}>
-        {/* Auto Complete Button */}
-        {isCurrentUser && (
+        {/* Auto Complete Button - DISABLED: Issues with WolfNet integration */}
+        {/* {isCurrentUser && (
           <View style={styles.autoCompleteContainer}>
             <TouchableOpacity
               style={[styles.autoCompleteButton, autoCompleteLoading && styles.autoCompleteButtonDisabled]}
@@ -173,7 +173,7 @@ const ScheduleTab = ({
               </View>
             </TouchableOpacity>
           </View>
-        )}
+        )} */}
 
         {/* Header Row */}
         <View style={styles.headerRow}>
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
   content: {
     padding: 16,
   },
-  autoCompleteContainer: {
+  /* autoCompleteContainer: {
     marginBottom: 15,
     alignItems: 'center',
   },
@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: 'white',
-  },
+  }, */
   headerRow: {
     flexDirection: 'row',
     marginBottom: 14,
