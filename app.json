@@ -17,8 +17,10 @@
       "bundleIdentifier": "com.hugoc1000.wolfkeymobile",
       "buildNumber": "13",
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"],
-         "ITSAppUsesNonExemptEncryption": false
+        "UIBackgroundModes": [
+          "remote-notification"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       },
       "entitlements": {
         "aps-environment": "production"
@@ -39,7 +41,8 @@
         "icon": "./assets/icon.png",
         "color": "#2563eb",
         "channelId": "default"
-      }
+      },
+      "package": "com.hugoc1000.wolfkeymobile"
     },
     "web": {
       "favicon": "./assets/favicon.png"
