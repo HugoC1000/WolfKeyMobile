@@ -7,27 +7,27 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		13441EB4D8DF284C7F073041 /* libPods-WolfKey.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E826ECEF306479AD23456710 /* libPods-WolfKey.a */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
+		1C9CE95CD27D3682C2D6BEAB /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEA912C667875EFF9F1E65A1 /* ExpoModulesProvider.swift */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		4B915A65B66A287B31215DD5 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = B82A751408549D2FD2F91CA4 /* PrivacyInfo.xcprivacy */; };
-		72DFCE5BFBFC77F1049D77F2 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 826598C224C577D54A2A77BE /* ExpoModulesProvider.swift */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
+		D6A071EA3F3F3931B883A381 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 9A94BA3A9C5A2EC5FFA185C7 /* PrivacyInfo.xcprivacy */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
+		FACA074B0DF615616FE3EDBF /* libPods-WolfKey.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FF304C2F78873B321AB4929 /* libPods-WolfKey.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		11EE3E3E13D07897B5A83EDA /* Pods-WolfKey.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-WolfKey.release.xcconfig"; path = "Target Support Files/Pods-WolfKey/Pods-WolfKey.release.xcconfig"; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* WolfKey.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WolfKey.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = WolfKey/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = WolfKey/Info.plist; sourceTree = "<group>"; };
-		2CDEC27D405A514EBDE65AA3 /* Pods-WolfKey.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-WolfKey.release.xcconfig"; path = "Target Support Files/Pods-WolfKey/Pods-WolfKey.release.xcconfig"; sourceTree = "<group>"; };
-		826598C224C577D54A2A77BE /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-WolfKey/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		4FF304C2F78873B321AB4929 /* libPods-WolfKey.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-WolfKey.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		9A94BA3A9C5A2EC5FFA185C7 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = WolfKey/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		A1A7B151D227AEB514F42A0D /* Pods-WolfKey.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-WolfKey.debug.xcconfig"; path = "Target Support Files/Pods-WolfKey/Pods-WolfKey.debug.xcconfig"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = WolfKey/SplashScreen.storyboard; sourceTree = "<group>"; };
-		B71CCDD4C19F960CF3914D5F /* Pods-WolfKey.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-WolfKey.debug.xcconfig"; path = "Target Support Files/Pods-WolfKey/Pods-WolfKey.debug.xcconfig"; sourceTree = "<group>"; };
-		B82A751408549D2FD2F91CA4 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = WolfKey/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		E826ECEF306479AD23456710 /* libPods-WolfKey.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-WolfKey.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
+		EEA912C667875EFF9F1E65A1 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-WolfKey/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = WolfKey/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* WolfKey-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "WolfKey-Bridging-Header.h"; path = "WolfKey/WolfKey-Bridging-Header.h"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -37,7 +37,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				13441EB4D8DF284C7F073041 /* libPods-WolfKey.a in Frameworks */,
+				FACA074B0DF615616FE3EDBF /* libPods-WolfKey.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -53,7 +53,7 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				B82A751408549D2FD2F91CA4 /* PrivacyInfo.xcprivacy */,
+				9A94BA3A9C5A2EC5FFA185C7 /* PrivacyInfo.xcprivacy */,
 			);
 			name = WolfKey;
 			sourceTree = "<group>";
@@ -62,9 +62,27 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				E826ECEF306479AD23456710 /* libPods-WolfKey.a */,
+				4FF304C2F78873B321AB4929 /* libPods-WolfKey.a */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		3477686260F39862BEAFAADC /* WolfKey */ = {
+			isa = PBXGroup;
+			children = (
+				EEA912C667875EFF9F1E65A1 /* ExpoModulesProvider.swift */,
+			);
+			name = WolfKey;
+			sourceTree = "<group>";
+		};
+		425B95573C77537D44C290B4 /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				A1A7B151D227AEB514F42A0D /* Pods-WolfKey.debug.xcconfig */,
+				11EE3E3E13D07897B5A83EDA /* Pods-WolfKey.release.xcconfig */,
+			);
+			name = Pods;
+			path = Pods;
 			sourceTree = "<group>";
 		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
@@ -81,8 +99,8 @@
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				DFF7E1CA804194DC933CF893 /* Pods */,
-				89479E7F0C70A70731BAD5E6 /* ExpoModulesProviders */,
+				425B95573C77537D44C290B4 /* Pods */,
+				9DA0817AE288EE600FA65BDC /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -97,20 +115,12 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		89479E7F0C70A70731BAD5E6 /* ExpoModulesProviders */ = {
+		9DA0817AE288EE600FA65BDC /* ExpoModulesProviders */ = {
 			isa = PBXGroup;
 			children = (
-				9E019DD6A3FA61F6AAE9E720 /* WolfKey */,
+				3477686260F39862BEAFAADC /* WolfKey */,
 			);
 			name = ExpoModulesProviders;
-			sourceTree = "<group>";
-		};
-		9E019DD6A3FA61F6AAE9E720 /* WolfKey */ = {
-			isa = PBXGroup;
-			children = (
-				826598C224C577D54A2A77BE /* ExpoModulesProvider.swift */,
-			);
-			name = WolfKey;
 			sourceTree = "<group>";
 		};
 		BB2F792B24A3F905000567C9 /* Supporting */ = {
@@ -122,15 +132,6 @@
 			path = WolfKey/Supporting;
 			sourceTree = "<group>";
 		};
-		DFF7E1CA804194DC933CF893 /* Pods */ = {
-			isa = PBXGroup;
-			children = (
-				B71CCDD4C19F960CF3914D5F /* Pods-WolfKey.debug.xcconfig */,
-				2CDEC27D405A514EBDE65AA3 /* Pods-WolfKey.release.xcconfig */,
-			);
-			path = Pods;
-			sourceTree = "<group>";
-		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -139,13 +140,13 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "WolfKey" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				C7CC495ED3215CCA583DEB65 /* [Expo] Configure project */,
+				E92A5723F0428A15EB8C8890 /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				3800064132ECF368F8FC1838 /* [CP] Embed Pods Frameworks */,
+				7E9620A12D095E46565CA7C1 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -195,7 +196,7 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				4B915A65B66A287B31215DD5 /* PrivacyInfo.xcprivacy in Resources */,
+				D6A071EA3F3F3931B883A381 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -239,7 +240,7 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		3800064132ECF368F8FC1838 /* [CP] Embed Pods Frameworks */ = {
+		7E9620A12D095E46565CA7C1 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -301,7 +302,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-WolfKey/Pods-WolfKey-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		C7CC495ED3215CCA583DEB65 /* [Expo] Configure project */ = {
+		E92A5723F0428A15EB8C8890 /* [Expo] Configure project */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -328,7 +329,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
-				72DFCE5BFBFC77F1049D77F2 /* ExpoModulesProvider.swift in Sources */,
+				1C9CE95CD27D3682C2D6BEAB /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -337,13 +338,12 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = B71CCDD4C19F960CF3914D5F /* Pods-WolfKey.debug.xcconfig */;
+			baseConfigurationReference = A1A7B151D227AEB514F42A0D /* Pods-WolfKey.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = WolfKey/WolfKey.entitlements;
-				CURRENT_PROJECT_VERSION = 13;
-				DEVELOPMENT_TEAM = KNHH78UB2R;
+				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_BITCODE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
@@ -355,7 +355,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 1.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -374,20 +374,19 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 2CDEC27D405A514EBDE65AA3 /* Pods-WolfKey.release.xcconfig */;
+			baseConfigurationReference = 11EE3E3E13D07897B5A83EDA /* Pods-WolfKey.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = WolfKey/WolfKey.entitlements;
-				CURRENT_PROJECT_VERSION = 13;
-				DEVELOPMENT_TEAM = KNHH78UB2R;
+				CURRENT_PROJECT_VERSION = 1;
 				INFOPLIST_FILE = WolfKey/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 1.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
