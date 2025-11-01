@@ -33,6 +33,7 @@ import {
   removeHelpRequest,
   autoCompleteCourses,
   updateCourses,
+  updatePrivacyPreferences,
 } from '../api/profileService';
 
 const ProfileScreen = ({ route, navigation }) => {
@@ -46,6 +47,10 @@ const ProfileScreen = ({ route, navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('profile');
   const [autoCompleteLoading, setAutoCompleteLoading] = useState(false);
+
+  // Privacy preferences state
+  const [allowScheduleComparison, setAllowScheduleComparison] = useState(true);
+  const [allowGradeUpdates, setAllowGradeUpdates] = useState(true);
 
   // Bottom sheet states
   const [showCourseSelector, setShowCourseSelector] = useState(false);
@@ -108,9 +113,17 @@ const ProfileScreen = ({ route, navigation }) => {
         recent_posts: profileData.recent_posts || [],
         can_compare: profileData.can_compare || false,
         has_wolfnet_password: profileData.user?.has_wolfnet_password || false,
+        allow_schedule_comparison: profileData.user?.allow_schedule_comparison ?? true,
+        allow_grade_updates: profileData.user?.allow_grade_updates ?? true,
       };
       
       setProfile(transformedProfile);
+      
+      // Update preference states if this is the current user
+      if (isCurrentUser) {
+        setAllowScheduleComparison(transformedProfile.allow_schedule_comparison);
+        setAllowGradeUpdates(transformedProfile.allow_grade_updates);
+      }
     } catch (error) {
       console.error('Error fetching profile:', error);
       Alert.alert('Error', 'Failed to load profile');
@@ -340,6 +353,36 @@ const ProfileScreen = ({ route, navigation }) => {
     }
   };
 
+  const handleUpdatePreference = async (preferenceKey, value) => {
+    try {
+      // Optimistically update the UI
+      if (preferenceKey === 'allow_schedule_comparison') {
+        setAllowScheduleComparison(value);
+      } else if (preferenceKey === 'allow_grade_updates') {
+        setAllowGradeUpdates(value);
+      }
+
+      // Update on backend
+      const preferences = {
+        [preferenceKey]: value,
+      };
+      
+      await updatePrivacyPreferences(preferences);
+      
+      // Refresh profile to ensure we have the latest data
+      await fetchProfile();
+    } catch (error) {
+      console.error('Error updating preference:', error);
+      // Revert the optimistic update on error
+      if (preferenceKey === 'allow_schedule_comparison') {
+        setAllowScheduleComparison(!value);
+      } else if (preferenceKey === 'allow_grade_updates') {
+        setAllowGradeUpdates(!value);
+      }
+      Alert.alert('Error', 'Failed to update privacy preference');
+    }
+  };
+
   // Course selection handlers
   const handleCoursePress = (courseOrBlock, block) => {
     if (isCurrentUser) {
@@ -469,7 +512,51 @@ const ProfileScreen = ({ route, navigation }) => {
               onImagePress={handleImagePress}
             />
             {isCurrentUser && (
-              <View style={styles.actionButtons}>
+              <>
+                {/* Privacy Preferences Section */}
+                <View style={styles.preferencesCard}>
+                  <Text style={styles.preferencesTitle}>Privacy Preferences</Text>
+                  
+                  <TouchableOpacity 
+                    style={styles.preferenceItem}
+                    onPress={() => handleUpdatePreference('allow_schedule_comparison', !allowScheduleComparison)}
+                  >
+                    <View style={styles.preferenceContent}>
+                      <MaterialIcons 
+                        name={allowScheduleComparison ? "check-box" : "check-box-outline-blank"} 
+                        size={24} 
+                        color={allowScheduleComparison ? "#2563eb" : "#9ca3af"} 
+                      />
+                      <View style={styles.preferenceTextContainer}>
+                        <Text style={styles.preferenceTitle}>Allow Schedule Comparison</Text>
+                        <Text style={styles.preferenceDescription}>
+                          Let others see if you share classes with them
+                        </Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity 
+                    style={styles.preferenceItem}
+                    onPress={() => handleUpdatePreference('allow_grade_updates', !allowGradeUpdates)}
+                  >
+                    <View style={styles.preferenceContent}>
+                      <MaterialIcons 
+                        name={allowGradeUpdates ? "check-box" : "check-box-outline-blank"} 
+                        size={24} 
+                        color={allowGradeUpdates ? "#2563eb" : "#9ca3af"} 
+                      />
+                      <View style={styles.preferenceTextContainer}>
+                        <Text style={styles.preferenceTitle}>Allow Grade Updates</Text>
+                        <Text style={styles.preferenceDescription}>
+                          Receive notifications about grade changes
+                        </Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.actionButtons}>
                 <TouchableOpacity
                   style={styles.logoutButton}
                   onPress={handleLogout}
@@ -485,6 +572,7 @@ const ProfileScreen = ({ route, navigation }) => {
                   <Text style={styles.logoutButtonText}>Delete Account</Text>
                 </TouchableOpacity>
               </View>
+              </>
             )}
           </View>
         );
@@ -713,6 +801,47 @@ const styles = StyleSheet.create({
   actionButtons: {
     padding: 16,
     gap: 12,
+  },
+  preferencesCard: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  preferencesTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 16,
+  },
+  preferenceItem: {
+    marginBottom: 12,
+  },
+  preferenceContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  preferenceTextContainer: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  preferenceTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 4,
+  },
+  preferenceDescription: {
+    fontSize: 13,
+    color: '#6b7280',
+    lineHeight: 18,
   },
   logoutButton: {
     backgroundColor: '#dc2626',

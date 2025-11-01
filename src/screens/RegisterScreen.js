@@ -63,6 +63,10 @@ const RegisterScreen = ({ navigation }) => {
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   
+  // Preference settings (default to true)
+  const [allowScheduleComparison, setAllowScheduleComparison] = useState(true);
+  const [allowGradeUpdates, setAllowGradeUpdates] = useState(true);
+  
   const [showWolfnetPassword, setShowWolfnetPassword] = useState(false);
   
   const fadeAnim = useRef(new Animated.Value(1)).current;
@@ -474,6 +478,8 @@ const RegisterScreen = ({ navigation }) => {
         experienced_courses: experiencedCourses.map(c => c.id),
         help_needed_courses: helpNeededCourses.map(c => c.id),
         schedule: scheduleData,
+        allow_schedule_comparison: allowScheduleComparison,
+        allow_grade_updates: allowGradeUpdates,
       };
       
       // Remove the original password fields as we're using password1/password2
@@ -816,6 +822,49 @@ const RegisterScreen = ({ navigation }) => {
           selectedCourses={helpNeededCourses}
         />
         {errors.help && <Text style={styles.errorText}>{errors.help}</Text>}
+      </View>
+
+      {/* Privacy Preferences */}
+      <View style={styles.preferencesSection}>
+        <Text style={styles.preferencesSectionTitle}>Privacy Preferences</Text>
+        
+        <TouchableOpacity 
+          style={styles.preferenceItem}
+          onPress={() => setAllowScheduleComparison(!allowScheduleComparison)}
+        >
+          <View style={styles.preferenceContent}>
+            <MaterialIcons 
+              name={allowScheduleComparison ? "check-box" : "check-box-outline-blank"} 
+              size={24} 
+              color={allowScheduleComparison ? "#2563eb" : "#9ca3af"} 
+            />
+            <View style={styles.preferenceTextContainer}>
+              <Text style={styles.preferenceTitle}>Allow Schedule Comparison</Text>
+              <Text style={styles.preferenceDescription}>
+                Let others see if you share classes with them
+              </Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.preferenceItem}
+          onPress={() => setAllowGradeUpdates(!allowGradeUpdates)}
+        >
+          <View style={styles.preferenceContent}>
+            <MaterialIcons 
+              name={allowGradeUpdates ? "check-box" : "check-box-outline-blank"} 
+              size={24} 
+              color={allowGradeUpdates ? "#2563eb" : "#9ca3af"} 
+            />
+            <View style={styles.preferenceTextContainer}>
+              <Text style={styles.preferenceTitle}>Allow Grade Updates</Text>
+              <Text style={styles.preferenceDescription}>
+                Receive notifications about grade changes
+              </Text>
+            </View>
+          </View>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -1306,6 +1355,40 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6b7280',
     marginBottom: 16,
+  },
+  preferencesSection: {
+    marginTop: 24,
+    paddingTop: 24,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+  },
+  preferencesSectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 16,
+  },
+  preferenceItem: {
+    marginBottom: 16,
+  },
+  preferenceContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  preferenceTextContainer: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  preferenceTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 4,
+  },
+  preferenceDescription: {
+    fontSize: 13,
+    color: '#6b7280',
+    lineHeight: 18,
   },
   scheduleContainer: {
   marginBottom: 20,

@@ -120,3 +120,14 @@ export const autoCompleteCourses = async () => {
     throw error;
   }
 };
+
+// Update privacy preferences
+export const updatePrivacyPreferences = async (preferences) => {
+  try {
+    const response = await api.post('profile/preferences/update/', preferences);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating privacy preferences:', error);
+    throw error;
+  }
+};

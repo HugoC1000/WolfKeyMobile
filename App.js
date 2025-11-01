@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { GlassView, GlassContainer } from 'expo-glass-effect';
 import HomeStackNavigator from './src/navigation/HomeStackNavigator'; // <- New import for nested stack
 import ExploreScreen from './src/screens/ExploreScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
