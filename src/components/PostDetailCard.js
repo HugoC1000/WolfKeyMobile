@@ -21,7 +21,7 @@ const PostDetailCard = ({ post, isReference }) => {
               <View style={styles.profilePicPlaceholder} />
             )}
             <View>
-              <Text style={styles.authorName}>{post.author.full_name}</Text>
+              <Text style={styles.authorName}> {post.is_anonymous ? 'Anonymous' : post.author_name}</Text>
               <Text style={styles.timestamp}>
                 {formatDateTime(post.created_at)}
               </Text>
