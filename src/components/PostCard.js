@@ -96,7 +96,7 @@ const PostCard = ({ post }) => {
           <View style={styles.authorInfo}>
             {post.author.userprofile.profile_picture ? (
               <Image 
-                source={{ uri: post.author.userprofile.profile_picture }}
+                source={{ uri: getFullImageUrl(post.author.userprofile.profile_picture) }}
                 style={styles.profilePic}
               />
             ) : (

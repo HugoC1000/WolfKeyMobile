@@ -126,10 +126,10 @@ const CommentList = ({ comments = [], onReply, onEdit, onDelete }) => {
     <View style={styles.container}>
       <View style={styles.headerContainer}>
         <Text style={styles.commentTitle}>
-          Comments ({comments.length})
+          Comments ({comments.filter(comment => !comment.parent).length})
         </Text>
       </View>
-      {comments.map(comment => renderComment(comment))}
+      {comments.filter(comment => !comment.parent).map(comment => renderComment(comment))}
     </View>
   );
 };

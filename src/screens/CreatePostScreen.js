@@ -5,6 +5,7 @@ import EditorComponent from '../components/EditorComponent';
 import api from '../api/config';
 import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';
 import CourseSelector from '../components/CourseSelector';
+import { useFocusEffect } from '@react-navigation/native';
 
 const CreatePostScreen = ({ navigation }) => {
   const [title, setTitle] = useState('');
@@ -15,6 +16,23 @@ const CreatePostScreen = ({ navigation }) => {
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [showAnonInfo, setShowAnonInfo] = useState(false);
   const [clearEditor, setClearEditor] = useState(null);
+  const [editorKey, setEditorKey] = useState(Date.now());
+
+  // Reset form when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      return () => {
+        // This cleanup function runs when screen loses focus
+        setTitle('');
+        setContent(null);
+        setSelectedCourses([]);
+        setIsAnonymous(false);
+        setShowAnonInfo(false);
+        setError(null);
+        setEditorKey(Date.now()); // Force editor remount
+      };
+    }, [])
+  );
 
   const handleSubmit = async () => {
     if (!content || !title) return;
@@ -40,15 +58,21 @@ const CreatePostScreen = ({ navigation }) => {
       });
 
       if (response.status === 201) {
+        // Clear all form fields
         setTitle('');
         setContent(null);
         setSelectedCourses([]);
         setIsAnonymous(false);
         setShowAnonInfo(false);
-        if (clearEditor) {
-          clearEditor();
-        }
-        navigation.goBack();
+        setError(null);
+        
+        // Force editor to remount with fresh state
+        setEditorKey(Date.now());
+        
+        // Navigate back to previous screen
+        setTimeout(() => {
+          navigation.goBack();
+        }, 100);
       }
     } catch (error) {
       console.error('Error creating post:', error);
@@ -70,6 +94,7 @@ const CreatePostScreen = ({ navigation }) => {
         />
         
         <EditorComponent 
+          key={editorKey}
           onSave={setContent}
           onClearRef={setClearEditor}
           placeholder="Provide more details about your question..."
