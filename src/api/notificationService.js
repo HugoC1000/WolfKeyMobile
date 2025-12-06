@@ -72,3 +72,14 @@ export async function markAllAsRead() {
     throw e;
   }
 }
+
+export async function markNotificationsByPost(postId) {
+  try {
+    const res = await api.post(`notifications/mark-by-post/${postId}/`);
+    return res.data;
+  } catch (e) {
+    console.error('markNotificationsByPost error:', e?.response?.data || e.message);
+    // Don't throw - this is a background action that shouldn't interrupt user flow
+    return { success: false };
+  }
+}

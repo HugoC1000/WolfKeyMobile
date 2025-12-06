@@ -17,6 +17,8 @@ import api from '../api/config';
 import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';
 import BackgroundSvg from '../components/BackgroundSVG';
 import { useUser } from '../context/userContext';
+import { markNotificationsByPost } from '../api/notificationService';
+import badgeManager from '../utils/badgeManager';
 
 const PostDetailScreen = ({ route, navigation }) => {
   const { postId } = route.params;
@@ -50,6 +52,12 @@ const PostDetailScreen = ({ route, navigation }) => {
 
   useEffect(() => {
     fetchPostDetail();
+    
+    // Mark notifications related to this post as read
+    markNotificationsByPost(postId).then(() => {
+      // Update badge count after marking notifications
+      badgeManager.updateBadge();
+    });
   }, [postId]);
 
   const onRefresh = () => {
