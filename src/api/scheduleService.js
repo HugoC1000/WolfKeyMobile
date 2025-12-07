@@ -36,9 +36,8 @@ export const scheduleService = {
     }
   },
 
-  getCeremonialUniform: async (date) => {
+  getCeremonialUniform: async (isoDate) => {
     try {
-      const isoDate = formatDateToISO(date);
       const response = await api.get(`schedules/uniform/${encodeURIComponent(isoDate)}/`, {
         headers: {
           'Accept': 'application/json',
@@ -62,14 +61,14 @@ export const scheduleService = {
   },
 
 
-  getProcessedSchedule: async (userId, date) => {
+  getProcessedSchedule: async (userId, isoDate) => {
     try {
-      const isoDate = formatDateToISO(date);
+      const todayISO = new Date().toISOString().split('T')[0];
 
       const params = {
         t: new Date().getTime()
       };
-      if (isoDate && isoDate !== formatDateToISO(new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }))) {
+      if (isoDate && isoDate !== todayISO) {
         params.date = isoDate;
       }
 
@@ -81,7 +80,7 @@ export const scheduleService = {
         params: params
       });
 
-      return response.data.schedule;
+      return response.data;
     } catch (error) {
       console.error('Error fetching processed schedule:', {
         status: error.response?.status,

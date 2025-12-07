@@ -10,7 +10,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "transparent"
+      "backgroundColor": "#ffffff"
     },
     "ios": {
       "supportsTablet": false,
@@ -32,23 +32,17 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "useNextNotificationsApi": true,
       "permissions": [
         "com.google.android.c2dm.permission.RECEIVE",
         "android.permission.RECORD_AUDIO"
       ],
-      "notification": {
-        "icon": "./assets/icon.png",
-        "color": "#2563eb",
-        "channelId": "default"
-      },
       "package": "com.hugoc1000.wolfkeymobile"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "androidStatusBar": {
-      "backgroundColor": "transparent",
+      "backgroundColor": "#ffffff",
       "translucent": true
     },
     "plugins": [
@@ -58,7 +52,8 @@
           "photosPermission": "We use your camera and photo library to let you take and upload profile photos and share images in posts. For example, you can take a photo to set as your profile picture or attach an image to a discussion post.",
           "cameraPermission": "We use your camera to let you take and upload profile photos and share images in posts. For example, you can take a photo to set as your profile picture or attach an image to a discussion post."
         }
-      ]
+      ],
+      "expo-font"
     ],
     "extra": {
       "eas": {
