@@ -153,9 +153,6 @@ const HomeScreen = () => {
     <View>
       <View style={styles.headerSpacer} />
       <View style={styles.greetingContainer}>
-        <Text style={styles.greeting}>
-          Hello, {user?.first_name || 'Guest'}! Ready to explore?
-        </Text>
       </View>
       <View style={styles.scheduleContainer}>
         <Schedule key={user?.id} />

@@ -260,12 +260,12 @@ const Schedule = () => {
             )}
             {schedule.lateStart && (
               <View style={[styles.pill, styles.pillBlue]}>
-                <Text style={[styles.pillText, styles.pillTextBlue]}>⏰ Late Start</Text>
+                <Text style={[styles.pillText, styles.pillTextBlue]}>☕ Late Start</Text>
               </View>
             )}
             {schedule.earlyDismissal && (
               <View style={[styles.pill, styles.pillGreen]}>
-                <Text style={[styles.pillText, styles.pillTextGreen]}>🏃 Early Dismissal</Text>
+                <Text style={[styles.pillText, styles.pillTextGreen]}>⏰ Early Dismissal</Text>
               </View>
             )}
           </View>
