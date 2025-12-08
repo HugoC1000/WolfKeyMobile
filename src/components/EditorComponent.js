@@ -317,11 +317,11 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: 16,
+    padding: 6,
   },
   editor: {
     ...globalStyles.regularText,
-    minHeight: 50,
+    minHeight: 40,
   },
   imageContainer: {
     marginVertical: 8,
@@ -349,8 +349,8 @@ const styles = StyleSheet.create({
   addImageButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 8,
-    marginTop: 8,
+    padding: 6,
+    marginTop: 0,
     borderWidth: 1,
     borderColor: '#2563EB',
     borderRadius: 8,

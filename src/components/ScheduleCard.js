@@ -194,15 +194,19 @@ const Schedule = () => {
 
   const handleScrollEnd = (event) => {
     const offsetX = event.nativeEvent.contentOffset.x;
-    const page = Math.round(offsetX / SCREEN_WIDTH);
-    
-    if (page === 0) {
+    const deltaFromCenter = offsetX - SCREEN_WIDTH;
+    const threshold = SCREEN_WIDTH / 3;
+
+    if (deltaFromCenter <= -threshold) {
       // Swiped left to previous day
       setCurrentDayOffset(prev => prev - 1);
       recenterScroll();
-    } else if (page === 2) {
+    } else if (deltaFromCenter >= threshold) {
       // Swiped right to next day
       setCurrentDayOffset(prev => prev + 1);
+      recenterScroll();
+    } else if (Math.abs(deltaFromCenter) > 1) {
+      // Minor movement; snap back to center if user didn't cross the threshold
       recenterScroll();
     }
   };

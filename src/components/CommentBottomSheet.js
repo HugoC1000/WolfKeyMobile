@@ -15,7 +15,7 @@ const CommentBottomSheet = ({
   onCommentSubmitted 
 }) => {
   const [content, setContent] = useState(editingComment?.content || '');
-  const [currentSnapIndex, setCurrentSnapIndex] = useState(1); // Track current snap point
+  const [currentSnapIndex, setCurrentSnapIndex] = useState(2); // Track current snap point
 
   React.useEffect(() => {
     if (editingComment) {
@@ -27,7 +27,7 @@ const CommentBottomSheet = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const bottomSheetRef = useRef(null);
 
-  const snapPoints = useMemo(() => ['16%', '50%', '75%'], []);
+  const snapPoints = useMemo(() => ['20%', '50%', '75%', '85%'], []);
 
   const handleSheetChanges = useCallback((index) => {
     setCurrentSnapIndex(index);
@@ -81,7 +81,7 @@ const CommentBottomSheet = ({
 
   const handleHeaderTap = () => {
     if (currentSnapIndex === 0) {
-      bottomSheetRef.current?.snapToIndex(1);
+      bottomSheetRef.current?.snapToIndex(2);
     }
   };
 
@@ -126,10 +126,15 @@ const CommentBottomSheet = ({
 
   React.useEffect(() => {
     if (isVisible) {
-      bottomSheetRef.current?.snapToIndex(1);
-    } else {
-      bottomSheetRef.current?.close();
+      setCurrentSnapIndex(2);
+      const frameId = requestAnimationFrame(() => {
+        bottomSheetRef.current?.snapToIndex(2);
+      });
+      return () => cancelAnimationFrame(frameId);
     }
+
+    bottomSheetRef.current?.close();
+    return undefined;
   }, [isVisible]);
 
   if (!isVisible) return null;
@@ -137,7 +142,7 @@ const CommentBottomSheet = ({
   return (
     <BottomSheet
       ref={bottomSheetRef}
-      index={1}
+      index={currentSnapIndex}
       snapPoints={snapPoints}
       onChange={handleSheetChanges}
       enablePanDownToClose={false}

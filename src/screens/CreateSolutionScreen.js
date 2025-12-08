@@ -76,7 +76,7 @@ const CreateSolutionScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    marginBottom: 50
+    marginBottom: 0
   },
   contentContainer: {
     padding: 16,
@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 16,
-    marginBottom: 40
+    marginBottom: 300
   },
   submitButtonDisabled: {
     opacity: 0.6,
