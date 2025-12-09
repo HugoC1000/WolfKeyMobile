@@ -136,13 +136,13 @@ const CommentList = ({ comments = [], onReply, onEdit, onDelete }) => {
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 16,
+    marginTop: 8,
   },
   headerContainer: {
-    paddingBottom: 12,
+    paddingBottom: 6,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
-    marginBottom: 12,
+    marginBottom: 6,
   },
   commentTitle: {
     ...globalStyles.regularText,
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   authorInfo: {
     flexDirection: 'row',
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   commentContent: {
-    marginBottom: 8,
+    marginBottom: 4,
   },
   commentFooter: {
     flexDirection: 'row',

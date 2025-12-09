@@ -4,6 +4,8 @@ import EditorJsRenderer from './EditorJsRenderer';
 import { globalStyles } from '../utils/styles';
 import BackgroundSvg from '../components/BackgroundSVG';
 import { formatDateTime } from '../utils/timeUtils';
+import { getFullImageUrl } from '../api/config';
+
 
 
 const PostDetailCard = ({ post, isReference }) => {
@@ -14,7 +16,7 @@ const PostDetailCard = ({ post, isReference }) => {
           <View style={styles.authorInfo}>
             {post.author.userprofile.profile_picture ? (
               <Image 
-                source={{ uri: post.author.userprofile.profile_picture }}
+                source={{ uri: getFullImageUrl(post.author.userprofile.profile_picture) }}
                 style={styles.profilePic}
               />
             ) : (

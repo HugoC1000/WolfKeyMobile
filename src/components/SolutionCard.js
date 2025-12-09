@@ -138,7 +138,7 @@ const SolutionCard = ({
           ) : (
             <View style={styles.profilePicPlaceholder} />
           )}
-          <View>
+          <View style={styles.authorMeta}>
             <Text style={styles.author}>{solution.author_name}</Text>
             <Text style={styles.date}>
               {formatDateTime(solution.created_at)}
@@ -239,6 +239,10 @@ const styles = StyleSheet.create({
     marginRight: 6,
     backgroundColor: '#DDD6FE',
   },
+  authorMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   author: {
     fontSize: 13,
     fontWeight: '500',
@@ -247,11 +251,10 @@ const styles = StyleSheet.create({
   date: {
     fontSize: 11,
     color: '#787c82',
-    marginTop: 1,
+    marginLeft: 8,
   },
   content: {
-    marginTop: 4,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   footer: {
     flexDirection: 'row',
