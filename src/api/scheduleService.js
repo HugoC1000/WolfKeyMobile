@@ -63,7 +63,9 @@ export const scheduleService = {
 
   getProcessedSchedule: async (userId, isoDate) => {
     try {
-      const todayISO = new Date().toISOString().split('T')[0];
+      // Get today's date in local timezone for comparison
+      const today = new Date();
+      const todayISO = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
       const params = {
         t: new Date().getTime()

@@ -103,7 +103,11 @@ const Schedule = () => {
 
       const date = getDateForOffset(offset);
       const dateString = formatDate(date);
-      const isoDate = date.toISOString().split('T')[0]; // YYYY-MM-DD
+      // Create ISO date string in local timezone
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const isoDate = `${year}-${month}-${day}`;
 
       const [scheduleData, uniformData] = await Promise.all([
         scheduleService.getProcessedSchedule(user.id, isoDate),
@@ -212,10 +216,9 @@ const Schedule = () => {
   };
 
   const handleDateSelect = (day) => {
-    const selectedDate = new Date(day.year, day.month - 1, day.day);
+    const selectedDate = new Date(day.year, day.month - 1, day.day, 0, 0, 0, 0);
     const today = new Date(baseDate.current);
     today.setHours(0, 0, 0, 0);
-    selectedDate.setHours(0, 0, 0, 0);
     
     const daysDiff = Math.round((selectedDate - today) / (1000 * 60 * 60 * 24));
     closeCalendar(false);
