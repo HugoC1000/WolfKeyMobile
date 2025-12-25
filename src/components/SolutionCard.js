@@ -8,6 +8,8 @@ import api from '../api/config';
 import { deleteComment } from '../api/commentService';
 import { useUser } from '../context/userContext';
 import { formatDateTime } from '../utils/timeUtils';
+import { getFullImageUrl } from '../api/config';
+
 
 const SolutionCard = ({ 
   solution, 
@@ -132,14 +134,14 @@ const SolutionCard = ({
         <View style={styles.authorInfo}>
           {solution.author.userprofile.profile_picture ? (
             <Image 
-              source={{ uri: solution.author.userprofile.profile_picture }}
+              source={{ uri:  getFullImageUrl(solution.author.userprofile.profile_picture) }}
               style={styles.profilePic}
             />
           ) : (
             <View style={styles.profilePicPlaceholder} />
           )}
           <View style={styles.authorMeta}>
-            <Text style={styles.author}>{solution.author_name}</Text>
+            <Text style={styles.author}>{solution.author.full_name}</Text>
             <Text style={styles.date}>
               {formatDateTime(solution.created_at)}
             </Text>

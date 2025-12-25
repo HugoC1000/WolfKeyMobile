@@ -78,8 +78,13 @@ export const authService = {
     } catch (error) {
       console.error('Login error:', error);
       
+      // Preserve the original error with response data
       if (error.response?.data?.error) {
-        throw new Error(error.response.data.error.message || 'Login failed');
+        const err = new Error(typeof error.response.data.error === 'string' 
+          ? error.response.data.error 
+          : error.response.data.error.message || 'Login failed');
+        err.response = error.response;
+        throw err;
       }
       
       throw error;
@@ -137,8 +142,13 @@ export const authService = {
     } catch (error) {
       console.error('Registration error:', error);
       
+      // Preserve the original error with response data
       if (error.response?.data?.error) {
-        throw new Error(error.response.data.error.message || 'Registration failed');
+        const err = new Error(typeof error.response.data.error === 'string' 
+          ? error.response.data.error 
+          : error.response.data.error.message || 'Registration failed');
+        err.response = error.response;
+        throw err;
       }
       
       throw error;

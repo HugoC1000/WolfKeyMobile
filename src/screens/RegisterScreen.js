@@ -21,7 +21,6 @@ import BackgroundSvg from '../components/BackgroundSVG';
 import CourseSelector from '../components/CourseSelector';
 import ScheduleTab from '../components/ScheduleTab';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
-import { scheduleService } from '../api/scheduleService';
 
 const RegisterScreen = ({ navigation }) => {
   const { register } = useAuth();
@@ -37,7 +36,6 @@ const RegisterScreen = ({ navigation }) => {
     personal_email: '',
   password: '',
     confirm_password: '',
-    wolfnet_password: ''
   });
 
 
@@ -50,13 +48,8 @@ const RegisterScreen = ({ navigation }) => {
   const [experiencedCourses, setExperiencedCourses] = useState([]);
   const [helpNeededCourses, setHelpNeededCourses] = useState([]);
   
-  const [wolfnetSkipped, setWolfnetSkipped] = useState(false);
-  const [autoCompleteLoading, setAutoCompleteLoading] = useState(false);
-  const [autoCompleteResult, setAutoCompleteResult] = useState(null);
-  const [autoCompleteError, setAutoCompleteError] = useState(null);
-  const [autoCompleteErrorType, setAutoCompleteErrorType] = useState(null);
-  const [wolfnetErrorSkipped, setWolfnetErrorSkipped] = useState(false);
-  const [shouldExcludeWolfnetPassword, setShouldExcludeWolfnetPassword] = useState(false);
+  // Manual schedule input (optional)
+  const [manualSchedule, setManualSchedule] = useState({});
   
   const [savedExperiencedCourses, setSavedExperiencedCourses] = useState([]);
   const [savedHelpNeededCourses, setSavedHelpNeededCourses] = useState([]);
@@ -66,8 +59,6 @@ const RegisterScreen = ({ navigation }) => {
   // Preference settings (default to true)
   const [allowScheduleComparison, setAllowScheduleComparison] = useState(true);
   const [allowGradeUpdates, setAllowGradeUpdates] = useState(true);
-  
-  const [showWolfnetPassword, setShowWolfnetPassword] = useState(false);
   
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -105,13 +96,16 @@ const RegisterScreen = ({ navigation }) => {
           newErrors.confirm_password = 'Passwords do not match';
         }
         break;
-      case 5:
+      case 4:
         if (experiencedCourses.length < 3) {
           newErrors.experienced = 'Please select at least 3 courses you can help with';
         }
         if (helpNeededCourses.length < 3) {
           newErrors.help = 'Please select at least 3 courses you need help with';
         }
+        break;
+      case 5:
+        // Schedule is optional, no validation needed
         break;
       default:
         break;
@@ -151,26 +145,14 @@ const RegisterScreen = ({ navigation }) => {
     ]).start(() => {
       setCurrentStep(nextStep);
       
-      // Reset wolfnetSkipped if going back to step 3 (password step)
-      if (nextStep === 3) {
-        setWolfnetSkipped(false);
-      }
-      
-      // Reset WolfNet error states when going back to WolfNet step (step 4)
-      if (nextStep === 4) {
-        setAutoCompleteError(null);
-        setAutoCompleteErrorType(null);
-        setShouldExcludeWolfnetPassword(false);
-      }
-      
-      // Save course selections when going back to WolfNet step (step 4) from courses (step 5)
+      // Save course selections when going back from courses step (step 4)
       if (nextStep === 4 && currentStep === 5) {
         setSavedExperiencedCourses(experiencedCourses);
         setSavedHelpNeededCourses(helpNeededCourses);
       }
       
-      // Restore course selections when coming back to courses step (step 5) from WolfNet
-      if (nextStep === 5 && currentStep === 4 && (savedExperiencedCourses.length > 0 || savedHelpNeededCourses.length > 0)) {
+      // Restore course selections when coming back to courses step (step 4)
+      if (nextStep === 4 && (savedExperiencedCourses.length > 0 || savedHelpNeededCourses.length > 0)) {
         setExperiencedCourses(savedExperiencedCourses);
         setHelpNeededCourses(savedHelpNeededCourses);
       }
@@ -200,27 +182,9 @@ const RegisterScreen = ({ navigation }) => {
 
   const handleNext = () => {
     if (validateStep(currentStep)) {
-      if (currentStep === 4) {
-        // Coming from WolfNet step
-        if (wolfnetSkipped) {
-          transitionToStep(5); // Go to courses step
-        } else {
-          // DISABLED: Auto-complete functionality - go directly to courses step
-          transitionToStep(5); // Go to courses step (no auto-complete)
-        }
-      } else if (currentStep === 5) {
-        // Coming from courses step - DISABLED: Skip schedule review, go to submission
-        handleSubmit(); // Always submit after courses step
-        /* // DISABLED: Schedule review step
-        if (autoCompleteResult || autoCompleteLoading || autoCompleteError) {
-          transitionToStep(6); 
-        } else if (wolfnetSkipped) {
-          handleSubmit(); // Skip to submission if error or skipped
-        } else {
-          handleSubmit(); // No auto-complete attempted
-        } */
-      } else if (currentStep === 6) {
-        handleSubmit(); // Submit from schedule step
+      if (currentStep === 5) {
+        // Coming from schedule step - submit
+        handleSubmit();
       } else {
         transitionToStep(currentStep + 1);
       }
@@ -229,103 +193,19 @@ const RegisterScreen = ({ navigation }) => {
 
   const handlePrevious = () => {
     if (currentStep > 1) {
-      // Save course selections when going back from courses step (step 5)
+      // Save course selections when going back from courses step (step 4)
       if (currentStep === 5) {
         setSavedExperiencedCourses(experiencedCourses);
         setSavedHelpNeededCourses(helpNeededCourses);
       }
       
-      if (currentStep === 5 && wolfnetSkipped) {
-        transitionToStep(3); // Skip WolfNet step if it was skipped
-      } else if (currentStep === 6 && autoCompleteError) {
-        transitionToStep(4); // Go back to WolfNet step if there was an error
-      } else {
-        transitionToStep(currentStep - 1);
-      }
+      transitionToStep(currentStep - 1);
     }
   };
 
-  // WolfNet integration
-  const handleWolfnetSkip = () => {
-    setWolfnetSkipped(true);
-    transitionToStep(5);
-  };
 
-  const handleWolfnetErrorSkip = () => {
-    setWolfnetErrorSkipped(true);
-    handleSubmit();
-  };
 
-  // DISABLED: Auto-complete functionality - commented out due to WolfNet integration issues
-  /* const handleAutoComplete = async () => {
-  if (!formData.wolfnet_password.trim()) {
-      Alert.alert('Error', 'Please enter your WolfNet password first');
-      return;
-    }
-    
-    if (!formData.school_email.trim() || !formData.school_email.endsWith('@wpga.ca')) {
-      Alert.alert('Error', 'Please enter a valid school email first');
-      return;
-    }
-    
-    setAutoCompleteLoading(true);
-    setAutoCompleteError(null);
-    
-    // Start loading in background and move to courses step
-    transitionToStep(5);
-    
-    try {
-      // Auto-complete courses with password during registration
-      console.log('Register: auto-complete starting for', formData.school_email, 'hasPassword:', !!formData.wolfnet_password);
-      const result = await scheduleService.autoCompleteCoursesWithPassword(
-        formData.wolfnet_password,
-        formData.school_email
-      );
-      console.log('Register: auto-complete result (raw):', result);
-      console.log('Register: auto-complete schedule_courses:', result?.schedule_courses || result);
-      setAutoCompleteResult(result);
-    } catch (error) {
-      console.error('Auto-complete error:', error);
-      
-      // Parse the error response to get error type and appropriate message
-      let displayMessage = 'Failed to connect to WolfNet';
-      let errorType = 'general';
-      
-      // Check if the error has response data with detailed error info
-      if (error.response?.data) {
-        const errorData = error.response.data;
-        errorType = errorData.error_type || 'general';
-        
-        switch (errorType) {
-          case 'authentication':
-            displayMessage = 'WolfNet Authentication failed. Password incorrect.';
-            setShouldExcludeWolfnetPassword(true); // Don't submit wrong password
-            break;
-          case 'page_loading':
-            displayMessage = 'WolfNet page failed to load properly. This may be a temporary issue - you can try again later or continue without auto-completing your schedule.';
-            break;
-          case 'page_structure':
-            displayMessage = 'Unable to find course information on WolfNet page. You can continue without auto-completing your schedule.';
-            break;
-          case 'no_courses':
-            displayMessage = 'No courses found in your WolfNet schedule. Make sure you have courses enrolled. Continue without auto-completing your schedule.';
-            break;
-          case 'network':
-            displayMessage = 'Network error occurred while connecting to WolfNet. Please check your connection and try again, or continue without auto-completing your schedule.';
-            break;
-          default:
-            displayMessage = errorData.error || error.message || 'An unexpected error occurred while retrieving your schedule.';
-        }
-      } else {
-        displayMessage = error.message || 'Failed to connect to WolfNet';
-      }
-      
-      setAutoCompleteError(displayMessage);
-      setAutoCompleteErrorType(errorType);
-    } finally {
-      setAutoCompleteLoading(false);
-    }
-  }; */
+
 
   // Course selection handlers
   const handleExperiencedCoursesChange = (courses) => {
@@ -345,7 +225,7 @@ const RegisterScreen = ({ navigation }) => {
   // Add courses from schedule tab
   const handleAddExperience = (courseId) => {
     if (courseId == null) return;
-    const scheduleSource = autoCompleteResult?.user_data?.schedule;
+    const scheduleSource = manualSchedule;
     if (!scheduleSource) return;
     const courseObj = Object.values(scheduleSource).find(c => c && c.course_id === courseId);
     if (!courseObj) return;
@@ -362,7 +242,7 @@ const RegisterScreen = ({ navigation }) => {
 
   const handleAddHelp = (courseId) => {
     if (courseId == null) return;
-    const scheduleSource = autoCompleteResult?.user_data?.schedule;
+    const scheduleSource = manualSchedule;
     if (!scheduleSource) return;
     const courseObj = Object.values(scheduleSource).find(c => c && c.course_id === courseId);
     if (!courseObj) return;
@@ -408,35 +288,18 @@ const RegisterScreen = ({ navigation }) => {
           });
         } else {
           // This is a schedule block update (e.g., editing 1A, 1B, etc.)
-          // Just update the schedule, don't automatically add to experiencedCourses
-          // Also update the in-memory autoCompleteResult schedule so ScheduleTab re-renders
-          try {
-            const newResult = autoCompleteResult ? { ...autoCompleteResult } : {};
-            // prefer raw_data, then schedule_courses, then user_data.schedule
-            // normalize the selected course into the canonical schedule shape
-            const normalizedScheduleEntry = {
-              course: course?.name ?? course?.raw_text ?? null,
-              course_id: course?.id ?? null,
-              raw_text: course?.raw_text ?? null,
-            };
+          // Update the manual schedule with the selected course
+          const normalizedScheduleEntry = {
+            course: course?.name ?? course?.raw_text ?? null,
+            course_id: course?.id ?? null,
+            raw_text: course?.raw_text ?? null,
+          };
 
-            const blockKey = `block_${selectedBlock}`;
-            // ScheduleTab reads from user_data.schedule, so prioritize updating that
-            if (newResult.user_data && newResult.user_data.schedule) {
-              const cleanedSched = { ...(newResult.user_data.schedule || {}) };
-              if (cleanedSched[selectedBlock] !== undefined) delete cleanedSched[selectedBlock];
-              cleanedSched[blockKey] = normalizedScheduleEntry;
-              newResult.user_data = { ...newResult.user_data, schedule: cleanedSched };
-            } else {
-              newResult.user_data = { 
-                ...(newResult.user_data || {}), 
-                schedule: { [blockKey]: normalizedScheduleEntry } 
-              };
-            }
-            setAutoCompleteResult(newResult);
-          } catch (err) {
-            console.error('Error updating in-memory schedule after selection:', err);
-          }
+          const blockKey = `block_${selectedBlock}`;
+          setManualSchedule(prev => ({
+            ...prev,
+            [blockKey]: normalizedScheduleEntry
+          }));
         }
 
         // close sheet
@@ -466,7 +329,7 @@ const RegisterScreen = ({ navigation }) => {
     try {
       // Build schedule data as { block_1A: course_id, ... }
       let scheduleData = {};
-      const scheduleSource = autoCompleteResult?.user_data?.schedule || {};
+      const scheduleSource = manualSchedule || {};
       Object.keys(scheduleSource).forEach(blockKey => {
         scheduleData[blockKey] = scheduleSource[blockKey]?.course_id ?? null;
       });
@@ -486,20 +349,6 @@ const RegisterScreen = ({ navigation }) => {
       delete registrationData.password;
       delete registrationData.confirm_password;
       
-      if (wolfnetSkipped) {
-        delete registrationData.wolfnet_password;
-      }
-      
-      // Also remove wolfnet password if user skipped due to error
-      if (wolfnetErrorSkipped) {
-        delete registrationData.wolfnet_password;
-      }
-      
-      // Remove wolfnet password if there was an authentication error (wrong password)
-      if (shouldExcludeWolfnetPassword) {
-        delete registrationData.wolfnet_password;
-      }
-      
       await register(registrationData, loadUser);
       
       Alert.alert(
@@ -510,21 +359,37 @@ const RegisterScreen = ({ navigation }) => {
     } catch (error) {
       console.error('Registration error:', error);
       
-      if (error.message && error.message.includes('Email:')) {
-        if (error.message.includes('already registered')) {
-          setErrors(prev => ({ 
-            ...prev, 
-            school_email: 'This email is already registered. Please use a different email or try logging in.' 
-          }));
-          if (currentStep > 2) {
-            transitionToStep(2);
-          }
-        } else {
-          Alert.alert('Registration Failed', error.message);
-        }
-      } else {
-        Alert.alert('Registration Failed', error.message || 'Please try again');
+      // Extract error message from API response or error message
+      let errorMessage = 'Please try again';
+      
+      if (error.response?.data?.error) {
+        // API returned a structured error in response
+        errorMessage = typeof error.response.data.error === 'string' 
+          ? error.response.data.error 
+          : error.response.data.error.message || 'Registration failed';
+      } else if (error.message) {
+        // Use the error message
+        errorMessage = error.message;
       }
+
+      console.log("err:", errorMessage);
+      
+      // Check if it's an email-related error
+      if (errorMessage.includes('school_email') && errorMessage.includes('already registered')) {
+        setErrors(prev => ({ 
+          ...prev, 
+          school_email: 'This email is already registered. Please use a different email or try logging in.' 
+        }));
+        if (currentStep > 2) {
+          transitionToStep(2);
+        }
+        return; // Don't show alert since we're showing inline error
+      }
+      
+      // Clean up the error message (remove markdown-style asterisks)
+      errorMessage = errorMessage.replace(/\*/g, '').trim();
+      
+      Alert.alert('Registration Failed', errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -532,11 +397,11 @@ const RegisterScreen = ({ navigation }) => {
 
   // Progress indicator
   const renderProgressIndicator = () => {
-    // DISABLED: Auto-complete functionality - always use 5 steps now
-    const totalSteps = 5; // wolfnetSkipped ? 5 : (autoCompleteResult || autoCompleteLoading? 6 : 5);
+
+    const totalSteps = 5; 
     const progress = stepProgress.interpolate({
       inputRange: [1, totalSteps],
-      outputRange: ['16%', '100%'],
+      outputRange: ['20%', '100%'],
       extrapolate: 'clamp',
     });
 
@@ -564,10 +429,8 @@ const RegisterScreen = ({ navigation }) => {
         {currentStep === 1 && renderPersonalInfoStep()}
         {currentStep === 2 && renderEmailStep()}
         {currentStep === 3 && renderPasswordStep()}
-        {currentStep === 4 && renderWolfnetStep()}
-        {currentStep === 5 && renderCoursesStep()}
-        {/* DISABLED: Schedule step removed due to auto-complete issues */}
-        {/* {currentStep === 6 && renderScheduleStep()} */}
+        {currentStep === 4 && renderCoursesStep()}
+        {currentStep === 5 && renderScheduleStep()}
       </Animated.View>
     );
   };
@@ -724,71 +587,7 @@ const RegisterScreen = ({ navigation }) => {
   );
 
   // Step 4: WolfNet Integration
-  const renderWolfnetStep = () => (
-    <View style={styles.step}>
-      <View style={styles.stepHeader}>
-        <MaterialIcons name="school" size={36} color="#3f12dfff" />
-        <Text style={styles.stepTitle}>WolfNet Integration</Text>
-      </View>
-
-      <View style={styles.infoCard}>
-        <MaterialIcons name="info" size={24} color="#2563eb" />
-        <View style={styles.infoCardContent}>
-          <Text style={styles.infoCardTitle}>Why connect WolfNet?</Text>
-          <Text style={styles.infoCardText}>
-            • Auto-import your schedule{'\n'}
-            • Receive grade notifications{'\n'}
-            • Securely encrypted{'\n'}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.inputContainer}>
-        <Text style={styles.inputLabel}>WolfNet Password</Text>
-        <View style={styles.passwordInputContainer}>
-          <TextInput
-            style={[styles.input, styles.passwordInput]}
-            value={formData.wolfnet_password}
-            onChangeText={(value) => handleInputChange('wolfnet_password', value)}
-            placeholder="Enter your WolfNet password"
-            secureTextEntry={!showWolfnetPassword}
-            autoFocus
-          />
-          <TouchableOpacity
-            style={styles.passwordToggle}
-            onPress={() => setShowWolfnetPassword(!showWolfnetPassword)}
-          >
-            <MaterialIcons
-              name={showWolfnetPassword ? "visibility-off" : "visibility"}
-              size={20}
-              color="#6b7280"
-            />
-          </TouchableOpacity>
-        </View>
-        <Text style={styles.helperText}>
-          This is optional but recommended for the best experience
-        </Text>
-      </View>
-
-      {autoCompleteError && (
-        <View style={styles.errorCard}>
-          <MaterialIcons name="error" size={24} color="#dc2626" />
-          <Text style={styles.errorCardText}>{autoCompleteError}</Text>
-        </View>
-      )}
-
-      <View style={styles.buttonRow}>
-        <TouchableOpacity
-          style={styles.skipButton}
-          onPress={handleWolfnetSkip}
-        >
-          <Text style={styles.skipButtonText}>Skip for now</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
-  // Step 5: Course Selection
+  // Step 4: Course Selection
   const renderCoursesStep = () => (
     <View style={styles.step}>
       <View style={styles.stepHeader}>
@@ -869,65 +668,28 @@ const RegisterScreen = ({ navigation }) => {
     </View>
   );
 
-  // Step 6: Schedule Review (only if auto-complete succeeded)
+  // Step 5: Schedule Input (Optional)
   const renderScheduleStep = () => (
     <View style={styles.step}>
       <View style={styles.stepHeader}>
         <MaterialIcons name="schedule" size={36} color="#8B5A2B" />
         <Text style={styles.stepTitle}>Your Schedule</Text>
-        <Text style={styles.stepSubtitle}>Review your imported schedule</Text>
+        <Text style={styles.stepSubtitle}>Optional - Input your schedule</Text>
       </View>
 
-      {autoCompleteError ? (
-        <View style={styles.errorContainer}>
-          <MaterialIcons name="error" size={36} color="#dc2626" />
-          <Text style={styles.errorTitle}>Connection Failed</Text>
-          <Text style={styles.errorMessage}>{autoCompleteError}</Text>
-          
-          {/* Only show retry button for authentication and network errors */}
-          {(autoCompleteErrorType === 'authentication' || autoCompleteErrorType === 'network') && (
-            <TouchableOpacity
-              style={styles.retryButton}
-              onPress={() => transitionToStep(4)}
-            >
-              <MaterialIcons name="refresh" size={20} color="white" />
-              <Text style={styles.retryButtonText}>Try Again</Text>
-            </TouchableOpacity>
-          )}
-          
-          <TouchableOpacity
-            style={styles.skipErrorButton}
-            onPress={handleWolfnetErrorSkip}
-          >
-            <Text style={styles.skipErrorButtonText}>Continue without WolfNet</Text>
-          </TouchableOpacity>
-        </View>
-      ) : autoCompleteLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#8B5A2B" />
-          <Text style={styles.loadingText}>Connecting to WolfNet...</Text>
-          <Text style={styles.loadingSubtext}>This may take up to 15 seconds</Text>
-        </View>
-      ) : (
-        <>
-          <View style={styles.scheduleContainer}>
-            <ScheduleTab
-              // backend returns schedule under user_data.schedule
-              schedule={
-                autoCompleteResult?.user_data?.schedule || {}
-              }
-              isCurrentUser={true}
-              experiencedCourses={experiencedCourses}
-              helpNeededCourses={helpNeededCourses}
-              onAddExperience={handleAddExperience}
-              onAddHelp={handleAddHelp}
-              onCoursePress={handleCoursePress}
-              onAutoComplete={() => {}} // Already completed
-              autoCompleteLoading={false}
-            />
-          </View>
-        </>
-      )}
+      <View style={styles.scheduleContainer}>
+        <ScheduleTab
+          schedule={manualSchedule}
+          isCurrentUser={true}
+          experiencedCourses={experiencedCourses}
+          helpNeededCourses={helpNeededCourses}
+          onAddExperience={handleAddExperience}
+          onAddHelp={handleAddHelp}
+          onCoursePress={handleCoursePress}
+          onAutoComplete={() => {}}
+          autoCompleteLoading={false}
+        />
+      </View>
     </View>
   );
 
@@ -947,11 +709,10 @@ const RegisterScreen = ({ navigation }) => {
         
         <View style={styles.navigationSpacer} />
         
-        {/* DISABLED: Auto-complete functionality - simplified navigation */}
         {currentStep === 5 ? (
           <TouchableOpacity
             style={[styles.submitButton, isSubmitting && styles.buttonDisabled]}
-            onPress={handleSubmit}
+            onPress={handleNext}
             disabled={isSubmitting}
           >
             {isSubmitting ? (
@@ -963,57 +724,7 @@ const RegisterScreen = ({ navigation }) => {
               {isSubmitting ? 'Creating Account...' : 'Create Account'}
             </Text>
           </TouchableOpacity>
-        ) : (currentStep === 4 && !wolfnetSkipped) ? (
-          <>
-            {/* DISABLED: Auto-complete WolfNet integration has issues */}
-            {/* <TouchableOpacity
-              style={[styles.autoCompleteButton, !formData.wolfnet_password.trim() && styles.autoCompleteButtonDisabled]}
-              onPress={handleAutoComplete}
-              disabled={!formData.wolfnet_password.trim()}
-              activeOpacity={1}
-            >
-              <LinearGradient
-                colors={["#294ff8ff", "#8230d5ff"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.autoCompleteGradient}
-              />
-              <View style={styles.autoCompleteButtonContent}>
-                <MaterialIcons name="auto-fix-high" size={22} style={styles.autoCompleteIcon} />
-                <Text style={styles.autoCompleteButtonText}>Connect WolfNet</Text>
-              </View>
-            </TouchableOpacity> */}
-
-            {/* Temporary message about disabled feature */}
-            <View style={styles.disabledFeatureContainer}>
-              <MaterialIcons name="info" size={20} color="#f59e0b" />
-              <Text style={styles.disabledFeatureText}>
-                WolfNet integration is temporarily disabled due to technical issues
-              </Text>
-            </View>
-
-          </>
         ) : (
-          /* DISABLED: Removed schedule loading and review steps
-        ) : (currentStep === 6 && autoCompleteLoading) ? (
-          <TouchableOpacity
-            style={[styles.nextButton, styles.buttonDisabled]}
-            disabled={true}
-          >
-            <ActivityIndicator size="small" color="white" />
-            <Text style={styles.nextButtonText}>Loading Schedule...</Text>
-          </TouchableOpacity>
-        ) : (currentStep === 5 && (autoCompleteLoading || autoCompleteResult || autoCompleteError )) ? (
-          <TouchableOpacity
-            style={styles.nextButton}
-            onPress={handleNext}
-          >
-            <Text style={styles.nextButtonText}>
-              {autoCompleteResult ? 'View Schedule' : 'Continue'}
-            </Text>
-            <MaterialIcons name="arrow-forward" size={20} color="white" />
-          </TouchableOpacity>
-        ) : ( */
           <TouchableOpacity
             style={styles.nextButton}
             onPress={handleNext}
@@ -1103,7 +814,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: 15,
     paddingTop: 60,
     paddingBottom: 100,
   },
@@ -1141,7 +852,8 @@ const styles = StyleSheet.create({
   step: {
     backgroundColor: 'white',
     borderRadius: 16,
-    padding: 24,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -1286,45 +998,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#6b7280',
   },
-  /* DISABLED: Auto-complete button styles - commented out due to WolfNet issues
-  autoCompleteButton: {
-    flex: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    gap: 8,
-    backgroundColor: 'transparent',
-    overflow: 'hidden',
-  },
-  autoCompleteGradient: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 12,
-    zIndex: 1,
-  },
-  autoCompleteButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    zIndex: 2,
-  },
-  autoCompleteIcon: {
-    color: '#00c3ff',
-    borderRadius: 50,
-    padding: 2,
-    fontSize: 22,
-    marginRight: 8,
-  },
-  autoCompleteButtonDisabled: {
-    backgroundColor: 'grey',
-    opacity: 0.7,
-  },
-  autoCompleteButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'white',
-  }, */
   disabledFeatureContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1392,8 +1065,6 @@ const styles = StyleSheet.create({
   },
   scheduleContainer: {
   marginBottom: 20,
-  maxHeight: 400,
-  height: 360,
   },
   navigationContainer: {
     position: 'absolute',

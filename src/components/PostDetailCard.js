@@ -9,6 +9,7 @@ import { getFullImageUrl } from '../api/config';
 
 
 const PostDetailCard = ({ post, isReference }) => {
+  console.log(post.author.userprofile)
   return (
     <View style={[styles.postCard, isReference && styles.referenceCard]}>
       {!isReference && (
@@ -23,7 +24,7 @@ const PostDetailCard = ({ post, isReference }) => {
               <View style={styles.profilePicPlaceholder} />
             )}
             <View>
-              <Text style={styles.authorName}> {post.is_anonymous ? 'Anonymous' : post.author_name}</Text>
+              <Text style={styles.authorName}> {post.is_anonymous ? 'Anonymous' : post.author.full_name}</Text>
               <Text style={styles.timestamp}>
                 {formatDateTime(post.created_at)}
               </Text>

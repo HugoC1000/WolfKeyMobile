@@ -4,6 +4,8 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { globalStyles } from '../utils/styles';
 import EditorJsRenderer from './EditorJsRenderer';
 import { useUser } from '../context/userContext';
+import { getFullImageUrl } from '../api/config';
+
 
 const CommentList = ({ comments = [], onReply, onEdit, onDelete }) => {
   const { user } = useUser();
@@ -41,7 +43,7 @@ const CommentList = ({ comments = [], onReply, onEdit, onDelete }) => {
             <View style={styles.authorInfo}>
               {comment.author.userprofile?.profile_picture ? (
                 <Image 
-                  source={{ uri: comment.author.userprofile.profile_picture }}
+                  source={{ uri: getFullImageUrl(comment.author.userprofile.profile_picture) }}
                   style={styles.profilePic}
                 />
               ) : (
@@ -53,9 +55,7 @@ const CommentList = ({ comments = [], onReply, onEdit, onDelete }) => {
               )}
               <View>
                 <Text style={styles.commentAuthor}>
-                  {comment.author.first_name && comment.author.last_name 
-                    ? `${comment.author.first_name} ${comment.author.last_name}`
-                    : comment.author.username}
+                  {comment.author.full_name}
                 </Text>
                 <Text style={styles.commentDate}>
                   {new Date(comment.created_at).toLocaleDateString()}

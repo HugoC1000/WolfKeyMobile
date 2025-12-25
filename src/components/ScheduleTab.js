@@ -145,36 +145,6 @@ const ScheduleTab = ({
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.content}>
-        {/* Auto Complete Button - DISABLED: Issues with WolfNet integration */}
-        {/* {isCurrentUser && (
-          <View style={styles.autoCompleteContainer}>
-            <TouchableOpacity
-              style={[styles.autoCompleteButton, autoCompleteLoading && styles.autoCompleteButtonDisabled]}
-              onPress={onAutoComplete}
-              disabled={autoCompleteLoading}
-              activeOpacity={0.9}
-            >
-              <LinearGradient
-                colors={["#294ff8ff", "#8230d5ff"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.autoCompleteGradient}
-              />
-
-              <View style={styles.autoCompleteButtonContent}>
-                {autoCompleteLoading ? (
-                  <ActivityIndicator size="small" color="white" />
-                ) : (
-                  <MaterialIcons name="auto-fix-high" size={20} color="white" />
-                )}
-                <Text style={styles.autoCompleteButtonText}>
-                  Auto-Complete from WolfNet
-                </Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-        )} */}
-
         {/* Header Row */}
         <View style={styles.headerRow}>
           <View style={styles.headerColumn}>
@@ -204,53 +174,8 @@ const styles = StyleSheet.create({
     marginBottom: 70,
   },
   content: {
-    padding: 16,
+    padding: 3,
   },
-  /* autoCompleteContainer: {
-    marginBottom: 15,
-    alignItems: 'center',
-  },
-
-  autoCompleteButton: {
-  position: 'relative',
-  alignSelf: 'center',
-  minWidth: 200,
-  flexDirection: 'row',
-  alignItems: 'center',
-  justifyContent: 'center',
-  borderRadius: 12,
-  paddingVertical: 12,
-  paddingHorizontal: 16,
-  gap: 8,
-  backgroundColor: 'transparent',
-  overflow: 'hidden',
-  },
-  autoCompleteGradient: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 12,
-    zIndex: 1,
-  },
-  autoCompleteButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    zIndex: 2,
-  },
-  autoCompleteIcon: {
-    color: '#00c3ff',
-    borderRadius: 50,
-    padding: 2,
-    fontSize: 22,
-    marginRight: 8,
-  },
-  autoCompleteButtonDisabled: {
-    backgroundColor: 'grey',
-    opacity: 0.7,
-  },
-  autoCompleteButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'white',
-  }, */
   headerRow: {
     flexDirection: 'row',
     marginBottom: 14,

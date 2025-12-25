@@ -27,7 +27,6 @@ const EditProfileScreen = ({ route, navigation }) => {
     last_name: profile.last_name || '',
     bio: profile.bio || '',
     background_hue: profile.background_hue || 200,
-    wolfnet_password: '',
   });
 
   const handleInputChange = (field, value) => {
@@ -44,10 +43,6 @@ const EditProfileScreen = ({ route, navigation }) => {
       const updateData = {
         ...formData,
       };
-
-      if (!updateData.wolfnet_password.trim()) {
-        delete updateData.wolfnet_password;
-      }
 
       await updateProfile(updateData);
       
@@ -153,15 +148,6 @@ const EditProfileScreen = ({ route, navigation }) => {
             </>
           ))}
 
-          {renderSection('WolfNet Integration', (
-            <>
-              {renderInput('WolfNet Password', 'wolfnet_password', {
-                secure: true,
-                placeholder: profile.has_wolfnet_password ? 'Wolfnet password entered. Edit here ' : 'Enter WolfNet password (optional)',
-                helper: 'Used for grade notifications and schedule auto-completion'
-              })}
-            </>
-          ))}
 
           {renderSection('Appearance', renderColorPicker())}
 

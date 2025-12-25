@@ -31,7 +31,6 @@ import {
   addHelpRequest,
   removeExperience,
   removeHelpRequest,
-  autoCompleteCourses,
   updateCourses,
   updatePrivacyPreferences,
 } from '../api/profileService';
@@ -112,7 +111,6 @@ const ProfileScreen = ({ route, navigation }) => {
         
         recent_posts: profileData.recent_posts || [],
         can_compare: profileData.can_compare || false,
-        has_wolfnet_password: profileData.user?.has_wolfnet_password || false,
         allow_schedule_comparison: profileData.user?.allow_schedule_comparison ?? true,
         allow_grade_updates: profileData.user?.allow_grade_updates ?? true,
       };
@@ -339,19 +337,6 @@ const ProfileScreen = ({ route, navigation }) => {
     );
   };
 
-  const handleAutoComplete = async () => {
-    try {
-      setAutoCompleteLoading(true);
-      const result = await autoCompleteCourses();
-      await fetchProfile();
-      Alert.alert('Success', `Auto-completed courses from WolfNet!`);
-    } catch (error) {
-      console.error('Error auto-completing courses:', error);
-      Alert.alert('Error', 'Failed to auto-complete courses from WolfNet');
-    } finally {
-      setAutoCompleteLoading(false);
-    }
-  };
 
   const handleUpdatePreference = async (preferenceKey, value) => {
     try {

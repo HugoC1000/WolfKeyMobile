@@ -110,17 +110,6 @@ export const removeHelpRequest = async (helpId) => {
   }
 };
 
-// Auto-complete courses from WolfNet
-export const autoCompleteCourses = async () => {
-  try {
-    const response = await api.post('auto-complete-courses/');
-    return response.data;
-  } catch (error) {
-    console.error('Error auto-completing courses:', error);
-    throw error;
-  }
-};
-
 // Update privacy preferences
 export const updatePrivacyPreferences = async (preferences) => {
   try {
