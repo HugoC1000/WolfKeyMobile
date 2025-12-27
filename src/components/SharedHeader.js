@@ -12,6 +12,7 @@ import { BlurView } from 'expo-blur';
 import * as Device from 'expo-device';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { GlassView, GlassContainer } from 'expo-glass-effect';
 
 const HEADER_HEIGHT = 45;
 const STATUS_BAR_HEIGHT =
@@ -26,43 +27,36 @@ const TOTAL_HEADER_HEIGHT = HEADER_HEIGHT + STATUS_BAR_HEIGHT;
 const SharedHeader = ({ scrollY, isScrollingUp, title, isHome }) => {
   const navigation = useNavigation();
 
-  const headerContentOpacity = scrollY.interpolate({
-    inputRange: [0, HEADER_HEIGHT],
-    outputRange: [1, isScrollingUp ? 1 : 0],
-    extrapolate: 'clamp',
-  });
-
-  const unifiedBlurHeight = scrollY.interpolate({
-    inputRange: [0, HEADER_HEIGHT],
-    outputRange: [TOTAL_HEADER_HEIGHT, isScrollingUp ? TOTAL_HEADER_HEIGHT : STATUS_BAR_HEIGHT],
-    extrapolate: 'clamp',
-  });
-
   return (
     <>
-      {/* Single Unified Blur */}
-      <Animated.View style={[styles.unifiedBlur, { height: unifiedBlurHeight }]}>
-        <BlurView
-          intensity={35}
-          tint="light"
-          style={StyleSheet.absoluteFillObject}
-          reducedTransparencyFallbackColor="white"
-        />
-      </Animated.View>
-
       {/* Header Content */}
-      <Animated.View style={[styles.headerContent, { opacity: headerContentOpacity }]}>
-        {isHome ? (
-          <Image
-            source={require('../../assets/icon.png')}
-            style={{ width: 40, height: 40, borderRadius: 12 }}
-          />
-        ) : (
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="chevron-back" size={32} color="#000" />
-          </TouchableOpacity>
-        )}
-        <Text style={styles.headerTitle}>{title}</Text>
+      <Animated.View style={[styles.headerContent,  ]}>
+        <GlassContainer style={styles.headerContentContainer}>
+          <GlassView
+            glassEffectStyle="regular"
+            style={styles.leftContent}
+            isInteractive
+          >
+            {isHome ? (
+              <Image
+                source={require('../../assets/icon.png')}
+                style={{ width: 40, height: 40, borderRadius: 12 }}
+              />
+            ) : (
+              <TouchableOpacity onPress={() => navigation.goBack()}>
+                <Ionicons name="chevron-back" size={32} color="#000" />
+              </TouchableOpacity>
+            )}
+          </GlassView>
+          <Animated.View style={styles.titleWrapper}>
+            <GlassView
+              glassEffectStyle="clear"
+              style={styles.titleContent}
+            >
+              <Text style={styles.headerTitle}>{title}</Text>
+            </GlassView>
+          </Animated.View>
+        </GlassContainer>
       </Animated.View>
     </>
   );
@@ -76,21 +70,52 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 1000,
   },
+  glassBlur: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
   headerContent: {
     position: 'absolute',
     top: STATUS_BAR_HEIGHT,
     left: 0,
     right: 0,
+    height: HEADER_HEIGHT,
+    zIndex: 1001,
+  },
+  headerContentContainer: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     height: HEADER_HEIGHT,
-    zIndex: 1001,
+  },
+  leftContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 999,
+    padding: 4
+  },
+  titleWrapper: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    pointerEvents: 'none',
+  },
+  titleContent: {
+    alignContent: 'center',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 99,
+    paddingVertical: 10 ,
+    paddingHorizontal: 20,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    marginLeft: 10,
+    textAlign: 'center',
   },
 });
 

@@ -21,6 +21,7 @@ import BackgroundSvg from '../components/BackgroundSVG';
 import { useUser } from '../context/userContext';
 import { useAuth } from '../context/authContext';
 import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';
+import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
 
 
 const HEADER_HEIGHT = 45; // Height of the header
@@ -149,16 +150,23 @@ const HomeScreen = () => {
     appStateRef.current = nextAppState;
   }, [user, fetchPosts, loading, loadingMore, refreshing, authError]);
 
-  const ListHeader = useCallback(() => (
-    <View>
-      <View style={styles.headerSpacer} />
-      <View style={styles.greetingContainer}>
+  const ListHeader = useCallback(() => {
+    const glassAvailable = isLiquidGlassAvailable();
+    
+    console.log('Glass Effect - Available:', glassAvailable);
+    
+    return (
+      <View>
+        <View style={styles.headerSpacer} />
+        <View style={styles.greetingContainer}>
+          
+        </View>
+        <View style={styles.scheduleContainer}>
+          <Schedule key={user?.id} />
+        </View>
       </View>
-      <View style={styles.scheduleContainer}>
-        <Schedule key={user?.id} />
-      </View>
-    </View>
-  ), [user?.first_name, user?.id]);
+    );
+  }, [user?.first_name, user?.id]);
 
   return (
     <View style={styles.rootContainer}>
@@ -248,6 +256,35 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
+  glassCard: {
+    padding: 16,
+    borderRadius: 24,
+    margin: 16,
+    minHeight: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  glassText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+  },
+  fallbackCard: {
+    padding: 16,
+    borderRadius: 24,
+    margin: 16,
+    backgroundColor: 'rgba(10, 132, 255, 0.1)',
+    minHeight: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(10, 132, 255, 0.2)',
+  },
+  fallbackText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+  },
     marginTop: 10,
   },
   scheduleContainer: {

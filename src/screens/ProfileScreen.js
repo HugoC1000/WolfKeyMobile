@@ -12,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
+import { useLocalSearchParams, router } from 'expo-router';
 import { useAuth } from '../context/authContext';
 import { useUser } from '../context/userContext';
 import BackgroundSvg from '../components/BackgroundSVG';
@@ -35,10 +36,11 @@ import {
   updatePrivacyPreferences,
 } from '../api/profileService';
 
-const ProfileScreen = ({ route, navigation }) => {
+const ProfileScreen = () => {
   const { logout } = useAuth();
   const { user, clearUser } = useUser();
-  const username = route?.params?.username;
+  const params = useLocalSearchParams();
+  const username = params?.username;
   const isCurrentUser = !username || username === user?.username;
   
   const [profile, setProfile] = useState(null);
@@ -163,7 +165,7 @@ const ProfileScreen = ({ route, navigation }) => {
               await deleteAccount();
               await logout(clearUser);
               Alert.alert('Account Deleted', 'Your account has been deleted.');
-              navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+              router.replace('/(auth)/login');
             } catch (error) {
               console.error('Account deletion failed:', error);
               Alert.alert('Error', 'Failed to delete account.');
@@ -251,20 +253,13 @@ const ProfileScreen = ({ route, navigation }) => {
   };
 
   const handleEditPress = () => {
-    navigation.navigate('EditProfile', { 
-      profile,
-      onRefresh: () => {
-        console.log('Refreshing profile from edit screen');
-        fetchProfile();
-      }
-    });
+    router.push('/edit-profile');
   };
 
   const handleCompareSchedules = () => {
-    navigation.navigate('CompareSchedules', { 
-      users: [user, profile],
-      initialUsers: [user.username, profile.username]
-    });
+    // TODO: Implement CompareSchedules route in Expo Router
+    // router.push('/compare-schedules');
+    Alert.alert('Coming Soon', 'Schedule comparison feature is being updated.');
   };
 
   const handleAddExperience = async (courseId) => {
@@ -571,7 +566,6 @@ const ProfileScreen = ({ route, navigation }) => {
             onAddHelp={handleAddHelp}
             experiencedCourses={profile.experience_courses || []}
             helpNeededCourses={profile.help_needed_courses || []}
-            onAutoComplete={handleAutoComplete}
             autoCompleteLoading={autoCompleteLoading}
           />
         );

@@ -10,6 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import Animated from 'react-native-reanimated';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import PostDetailCard from '../components/PostDetailCard';
 import SolutionCard from '../components/SolutionCard';
 import CommentBottomSheet from '../components/CommentBottomSheet';
@@ -20,9 +21,11 @@ import { useUser } from '../context/userContext';
 import { markNotificationsByPost } from '../api/notificationService';
 import badgeManager from '../utils/badgeManager';
 
-const PostDetailScreen = ({ route, navigation }) => {
-  const { postId } = route.params;
+const PostDetailScreen = () => {
+  const { id } = useLocalSearchParams();
+  const router = useRouter();
   const { user } = useUser();
+  const postId = id;
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -135,7 +138,7 @@ const PostDetailScreen = ({ route, navigation }) => {
     return (
       <TouchableOpacity
         style={styles.addSolutionButton}
-        onPress={() => navigation.navigate('CreateSolution', { postId, post })}
+        onPress={() => router.push({ pathname: '/create-solution', params: { postId, post: JSON.stringify(post) } })}
       >
         <Text style={styles.addSolutionButtonText}>Add Solution</Text>
       </TouchableOpacity>

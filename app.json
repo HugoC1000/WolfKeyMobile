@@ -2,6 +2,7 @@
   "expo": {
     "name": "WolfKey",
     "slug": "wolfkey-mobile",
+    "scheme": "wolfkey",
     "version": "1.0.17",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -53,7 +54,13 @@
           "cameraPermission": "We use your camera to let you take and upload profile photos and share images in posts. For example, you can take a photo to set as your profile picture or attach an image to a discussion post."
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "expo-router",
+        {
+          "root": "./app"
+        }
+      ]
     ],
     "extra": {
       "eas": {

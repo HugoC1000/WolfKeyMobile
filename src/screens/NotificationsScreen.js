@@ -10,15 +10,18 @@ import {
   Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { router } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';
 import { getNotifications, markAsRead, markAllAsRead } from '../api/notificationService';
 import { COLORS } from '../utils/constants';
 import { formatTime } from '../utils/timeUtils';
 import badgeManager from '../utils/badgeManager';
 
+const HEADER_HEIGHT = 45;
+
+
 const NotificationsScreen = () => {
-  const navigation = useNavigation();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -92,17 +95,23 @@ const NotificationsScreen = () => {
           case 'comment':
           case 'solution_detail':
             if (deepLink.params?.postId) {
-              navigation.navigate('PostDetail', {
-                postId: parseInt(deepLink.params.postId),
-                commentId: deepLink.params.commentId ? parseInt(deepLink.params.commentId) : undefined,
-                solutionId: deepLink.params.solutionId ? parseInt(deepLink.params.solutionId) : undefined,
+              router.push({
+                pathname: '/post-detail/[id]',
+                params: {
+                  id: deepLink.params.postId,
+                  commentId: deepLink.params.commentId || undefined,
+                  solutionId: deepLink.params.solutionId || undefined,
+                }
               });
             }
             break;
             
           case 'profile':
             if (deepLink.params?.username) {
-              navigation.navigate('Profile', { username: deepLink.params.username });
+              router.push({
+                pathname: '/(tabs)/profile-screen',
+                params: { username: deepLink.params.username }
+              });
             }
             break;
             
@@ -210,6 +219,10 @@ const NotificationsScreen = () => {
     </View>
   );
 
+  const ListHeader = useCallback(() => (
+    <View style={styles.headerSpacer} />
+  ), []);
+
   useFocusEffect(
     useCallback(() => {
       fetchNotifications();
@@ -256,16 +269,18 @@ const NotificationsScreen = () => {
             data={safeNotifications}
             renderItem={renderNotification}
             keyExtractor={(item) => item.id.toString()}
+            ListHeaderComponent={ListHeader}
             ListEmptyComponent={renderEmpty}
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={handleRefresh}
                 colors={[COLORS.primary]}
+                progressViewOffset={HEADER_HEIGHT + 70}
               />
             }
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={safeNotifications.length === 0 ? styles.emptyList : null}
+            contentContainerStyle={safeNotifications.length === 0 ? styles.emptyList : styles.listContent}
           />
         )}
       </View>
@@ -276,7 +291,13 @@ const NotificationsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 90,
+  },
+  headerSpacer: {
+    height: HEADER_HEIGHT + 5,
+  },
+  listContent: {
+    paddingTop: HEADER_HEIGHT,
+    paddingHorizontal: 0,
   },
   loadingContainer: {
     flex: 1,

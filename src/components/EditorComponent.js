@@ -7,28 +7,10 @@ import api from '../api/config';
 import { getFullImageUrl } from '../api/config';
 
 
-const EditorComponent = ({ onSave, initialContent = '', placeholder = 'Write your content here...', onClearRef }) => {
+const EditorComponent = ({ onSave, initialContent = '', placeholder = 'Write your content here...' }) => {
   const [content, setContent] = useState('');
   const [blocks, setBlocks] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
-
-  const clearContent = useCallback(() => {
-    setContent('');
-    setBlocks([]);
-    if (typeof onSave === 'function') {
-      onSave({
-        time: new Date().getTime(),
-        blocks: [],
-        version: '2.27.2'
-      });
-    }
-  }, [onSave]);
-
-  useEffect(() => {
-    if (onClearRef && typeof onClearRef === 'function') {
-      onClearRef(clearContent);
-    }
-  }, [onClearRef, clearContent]);
 
   // Parse initialContent when component mounts or initialContent changes
   useEffect(() => {
@@ -119,6 +101,7 @@ const EditorComponent = ({ onSave, initialContent = '', placeholder = 'Write you
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
+        allowsEditing: true,
         quality: 0.8,
       });
 
