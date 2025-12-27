@@ -28,7 +28,7 @@ const ScrollableScreenWrapper = ({ children, title, isHome, backgroundHue }) => 
     }
   );
 
-  const childScrollHandler = children.props.onScroll;
+  const childScrollHandler = children?.props?.onScroll;
 
   const combinedScrollHandler = (event) => {
     handleScroll(event);

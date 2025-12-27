@@ -68,7 +68,6 @@ const ExploreScreen = () => {
   const ListHeader = useCallback(() => (
     <View>
       <View style={styles.headerSpacer} />
-      <Text style={styles.exploreTitle}>Explore All Posts</Text>
     </View>
   ), []);
 
@@ -124,7 +123,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   headerSpacer: {
-    height: HEADER_HEIGHT,
+    height: HEADER_HEIGHT + 5,
   },
   exploreTitle: {
     fontSize: 24,

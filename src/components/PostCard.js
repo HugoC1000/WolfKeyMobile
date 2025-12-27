@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, Image, TouchableOpacity, Alert, Share, Clipboard } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useUser } from '../context/userContext';
 import { likePost, unlikePost, followPost, unfollowPost } from '../api/postService';
@@ -9,9 +9,8 @@ import { formatDateTime } from '../utils/timeUtils';
 
 
 const PostCard = ({ post }) => {
-  const navigation = useNavigation();
+  const router = useRouter();
   const { user } = useUser();
-  
 
   const [isLiked, setIsLiked] = useState(post.is_liked_by_user || false);
   const [likeCount, setLikeCount] = useState(post.like_count || 0);
@@ -75,7 +74,7 @@ const PostCard = ({ post }) => {
   
   // Navigate to post detail, but not for interactive elements
   const handleCardPress = () => {
-    navigation.navigate('PostDetail', { postId: post.id });
+    router.push(`/post-detail/${post.id}`);
   };
 
   return (
@@ -104,7 +103,7 @@ const PostCard = ({ post }) => {
             )}
             <View style={styles.authorDetails}>
               <Text style={styles.authorName}>
-                {post.is_anonymous ? 'Anonymous' : post.author_name}
+                {post.author.full_name || 'Anonymous'}
               </Text>
               <Text style={styles.timestamp}>
                 {formatDateTime(post.created_at)}
