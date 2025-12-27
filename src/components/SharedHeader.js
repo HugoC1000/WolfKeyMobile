@@ -43,8 +43,8 @@ const SharedHeader = ({ scrollY, isScrollingUp, title, isHome }) => {
                 style={{ width: 40, height: 40, borderRadius: 12 }}
               />
             ) : (
-              <TouchableOpacity onPress={() => navigation.goBack()}>
-                <Ionicons name="chevron-back" size={32} color="#000" />
+              <TouchableOpacity  style = {{borderRadius: 999}} onPress={() => navigation.goBack()}>
+                <Ionicons name="chevron-back" size={32} color="#000" style = {{borderRadius: 999}}/>
               </TouchableOpacity>
             )}
           </GlassView>
@@ -94,7 +94,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 999,
-    padding: 4
+    padding: 6,
+    overflow: 'hidden',
   },
   titleWrapper: {
     position: 'absolute',
