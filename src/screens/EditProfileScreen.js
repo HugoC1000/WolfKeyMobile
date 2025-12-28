@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,24 +9,46 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import { router } from 'expo-router';
 import { useUser } from '../context/userContext';
 import BackgroundSvg from '../components/BackgroundSVG';
 import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';
 import { MaterialIcons } from '@expo/vector-icons';
-import { updateProfile } from '../api/profileService';
+import { updateProfile, getCurrentProfile } from '../api/profileService';
 
 
-const EditProfileScreen = ({ route, navigation }) => {
-  const { profile } = route.params;
-  console.log(profile);
+const EditProfileScreen = () => {
   const { user, updateUser } = useUser();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState(null);
+
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  const fetchProfile = async () => {
+    try {
+      const profileData = await getCurrentProfile();
+      setProfile(profileData.user);
+      setFormData({
+        first_name: profileData.user?.first_name || '',
+        last_name: profileData.user?.last_name || '',
+        bio: profileData.user?.bio || '',
+        background_hue: profileData.user?.background_hue || 200,
+      });
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      Alert.alert('Error', 'Failed to load profile');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const [formData, setFormData] = useState({
-    first_name: profile.first_name || '',
-    last_name: profile.last_name || '',
-    bio: profile.bio || '',
-    background_hue: profile.background_hue || 200,
+    first_name: '',
+    last_name: '',
+    bio: '',
+    background_hue: 200,
   });
 
   const handleInputChange = (field, value) => {
@@ -50,13 +72,9 @@ const EditProfileScreen = ({ route, navigation }) => {
         await updateUser({ background_hue: updateData.background_hue });
       }
       
-      navigation.goBack();
       
       Alert.alert('Success', 'Profile updated successfully!');
-      
-      if (route.params?.onRefresh) {
-        route.params.onRefresh();
-      }
+      router.back();
     } catch (error) {
       console.error('Error updating profile:', error);
       Alert.alert('Error', 'Failed to update profile');
@@ -131,6 +149,19 @@ const EditProfileScreen = ({ route, navigation }) => {
     );
   };
 
+  if (loading && !profile) {
+    return (
+      <View style={styles.container}>
+        <ScrollableScreenWrapper title="Edit Profile">
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#2563EB" />
+            <Text style={styles.loadingText}>Loading profile...</Text>
+          </View>
+        </ScrollableScreenWrapper>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <ScrollableScreenWrapper title="Edit Profile" backgroundHue={formData.background_hue}>
@@ -154,7 +185,7 @@ const EditProfileScreen = ({ route, navigation }) => {
           <View style={styles.buttonContainer}>
             <TouchableOpacity
               style={styles.cancelButton}
-              onPress={() => navigation.goBack()}
+              onPress={() => router.back()}
               disabled={loading}
             >
               <Text style={styles.cancelButtonText}>Cancel</Text>
@@ -257,6 +288,17 @@ const styles = StyleSheet.create({
   selectedColor: {
     borderColor: '#1f2937',
     borderWidth: 3,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 100,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#6B7280',
   },
   buttonContainer: {
     flexDirection: 'row',
