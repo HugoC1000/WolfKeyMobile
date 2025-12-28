@@ -4,6 +4,32 @@ import { getUnreadCount } from '../api/notificationService';
 class BadgeManager {
   constructor() {
     this.isInitialized = false;
+    this.listeners = new Set();
+    this.currentCount = 0;
+  }
+
+  // Subscribe to badge count changes
+  subscribe(callback) {
+    this.listeners.add(callback);
+    // Immediately call with current count
+    callback(this.currentCount);
+    
+    // Return unsubscribe function
+    return () => {
+      this.listeners.delete(callback);
+    };
+  }
+
+  // Notify all listeners of count change
+  notifyListeners(count) {
+    this.currentCount = count;
+    this.listeners.forEach(callback => {
+      try {
+        callback(count);
+      } catch (error) {
+        console.error('Error in badge listener:', error);
+      }
+    });
   }
 
   async initialize() {
@@ -19,6 +45,7 @@ class BadgeManager {
     try {
       const unreadCount = await getUnreadCount();
       await setBadgeCount(unreadCount);
+      this.notifyListeners(unreadCount);
       return unreadCount;
     } catch (error) {
       console.error('Error syncing badge with server:', error);
@@ -37,6 +64,7 @@ class BadgeManager {
   async clearBadge() {
     try {
       await clearBadge();
+      this.notifyListeners(0);
     } catch (error) {
       console.error('Error clearing badge:', error);
     }

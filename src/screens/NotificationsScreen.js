@@ -12,6 +12,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
+import { GlassView } from 'expo-glass-effect';
 import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';
 import { getNotifications, markAsRead, markAllAsRead } from '../api/notificationService';
 import { COLORS } from '../utils/constants';
@@ -75,7 +76,9 @@ const NotificationsScreen = () => {
         prev.map(notification => ({ ...notification, is_read: true }))
       );
       
-      badgeManager.clearBadge();
+      // Update badge to 0 and notify listeners
+      await badgeManager.clearBadge();
+      await badgeManager.syncWithServer();
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
       Alert.alert('Error', 'Failed to mark all notifications as read');
@@ -220,8 +223,28 @@ const NotificationsScreen = () => {
   );
 
   const ListHeader = useCallback(() => (
-    <View style={styles.headerSpacer} />
-  ), []);
+    <>
+      <View style={styles.headerSpacer} />
+      {unreadCount > 0 && (
+        <TouchableOpacity 
+          style={styles.markAllReadButton} 
+          onPress={handleMarkAllAsRead}
+          activeOpacity={0.7}
+        >
+          <GlassView
+            glassEffectStyle="regular"
+            style={styles.markAllReadGlass}
+            isInteractive
+          >
+            <MaterialIcons name="done-all" size={20} color="#2563EB" />
+            <Text style={styles.markAllReadButtonText}>
+              Mark all {unreadCount} as read
+            </Text>
+          </GlassView>
+        </TouchableOpacity>
+      )}
+    </>
+  ), [unreadCount]);
 
   useFocusEffect(
     useCallback(() => {
@@ -247,13 +270,6 @@ const NotificationsScreen = () => {
   return (
     <ScrollableScreenWrapper 
       title="Notifications"
-      rightAction={
-        unreadCount > 0 ? (
-          <TouchableOpacity onPress={handleMarkAllAsRead}>
-            <Text style={styles.markAllButton}>Mark all read</Text>
-          </TouchableOpacity>
-        ) : null
-      }
     >
       <View style={styles.container}>
         {error ? (
@@ -337,6 +353,26 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontWeight: '600',
     fontSize: 14,
+  },
+  markAllReadButton: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  markAllReadGlass: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+  },
+  markAllReadButtonText: {
+    color: '#2563EB',
+    fontWeight: '600',
+    fontSize: 15,
+    marginLeft: 8,
   },
   notificationItem: {
     backgroundColor: 'white',
