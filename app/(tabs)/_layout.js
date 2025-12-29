@@ -41,8 +41,8 @@ export default function TabsLayout() {
     <NativeTabs
       tintColor={COLORS.primary}
       iconColor="#000000"
-      backgroundColor={isIOS ? "rgba(255, 255, 255, 0.9)" : "#ffffff"}
-      blurEffect={isIOS ? "light" : undefined}
+      backgroundColor="#ffffff"
+      blurEffect="light"
     >
       <NativeTabs.Trigger name="index">
         <Label>Home</Label>
