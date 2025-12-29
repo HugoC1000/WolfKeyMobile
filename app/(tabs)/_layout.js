@@ -8,6 +8,8 @@ import badgeManager from '../../src/utils/badgeManager';
 
 export default function TabsLayout() {
   const [unreadCount, setUnreadCount] = useState(0);
+  // blurEffect is only supported on iOS
+  const isIOS = Platform.OS === 'ios';
 
   useEffect(() => {
     // Subscribe to badge manager updates
@@ -38,8 +40,9 @@ export default function TabsLayout() {
   return (
     <NativeTabs
       tintColor={COLORS.primary}
-      backgroundColor="rgba(255, 255, 255, 0.9)"
-      blurEffect="light"
+      iconColor="#000000"
+      backgroundColor={isIOS ? "rgba(255, 255, 255, 0.9)" : "#ffffff"}
+      blurEffect={isIOS ? "light" : undefined}
     >
       <NativeTabs.Trigger name="index">
         <Label>Home</Label>

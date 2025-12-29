@@ -24,7 +24,7 @@ import ExperienceTab from '../components/ExperienceTab';
 import CourseSelector from '../components/CourseSelector';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { GlassView,GlassContainer } from 'expo-glass-effect';
+import { GlassView, GlassContainer, isLiquidGlassAvailable } from 'expo-glass-effect';
 import {
   getCurrentProfile,
   getProfileByUsername,
@@ -438,38 +438,61 @@ const ProfileScreen = () => {
     bottomSheetRef.current?.snapToIndex(1);
   };
 
-  const renderTabButton = (tabKey, title, iconName) => (
-    <TouchableOpacity
-      key={tabKey}
-      style={[styles.tabButton, activeTab === tabKey && styles.activeTabButton]}
-      onPress={() => setActiveTab(tabKey)}
-    >
-      <GlassView
-        glassEffectStyle="regular"
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderRadius: 999,
-          padding: 8,
-          flex: 1,
-        }}
-        isInteractive
+  const renderTabButton = (tabKey, title, iconName) => {
+    const glassAvailable = isLiquidGlassAvailable();
+    
+    return (
+      <TouchableOpacity
+        key={tabKey}
+        style={[styles.tabButton, activeTab === tabKey && styles.activeTabButton]}
+        onPress={() => setActiveTab(tabKey)}
       >
-        <MaterialIcons 
-          name={iconName} 
-          size={20} 
-          color={activeTab === tabKey ? '#2563eb' : '#6b7280'} 
-        />
-        <Text style={[
-          styles.tabButtonText,
-          activeTab === tabKey && styles.activeTabButtonText
-        ]}>
-          {title}
-        </Text>
-      </GlassView>
-    </TouchableOpacity>
-  );
+        {glassAvailable ? (
+          <GlassView
+            glassEffectStyle="regular"
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 999,
+              padding: 8,
+              flex: 1,
+            }}
+            isInteractive
+          >
+            <MaterialIcons 
+              name={iconName} 
+              size={20} 
+              color={activeTab === tabKey ? '#2563eb' : '#6b7280'} 
+            />
+            <Text style={[
+              styles.tabButtonText,
+              activeTab === tabKey && styles.activeTabButtonText
+            ]}>
+              {title}
+            </Text>
+          </GlassView>
+        ) : (
+          <View style={[
+            styles.fallbackTabView,
+            activeTab === tabKey && styles.fallbackTabViewActive
+          ]}>
+            <MaterialIcons 
+              name={iconName} 
+              size={20} 
+              color={activeTab === tabKey ? '#2563eb' : '#6b7280'} 
+            />
+            <Text style={[
+              styles.tabButtonText,
+              activeTab === tabKey && styles.activeTabButtonText
+            ]}>
+              {title}
+            </Text>
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  };
 
   // Transform schedule_blocks (block_1A, block_1B, ...) to normalized objects for ScheduleTab
   const scheduleForTab = useMemo(() => {
@@ -616,6 +639,8 @@ const ProfileScreen = () => {
     { key: 'experience', title: 'Experience', icon: 'school' },
   ];
 
+  const glassAvailable = isLiquidGlassAvailable();
+
   return (
     <View style={styles.container}>
       <BackgroundSvg hue={user?.background_hue} />
@@ -624,17 +649,23 @@ const ProfileScreen = () => {
       >
         <View style={styles.content}>
           {/* Tab Navigation */}
-          <GlassContainer style={styles.tabContainer} spacing={10}>
-            <GlassView style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: 999,
-              flex: 1,
-            }}>
+          {glassAvailable ? (
+            <GlassContainer style={styles.tabContainer} spacing={10}>
+              <GlassView style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 999,
+                flex: 1,
+              }}>
+                {tabs.map(tab => renderTabButton(tab.key, tab.title, tab.icon))}
+              </GlassView>
+            </GlassContainer>
+          ) : (
+            <View style={styles.fallbackTabContainer}>
               {tabs.map(tab => renderTabButton(tab.key, tab.title, tab.icon))}
-            </GlassView>
-          </GlassContainer>
+            </View>
+          )}
 
           {/* Tab Content */}
           <ScrollView
@@ -788,6 +819,32 @@ const styles = StyleSheet.create({
   },
   activeTabButtonText: {
     color: '#2563eb',
+  },
+  fallbackTabContainer: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginTop: 100,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    padding: 4,
+    gap: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  fallbackTabView: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 999,
+    padding: 8,
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  fallbackTabViewActive: {
+    backgroundColor: 'rgba(37, 99, 235, 0.1)',
   },
   tabContent: {
     flex: 1,
