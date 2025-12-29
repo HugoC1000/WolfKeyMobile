@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 99,
-    paddingVertical: 10 ,
+    paddingVertical:  5,
     paddingHorizontal: 20,
   },
   headerTitle: {
