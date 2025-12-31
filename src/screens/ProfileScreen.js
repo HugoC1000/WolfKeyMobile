@@ -12,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
+import { useLocalSearchParams, router } from 'expo-router';
 import { useAuth } from '../context/authContext';
 import { useUser } from '../context/userContext';
 import BackgroundSvg from '../components/BackgroundSVG';
@@ -23,6 +24,7 @@ import ExperienceTab from '../components/ExperienceTab';
 import CourseSelector from '../components/CourseSelector';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { GlassView, GlassContainer, isLiquidGlassAvailable } from 'expo-glass-effect';
 import {
   getCurrentProfile,
   getProfileByUsername,
@@ -35,10 +37,11 @@ import {
   updatePrivacyPreferences,
 } from '../api/profileService';
 
-const ProfileScreen = ({ route, navigation }) => {
+const ProfileScreen = () => {
   const { logout } = useAuth();
   const { user, clearUser } = useUser();
-  const username = route?.params?.username;
+  const params = useLocalSearchParams();
+  const username = params?.username;
   const isCurrentUser = !username || username === user?.username;
   
   const [profile, setProfile] = useState(null);
@@ -163,7 +166,7 @@ const ProfileScreen = ({ route, navigation }) => {
               await deleteAccount();
               await logout(clearUser);
               Alert.alert('Account Deleted', 'Your account has been deleted.');
-              navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+              router.replace('/(auth)/login');
             } catch (error) {
               console.error('Account deletion failed:', error);
               Alert.alert('Error', 'Failed to delete account.');
@@ -251,20 +254,13 @@ const ProfileScreen = ({ route, navigation }) => {
   };
 
   const handleEditPress = () => {
-    navigation.navigate('EditProfile', { 
-      profile,
-      onRefresh: () => {
-        console.log('Refreshing profile from edit screen');
-        fetchProfile();
-      }
-    });
+    router.push('/edit-profile');
   };
 
   const handleCompareSchedules = () => {
-    navigation.navigate('CompareSchedules', { 
-      users: [user, profile],
-      initialUsers: [user.username, profile.username]
-    });
+    // TODO: Implement CompareSchedules route in Expo Router
+    // router.push('/compare-schedules');
+    Alert.alert('Coming Soon', 'Schedule comparison feature is being updated.');
   };
 
   const handleAddExperience = async (courseId) => {
@@ -442,25 +438,61 @@ const ProfileScreen = ({ route, navigation }) => {
     bottomSheetRef.current?.snapToIndex(1);
   };
 
-  const renderTabButton = (tabKey, title, iconName) => (
-    <TouchableOpacity
-      key={tabKey}
-      style={[styles.tabButton, activeTab === tabKey && styles.activeTabButton]}
-      onPress={() => setActiveTab(tabKey)}
-    >
-      <MaterialIcons 
-        name={iconName} 
-        size={20} 
-        color={activeTab === tabKey ? '#2563eb' : '#6b7280'} 
-      />
-      <Text style={[
-        styles.tabButtonText,
-        activeTab === tabKey && styles.activeTabButtonText
-      ]}>
-        {title}
-      </Text>
-    </TouchableOpacity>
-  );
+  const renderTabButton = (tabKey, title, iconName) => {
+    const glassAvailable = isLiquidGlassAvailable();
+    
+    return (
+      <TouchableOpacity
+        key={tabKey}
+        style={[styles.tabButton, activeTab === tabKey && styles.activeTabButton]}
+        onPress={() => setActiveTab(tabKey)}
+      >
+        {glassAvailable ? (
+          <GlassView
+            glassEffectStyle="regular"
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 999,
+              padding: 8,
+              flex: 1,
+            }}
+            isInteractive
+          >
+            <MaterialIcons 
+              name={iconName} 
+              size={20} 
+              color={activeTab === tabKey ? '#2563eb' : '#6b7280'} 
+            />
+            <Text style={[
+              styles.tabButtonText,
+              activeTab === tabKey && styles.activeTabButtonText
+            ]}>
+              {title}
+            </Text>
+          </GlassView>
+        ) : (
+          <View style={[
+            styles.fallbackTabView,
+            activeTab === tabKey && styles.fallbackTabViewActive
+          ]}>
+            <MaterialIcons 
+              name={iconName} 
+              size={20} 
+              color={activeTab === tabKey ? '#2563eb' : '#6b7280'} 
+            />
+            <Text style={[
+              styles.tabButtonText,
+              activeTab === tabKey && styles.activeTabButtonText
+            ]}>
+              {title}
+            </Text>
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  };
 
   // Transform schedule_blocks (block_1A, block_1B, ...) to normalized objects for ScheduleTab
   const scheduleForTab = useMemo(() => {
@@ -571,7 +603,6 @@ const ProfileScreen = ({ route, navigation }) => {
             onAddHelp={handleAddHelp}
             experiencedCourses={profile.experience_courses || []}
             helpNeededCourses={profile.help_needed_courses || []}
-            onAutoComplete={handleAutoComplete}
             autoCompleteLoading={autoCompleteLoading}
           />
         );
@@ -608,6 +639,8 @@ const ProfileScreen = ({ route, navigation }) => {
     { key: 'experience', title: 'Experience', icon: 'school' },
   ];
 
+  const glassAvailable = isLiquidGlassAvailable();
+
   return (
     <View style={styles.container}>
       <BackgroundSvg hue={user?.background_hue} />
@@ -616,9 +649,23 @@ const ProfileScreen = ({ route, navigation }) => {
       >
         <View style={styles.content}>
           {/* Tab Navigation */}
-          <View style={styles.tabContainer}>
-            {tabs.map(tab => renderTabButton(tab.key, tab.title, tab.icon))}
-          </View>
+          {glassAvailable ? (
+            <GlassContainer style={styles.tabContainer} spacing={10}>
+              <GlassView style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 999,
+                flex: 1,
+              }}>
+                {tabs.map(tab => renderTabButton(tab.key, tab.title, tab.icon))}
+              </GlassView>
+            </GlassContainer>
+          ) : (
+            <View style={styles.fallbackTabContainer}>
+              {tabs.map(tab => renderTabButton(tab.key, tab.title, tab.icon))}
+            </View>
+          )}
 
           {/* Tab Content */}
           <ScrollView
@@ -747,28 +794,22 @@ const styles = StyleSheet.create({
   },
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: 'white',
     marginHorizontal: 16,
     marginTop: 16,
-    borderRadius: 12,
-    padding: 4,
+    borderRadius: 999,
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
     marginTop: 100,
+    gap: 10,
   },
   tabButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: 12,
-  },
-  activeTabButton: {
-    backgroundColor: '#eff6ff',
+    borderRadius: 999,
   },
   tabButtonText: {
     fontSize: 14,
@@ -778,6 +819,32 @@ const styles = StyleSheet.create({
   },
   activeTabButtonText: {
     color: '#2563eb',
+  },
+  fallbackTabContainer: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginTop: 100,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    padding: 4,
+    gap: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  fallbackTabView: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 999,
+    padding: 8,
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  fallbackTabViewActive: {
+    backgroundColor: 'rgba(37, 99, 235, 0.1)',
   },
   tabContent: {
     flex: 1,

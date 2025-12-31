@@ -17,14 +17,16 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useAuth } from '../context/authContext';
 import { useUser } from '../context/userContext';
+import { useRouter } from 'expo-router';
 import BackgroundSvg from '../components/BackgroundSVG';
 import CourseSelector from '../components/CourseSelector';
 import ScheduleTab from '../components/ScheduleTab';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 
-const RegisterScreen = ({ navigation }) => {
+const RegisterScreen = () => {
   const { register } = useAuth();
   const { loadUser } = useUser();
+  const router = useRouter();
   
   const [currentStep, setCurrentStep] = useState(1);
   const [stepProgress] = useState(new Animated.Value(1));

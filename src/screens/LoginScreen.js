@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { View, TextInput, TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
 import { useAuth } from '../context/authContext'; 
-import { useNavigation } from '@react-navigation/native'; 
+import { useRouter } from 'expo-router';
 import BackgroundSvg from '../components/BackgroundSVG';
 import { useUser } from '../context/userContext';
 
@@ -10,7 +10,7 @@ const LoginScreen = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const { login, loading, error } = useAuth(); 
-  const navigation = useNavigation();
+  const router = useRouter();
   const { loadUser } = useUser();
 
   // Create a stable reference to loadUser
@@ -84,7 +84,7 @@ const LoginScreen = () => {
       
       <View style={styles.registerContainer}>
         <Text style={styles.registerText}>Don't have an account? </Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+        <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
           <Text style={styles.registerLink}>Sign up here</Text>
         </TouchableOpacity>
       </View>

@@ -81,7 +81,7 @@ const CourseSelector = React.memo(({ onCourseSelect, selectedCourses = [] }) => 
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.input}
-          placeholder="Search courses..."
+          placeholder="Highly recommended: Search courses..."
           value={courseQuery}
           onChangeText={setCourseQuery}
         />

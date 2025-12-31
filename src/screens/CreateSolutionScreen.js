@@ -1,15 +1,35 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Text, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, TouchableOpacity, Text, ScrollView, ActivityIndicator } from 'react-native';
+import { useLocalSearchParams, router } from 'expo-router';
 import PostDetailCard from '../components/PostDetailCard';
 import EditorComponent from '../components/EditorComponent';
 import api from '../api/config';
 import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';
 
-const CreateSolutionScreen = ({ route, navigation }) => {
-  const { postId, post } = route.params;
+const CreateSolutionScreen = () => {
+  const params = useLocalSearchParams();
+  const { postId } = params;
+  const [post, setPost] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [solution, setSolution] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [clearEditor, setClearEditor] = useState(null);
+
+  useEffect(() => {
+    const fetchPost = async () => {
+      try {
+        const response = await api.get(`/posts/${postId}/`);
+        setPost(response.data);
+      } catch (error) {
+        console.error('Error fetching post:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (postId) {
+      fetchPost();
+    }
+  }, [postId]);
 
   const hasValidContent = () => {
     if (!solution) return false;
@@ -41,7 +61,7 @@ const CreateSolutionScreen = ({ route, navigation }) => {
       if (clearEditor) {
         clearEditor();
       }
-      navigation.goBack();
+      router.back();
     } catch (error) {
       console.error('Error creating solution:', error);
     } finally {
@@ -51,8 +71,13 @@ const CreateSolutionScreen = ({ route, navigation }) => {
 
   return (
     <ScrollableScreenWrapper title="Create Solution">
-      <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-        <PostDetailCard post={post} isReference={true} />
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#2563EB" />
+        </View>
+      ) : (
+        <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+          {post && <PostDetailCard post={post} isReference={true} />}
         <Text style={styles.sectionTitle}>Your Solution</Text>
         <EditorComponent 
           onSave={setSolution}
@@ -68,7 +93,8 @@ const CreateSolutionScreen = ({ route, navigation }) => {
             {isSubmitting ? 'Submitting...' : 'Submit Solution'}
           </Text>
         </TouchableOpacity>
-      </ScrollView>
+        </ScrollView>
+      )}
     </ScrollableScreenWrapper>
   );
 };
@@ -81,6 +107,12 @@ const styles = StyleSheet.create({
   contentContainer: {
     padding: 16,
     marginTop: 60,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 100,
   },
   sectionTitle: {
     fontSize: 18,
