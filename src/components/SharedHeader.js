@@ -10,8 +10,9 @@ import {
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import * as Device from 'expo-device';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 import { GlassView, GlassContainer } from 'expo-glass-effect';
 
 const HEADER_HEIGHT = 45;
@@ -26,6 +27,7 @@ const TOTAL_HEADER_HEIGHT = HEADER_HEIGHT + STATUS_BAR_HEIGHT;
 
 const SharedHeader = ({ scrollY, isScrollingUp, title, isHome }) => {
   const navigation = useNavigation();
+  const router = useRouter();
 
   return (
     <>
@@ -56,6 +58,20 @@ const SharedHeader = ({ scrollY, isScrollingUp, title, isHome }) => {
               <Text style={styles.headerTitle}>{title}</Text>
             </GlassView>
           </Animated.View>
+          {isHome && (
+            <GlassView
+              glassEffectStyle="regular"
+              style={styles.rightContent}
+              isInteractive
+            >
+              <TouchableOpacity 
+                style={{borderRadius: 999}} 
+                onPress={() => router.push('/lunch-card')}
+              >
+                <MaterialIcons name="credit-card" size={28} color="#000" />
+              </TouchableOpacity>
+            </GlassView>
+          )}
         </GlassContainer>
       </Animated.View>
     </>
@@ -96,6 +112,14 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     padding: 6,
     overflow: 'hidden',
+  },
+  rightContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 999,
+    padding: 6,
+    overflow: 'hidden',
+    marginLeft: 'auto',
   },
   titleWrapper: {
     position: 'absolute',

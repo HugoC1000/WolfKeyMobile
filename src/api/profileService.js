@@ -120,3 +120,25 @@ export const updatePrivacyPreferences = async (preferences) => {
     throw error;
   }
 };
+
+// Upload lunch card
+export const uploadLunchCard = async (imageData) => {
+  try {
+    const formData = new FormData();
+    formData.append('lunch_card', {
+      uri: imageData.uri,
+      type: imageData.type,
+      name: imageData.fileName || 'lunch_card.jpg',
+    });
+
+    const response = await api.post('profile/upload-lunch-card/', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error uploading lunch card:', error);
+    throw error;
+  }
+};
