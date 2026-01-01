@@ -26,8 +26,8 @@ const ProfileCard = ({
   }
 
   const getProfileImage = () => {
-    if (profile.profile_picture) {
-      return { uri: getFullImageUrl(profile.profile_picture) };
+    if (profile.profile_picture_url) {
+      return { uri: getFullImageUrl(profile.profile_picture_url) };
     }
   };
 
@@ -61,7 +61,7 @@ const ProfileCard = ({
             {profile.first_name || ''} {profile.last_name || ''}
           </Text>
           <Text style={styles.userBio}>
-            {profile.bio}
+            {profile.userprofile?.bio}
           </Text>
         </View>
         
@@ -79,25 +79,25 @@ const ProfileCard = ({
       <View style={styles.statsContainer}>
         <View style={styles.statItem}>
           <Text style={styles.statNumber}>
-            {profile.experience_courses?.length || 0}
+            {profile.userprofile.courses?.experienced_courses?.length || 0}
           </Text>
           <Text style={styles.statLabel}>Experienced</Text>
         </View>
         <View style={styles.statItem}>
           <Text style={styles.statNumber}>
-            {profile.help_needed_courses?.length || 0}
+            {profile.userprofile.courses?.help_needed_courses?.length || 0}
           </Text>
           <Text style={styles.statLabel}>Need Help</Text>
         </View>
         <View style={styles.statItem}>
           <Text style={styles.statNumber}>
-            {profile.post_count || 0}
+            {profile.userprofile.stats?.posts_count || 0}
           </Text>
           <Text style={styles.statLabel}>Posts</Text>
         </View>
         <View style={styles.statItem}>
           <Text style={styles.statNumber}>
-            {profile.solution_count || 0}
+            {profile.stats?.solutions_count || 0}
           </Text>
           <Text style={styles.statLabel}>Solutions</Text>
         </View>
