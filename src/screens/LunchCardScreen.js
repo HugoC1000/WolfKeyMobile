@@ -184,7 +184,7 @@ const LunchCardScreen = () => {
         backgroundColor="transparent" 
         barStyle="dark-content" 
       />
-      <BackgroundSvg hue={user?.background_hue} />
+      <BackgroundSvg hue={user.userprofile.background_hue} />
       
       <SharedHeader title="Lunch Card" isHome={false} />
 
@@ -211,7 +211,7 @@ const LunchCardScreen = () => {
       {/* Action Buttons */}
       {!loading && (
         <View style={styles.buttonContainer}>
-          <GlassView glassEffectStyle="regular" style={styles.glassButton} isInteractive>
+          <GlassView glassEffectStyle="clear" style={styles.glassButton} isInteractive>
             <TouchableOpacity
               onPress={handleRetakePhoto}
               style={styles.button}
@@ -342,7 +342,6 @@ const ExpandedImageViewer = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   imageContainer: {
     flex: 1,
@@ -374,14 +373,13 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'flex-end',
     paddingHorizontal: 16,
     paddingBottom: Platform.OS === 'ios' ? 40 : 20,
     gap: 16,
   },
   glassButton: {
-    flex: 1,
-    borderRadius: 16,
+    borderRadius: 99,
     overflow: 'hidden',
   },
   button: {

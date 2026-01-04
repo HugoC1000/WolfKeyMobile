@@ -29,12 +29,12 @@ const EditProfileScreen = () => {
   const fetchProfile = async () => {
     try {
       const profileData = await getCurrentProfile();
-      setProfile(profileData.user);
+      setProfile(profileData);
       setFormData({
-        first_name: profileData.user?.first_name || '',
-        last_name: profileData.user?.last_name || '',
-        bio: profileData.user?.bio || '',
-        background_hue: profileData.user?.background_hue || 200,
+        first_name: profileData.first_name || '',
+        last_name: profileData.last_name || '',
+        bio: profileData.bio || '',
+        background_hue: profileData.userprofile.background_hue || 200,
       });
     } catch (error) {
       console.error('Error fetching profile:', error);
