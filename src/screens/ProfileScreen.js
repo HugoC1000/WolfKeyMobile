@@ -590,7 +590,7 @@ const ProfileScreen = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <BackgroundSvg hue={user?.background_hue} />
+        <BackgroundSvg hue={user?.userprofile?.background_hue} />
         <ActivityIndicator size="large" color="#2563eb" />
         <Text style={styles.loadingText}>Loading profile...</Text>
       </View>
@@ -607,7 +607,7 @@ const ProfileScreen = () => {
 
   return (
     <View style={styles.container}>
-      <BackgroundSvg hue={user?.background_hue} />
+      <BackgroundSvg hue={user?.userprofile?.background_hue} />
       <ScrollableScreenWrapper 
         title={isCurrentUser ? 'My Profile' : `${profile?.user?.username}'s Profile`}
       >

@@ -177,6 +177,8 @@ const LunchCardScreen = () => {
     fetchLunchCard();
   }, []);
 
+  console.log(user.userprofile);
+
   return (
     <View style={styles.container}>
       <StatusBar 

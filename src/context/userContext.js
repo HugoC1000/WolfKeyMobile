@@ -49,7 +49,36 @@ export const UserProvider = ({ children }) => {
   const updateUser = async (updates) => {
     try {
       if (user) {
-        const updatedUser = { ...user, ...updates };
+        // Fields that belong in userprofile
+        const userprofileFields = [
+          'background_hue', 'bio', 'allow_schedule_comparison', 
+          'allow_grade_updates', 'profile_picture', 'lunch_card',
+          'grade_level', 'has_wolfnet_password', 'is_moderator', 'points'
+        ];
+        
+        // Separate updates into top-level and userprofile updates
+        const topLevelUpdates = {};
+        const userprofileUpdates = {};
+        
+        Object.keys(updates).forEach(key => {
+          if (userprofileFields.includes(key)) {
+            userprofileUpdates[key] = updates[key];
+          } else if (key === 'userprofile') {
+            // If userprofile object is passed directly, merge it
+            Object.assign(userprofileUpdates, updates[key]);
+          } else {
+            topLevelUpdates[key] = updates[key];
+          }
+        });
+        
+        const updatedUser = {
+          ...user,
+          ...topLevelUpdates,
+          userprofile: {
+            ...user.userprofile,
+            ...userprofileUpdates
+          }
+        };
         setUser(updatedUser);
         await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
       }
