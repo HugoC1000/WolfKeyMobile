@@ -182,11 +182,11 @@ const styles = StyleSheet.create({
   },
   titleInput: {
     backgroundColor: 'white',
-    padding: 16,
+    padding: 10,
     borderRadius: 12,
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   submitButton: {
     backgroundColor: '#2563EB',
