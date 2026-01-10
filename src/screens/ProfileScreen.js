@@ -460,7 +460,7 @@ const ProfileScreen = () => {
 
   // Transform schedule_blocks (block_1A, block_1B, ...) to normalized objects for ScheduleTab
   const scheduleForTab = useMemo(() => {
-    const blocks = profile?.user?.userprofile?.schedule_blocks || {};
+    const blocks = profile?.userprofile?.schedule_blocks || {};
     const result = {};
     Object.entries(blocks).forEach(([blockKey, courseObj]) => {
       result[blockKey] = courseObj
