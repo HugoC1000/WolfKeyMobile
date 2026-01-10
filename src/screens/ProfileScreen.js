@@ -565,16 +565,16 @@ const ProfileScreen = () => {
             onCoursePress={handleCoursePress}
             onAddExperience={handleAddExperience}
             onAddHelp={handleAddHelp}
-            experiencedCourses={profile.courses?.experienced_courses || []}
-            helpNeededCourses={profile.courses?.help_needed_courses || []}
+            experiencedCourses={profile.userprofile?.courses?.experienced_courses || []}
+            helpNeededCourses={profile.userprofile?.courses?.help_needed_courses || []}
             autoCompleteLoading={autoCompleteLoading}
           />
         );
       case 'experience':
         return (
           <ExperienceTab
-            experiencedCourses={profile.courses?.experienced_courses || []}
-            helpNeededCourses={profile.courses?.help_needed_courses || []}
+            experiencedCourses={profile.userprofile?.courses?.experienced_courses || []}
+            helpNeededCourses={profile.userprofile?.courses?.help_needed_courses || []}
             isCurrentUser={isCurrentUser}
             onRemoveExperience={handleRemoveExperience}
             onRemoveHelp={handleRemoveHelp}

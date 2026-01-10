@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.hugoc1000.wolfkeymobile",
-      "buildNumber": "19",
+      "buildNumber": "20",
       "infoPlist": {
         "UIBackgroundModes": [
           "remote-notification"
