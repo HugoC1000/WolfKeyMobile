@@ -155,7 +155,7 @@ const PostDetailScreen = () => {
 
   return (
     <View style={styles.container}>
-      <BackgroundSvg hue={user?.background_hue} />
+      <BackgroundSvg hue={user?.userprofile?.background_hue} />
       <ScrollableScreenWrapper title="Post Detail">
         <Animated.ScrollView
           contentContainerStyle={styles.scrollContent}

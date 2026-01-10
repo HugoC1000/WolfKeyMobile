@@ -82,48 +82,12 @@ const ProfileScreen = () => {
         profileData = await getProfileByUsername(username);
       }
       
-      // Transform the nested backend data structure to flat structure expected by components
-      const transformedProfile = {
-        // User basic info
-        id: profileData.user?.id,
-        username: profileData.user?.username,
-        first_name: profileData.user?.first_name,
-        last_name: profileData.user?.last_name,
-        school_email: profileData.user?.school_email,
-        personal_email: profileData.user?.personal_email,
-        profile_picture: profileData.user?.profile_picture_url,
-        bio: profileData.user?.bio,
-        background_hue: profileData.user?.background_hue,
-        
-  // Schedule blocks - use schedule_blocks directly as it already contains the course data
-  // Expected shape:
-  // {
-  //   "block_1A": { id: number, name: string, category: string, ... },
-  //   "block_1B": { id: number, name: string, category: string, ... },
-  //   // ... other blocks (block_1D, block_1E, block_2A, ...)
-  // }
-  // This is the format `ScheduleTab` expects (keys prefixed with "block_").
-  schedule_blocks: profileData.user?.schedule_blocks || {},
-  
-        post_count: profileData.stats?.posts_count || 0,
-        solution_count: profileData.stats?.solutions_count || 0,
-
-        experience_courses: profileData.courses?.experienced_courses || [],
-        help_needed_courses: profileData.courses?.help_needed_courses || [],
-        schedule_courses: profileData.courses?.schedule_courses || {},
-        
-        recent_posts: profileData.recent_posts || [],
-        can_compare: profileData.can_compare || false,
-        allow_schedule_comparison: profileData.user?.allow_schedule_comparison ?? true,
-        allow_grade_updates: profileData.user?.allow_grade_updates ?? true,
-      };
-      
-      setProfile(transformedProfile);
+      setProfile(profileData);
       
       // Update preference states if this is the current user
       if (isCurrentUser) {
-        setAllowScheduleComparison(transformedProfile.allow_schedule_comparison);
-        setAllowGradeUpdates(transformedProfile.allow_grade_updates);
+        setAllowScheduleComparison(profileData.user?.userprofile?.allow_schedule_comparison ?? true);
+        setAllowGradeUpdates(profileData.user?.userprofile?.allow_grade_updates ?? true);
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -496,7 +460,7 @@ const ProfileScreen = () => {
 
   // Transform schedule_blocks (block_1A, block_1B, ...) to normalized objects for ScheduleTab
   const scheduleForTab = useMemo(() => {
-    const blocks = profile?.schedule_blocks || {};
+    const blocks = profile?.user?.userprofile?.schedule_blocks || {};
     const result = {};
     Object.entries(blocks).forEach(([blockKey, courseObj]) => {
       result[blockKey] = courseObj
@@ -601,16 +565,16 @@ const ProfileScreen = () => {
             onCoursePress={handleCoursePress}
             onAddExperience={handleAddExperience}
             onAddHelp={handleAddHelp}
-            experiencedCourses={profile.experience_courses || []}
-            helpNeededCourses={profile.help_needed_courses || []}
+            experiencedCourses={profile.courses?.experienced_courses || []}
+            helpNeededCourses={profile.courses?.help_needed_courses || []}
             autoCompleteLoading={autoCompleteLoading}
           />
         );
       case 'experience':
         return (
           <ExperienceTab
-            experiencedCourses={profile.experience_courses || []}
-            helpNeededCourses={profile.help_needed_courses || []}
+            experiencedCourses={profile.courses?.experienced_courses || []}
+            helpNeededCourses={profile.courses?.help_needed_courses || []}
             isCurrentUser={isCurrentUser}
             onRemoveExperience={handleRemoveExperience}
             onRemoveHelp={handleRemoveHelp}
@@ -626,7 +590,7 @@ const ProfileScreen = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <BackgroundSvg hue={user?.background_hue} />
+        <BackgroundSvg hue={user?.userprofile?.background_hue} />
         <ActivityIndicator size="large" color="#2563eb" />
         <Text style={styles.loadingText}>Loading profile...</Text>
       </View>
@@ -643,9 +607,9 @@ const ProfileScreen = () => {
 
   return (
     <View style={styles.container}>
-      <BackgroundSvg hue={user?.background_hue} />
+      <BackgroundSvg hue={user?.userprofile?.background_hue} />
       <ScrollableScreenWrapper 
-        title={isCurrentUser ? 'My Profile' : `${profile?.username}'s Profile`}
+        title={isCurrentUser ? 'My Profile' : `${profile?.user?.username}'s Profile`}
       >
         <View style={styles.content}>
           {/* Tab Navigation */}

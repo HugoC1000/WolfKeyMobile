@@ -45,7 +45,7 @@ export const authService = {
   if (response.data.token && response.data.user) {
         const { token } = response.data;
         const userData = response.data.user;
-        
+
         // Reset relevant storage keys
         await authService._safeResetAuthStorage();
         await AsyncStorage.setItem('user', JSON.stringify(userData));

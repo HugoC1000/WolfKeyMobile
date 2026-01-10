@@ -44,7 +44,7 @@ const ScrollableScreenWrapper = ({ children, title, isHome, backgroundHue }) => 
         backgroundColor="transparent" 
         barStyle="dark-content" 
       />
-      <BackgroundSvg hue={backgroundHue || user?.background_hue} />
+      <BackgroundSvg hue={backgroundHue || user?.userprofile?.background_hue} />
       
       <View style={styles.container}>
         <SharedHeader 

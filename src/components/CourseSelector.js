@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   courseItem: {
-    padding: 12,
+    padding: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
     borderRadius: 8,
@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#E8F5E9',
   },
   courseName: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
   },
   courseNameSelected: {
@@ -218,8 +218,8 @@ const styles = StyleSheet.create({
   },
   experienceCount: {
     color: '#4CAF50',
-    fontSize: 12,
-    marginTop: 4,
+    fontSize: 10,
+    marginTop: 0,
   },
   noCourses: {
     padding: 20,

@@ -287,7 +287,7 @@ const EditorComponent = ({ onSave, initialContent = '', placeholder = 'Write you
         onPress={pickImage}
         disabled={isUploading}
       >
-        <MaterialIcons name="add-photo-alternate" size={24} color={isUploading ? "#9CA3AF" : "#2563EB"} />
+        <MaterialIcons name="add-photo-alternate" size={20} color={isUploading ? "#9CA3AF" : "#2563EB"} />
         <Text style={[styles.addImageText, isUploading && styles.addImageTextDisabled]}>
           {isUploading ? 'Uploading...' : 'Add Image'}
         </Text>
@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
   addImageButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 6,
+    padding: 4,
     marginTop: 0,
     borderWidth: 1,
     borderColor: '#2563EB',
