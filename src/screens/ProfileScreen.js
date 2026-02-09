@@ -52,7 +52,6 @@ const ProfileScreen = () => {
 
   // Privacy preferences state
   const [allowScheduleComparison, setAllowScheduleComparison] = useState(true);
-  const [allowGradeUpdates, setAllowGradeUpdates] = useState(true);
 
   // Bottom sheet states
   const [showCourseSelector, setShowCourseSelector] = useState(false);
@@ -87,7 +86,6 @@ const ProfileScreen = () => {
       // Update preference states if this is the current user
       if (isCurrentUser) {
         setAllowScheduleComparison(profileData.user?.userprofile?.allow_schedule_comparison ?? true);
-        setAllowGradeUpdates(profileData.user?.userprofile?.allow_grade_updates ?? true);
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -303,8 +301,6 @@ const ProfileScreen = () => {
       // Optimistically update the UI
       if (preferenceKey === 'allow_schedule_comparison') {
         setAllowScheduleComparison(value);
-      } else if (preferenceKey === 'allow_grade_updates') {
-        setAllowGradeUpdates(value);
       }
 
       // Update on backend
@@ -321,8 +317,6 @@ const ProfileScreen = () => {
       // Revert the optimistic update on error
       if (preferenceKey === 'allow_schedule_comparison') {
         setAllowScheduleComparison(!value);
-      } else if (preferenceKey === 'allow_grade_updates') {
-        setAllowGradeUpdates(!value);
       }
       Alert.alert('Error', 'Failed to update privacy preference');
     }
@@ -512,25 +506,6 @@ const ProfileScreen = () => {
                         <Text style={styles.preferenceTitle}>Allow Schedule Comparison</Text>
                         <Text style={styles.preferenceDescription}>
                           Let others see if you share classes with them
-                        </Text>
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity 
-                    style={styles.preferenceItem}
-                    onPress={() => handleUpdatePreference('allow_grade_updates', !allowGradeUpdates)}
-                  >
-                    <View style={styles.preferenceContent}>
-                      <MaterialIcons 
-                        name={allowGradeUpdates ? "check-box" : "check-box-outline-blank"} 
-                        size={24} 
-                        color={allowGradeUpdates ? "#2563eb" : "#9ca3af"} 
-                      />
-                      <View style={styles.preferenceTextContainer}>
-                        <Text style={styles.preferenceTitle}>Allow Grade Updates</Text>
-                        <Text style={styles.preferenceDescription}>
-                          Receive notifications about grade changes
                         </Text>
                       </View>
                     </View>
