@@ -36,8 +36,9 @@ const RegisterScreen = () => {
     last_name: '',
     school_email: '',
     personal_email: '',
-  password: '',
+    password: '',
     confirm_password: '',
+    is_teacher: false,
   });
 
 
@@ -60,7 +61,6 @@ const RegisterScreen = () => {
   
   // Preference settings (default to true)
   const [allowScheduleComparison, setAllowScheduleComparison] = useState(true);
-  const [allowGradeUpdates, setAllowGradeUpdates] = useState(true);
   
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -78,10 +78,11 @@ const RegisterScreen = () => {
     
     switch (step) {
       case 1:
-        if (!formData.first_name.trim()) newErrors.first_name = 'First name is required';
-        if (!formData.last_name.trim()) newErrors.last_name = 'Last name is required';
+        // Account type selection - no validation needed, defaults to student
         break;
       case 2:
+        if (!formData.first_name.trim()) newErrors.first_name = 'First name is required';
+        if (!formData.last_name.trim()) newErrors.last_name = 'Last name is required';
         if (!formData.school_email.trim()) {
           newErrors.school_email = 'School email is required';
         } else if (!formData.school_email.endsWith('@wpga.ca')) {
@@ -89,6 +90,9 @@ const RegisterScreen = () => {
         }
         break;
       case 3:
+        // Personal email and grade level are optional, no validation needed
+        break;
+      case 4:
         if (!formData.password || formData.password.length < 6) {
           newErrors.password = 'Password must be at least 6 characters';
         }
@@ -98,7 +102,7 @@ const RegisterScreen = () => {
           newErrors.confirm_password = 'Passwords do not match';
         }
         break;
-      case 4:
+      case 5:
         if (experiencedCourses.length < 3) {
           newErrors.experienced = 'Please select at least 3 courses you can help with';
         }
@@ -106,7 +110,7 @@ const RegisterScreen = () => {
           newErrors.help = 'Please select at least 3 courses you need help with';
         }
         break;
-      case 5:
+      case 6:
         // Schedule is optional, no validation needed
         break;
       default:
@@ -126,7 +130,6 @@ const RegisterScreen = () => {
 
   const handleGradeLevelChange = (value) => {
     setFormData(prev => ({ ...prev, grade_level: value }));
-    setShowGradeOptions(false);
     if (errors.grade_level) {
       setErrors(prev => ({ ...prev, grade_level: null }));
     }
@@ -147,14 +150,14 @@ const RegisterScreen = () => {
     ]).start(() => {
       setCurrentStep(nextStep);
       
-      // Save course selections when going back from courses step (step 4)
-      if (nextStep === 4 && currentStep === 5) {
+      // Save course selections when going back from courses step (step 5)
+      if (nextStep === 5 && currentStep === 6) {
         setSavedExperiencedCourses(experiencedCourses);
         setSavedHelpNeededCourses(helpNeededCourses);
       }
       
-      // Restore course selections when coming back to courses step (step 4)
-      if (nextStep === 4 && (savedExperiencedCourses.length > 0 || savedHelpNeededCourses.length > 0)) {
+      // Restore course selections when coming back to courses step (step 5)
+      if (nextStep === 5 && (savedExperiencedCourses.length > 0 || savedHelpNeededCourses.length > 0)) {
         setExperiencedCourses(savedExperiencedCourses);
         setHelpNeededCourses(savedHelpNeededCourses);
       }
@@ -184,7 +187,7 @@ const RegisterScreen = () => {
 
   const handleNext = () => {
     if (validateStep(currentStep)) {
-      if (currentStep === 5) {
+      if (currentStep === 6) {
         // Coming from schedule step - submit
         handleSubmit();
       } else {
@@ -195,8 +198,8 @@ const RegisterScreen = () => {
 
   const handlePrevious = () => {
     if (currentStep > 1) {
-      // Save course selections when going back from courses step (step 4)
-      if (currentStep === 5) {
+      // Save course selections when going back from courses step (step 5)
+      if (currentStep === 6) {
         setSavedExperiencedCourses(experiencedCourses);
         setSavedHelpNeededCourses(helpNeededCourses);
       }
@@ -340,23 +343,24 @@ const RegisterScreen = () => {
         ...formData,
         password1: formData.password,
         password2: formData.confirm_password,
+        user_type: formData.is_teacher ? 'teacher' : 'student',
         experienced_courses: experiencedCourses.map(c => c.id),
         help_needed_courses: helpNeededCourses.map(c => c.id),
         schedule: scheduleData,
         allow_schedule_comparison: allowScheduleComparison,
-        allow_grade_updates: allowGradeUpdates,
       };
       
-      // Remove the original password fields as we're using password1/password2
+      // Remove the original password fields and is_teacher as we're using user_type
       delete registrationData.password;
       delete registrationData.confirm_password;
+      delete registrationData.is_teacher;
       
       await register(registrationData, loadUser);
       
       Alert.alert(
         'Welcome to WolfKey!',
         'Your account has been created successfully.',
-        [{ text: 'OK', onPress: () => navigation.replace('Main') }]
+        [{ text: 'OK', onPress: () => router.replace('/(tabs)') }]
       );
     } catch (error) {
       console.error('Registration error:', error);
@@ -400,18 +404,10 @@ const RegisterScreen = () => {
   // Progress indicator
   const renderProgressIndicator = () => {
 
-    const totalSteps = 5; 
-    const progress = stepProgress.interpolate({
-      inputRange: [1, totalSteps],
-      outputRange: ['20%', '100%'],
-      extrapolate: 'clamp',
-    });
+    const totalSteps = 4;
 
     return (
       <View style={styles.progressContainer}>
-        <View style={styles.progressBar}>
-          <Animated.View style={[styles.progressFill, { width: progress }]} />
-        </View>
         <Text style={styles.progressText}>Step {currentStep} of {totalSteps}</Text>
       </View>
     );
@@ -428,21 +424,72 @@ const RegisterScreen = () => {
         styles.stepContent,
         { opacity: fadeAnim, transform }
       ]}>
-        {currentStep === 1 && renderPersonalInfoStep()}
-        {currentStep === 2 && renderEmailStep()}
-        {currentStep === 3 && renderPasswordStep()}
-        {currentStep === 4 && renderCoursesStep()}
-        {currentStep === 5 && renderScheduleStep()}
+        {currentStep === 1 && renderAccountTypeStep()}
+        {currentStep === 2 && renderPersonalInfoStep()}
+        {currentStep === 3 && renderEmailStep()}
+        {currentStep === 4 && renderPasswordStep()}
+        {currentStep === 5 && renderCoursesStep()}
+        {currentStep === 6 && renderScheduleStep()}
       </Animated.View>
     );
   };
 
-  // Step 1: Personal Information (First Name, Last Name)
+  // Step 1: Account Type Selection
+  const renderAccountTypeStep = () => (
+    <View style={styles.step}>
+      <View style={styles.stepHeader}>
+        <Text style={styles.stepTitle}>Choose account type</Text>
+      </View>
+
+      <View style={styles.accountTypeContainer}>
+        <TouchableOpacity
+          style={[
+            styles.accountTypeCard,
+            !formData.is_teacher && styles.accountTypeCardSelected
+          ]}
+          onPress={() => handleInputChange('is_teacher', false)}
+        >
+          <MaterialIcons 
+            name="school" 
+            size={48} 
+            color={!formData.is_teacher ? '#2563eb' : '#9ca3af'} 
+          />
+          <Text style={[
+            styles.accountTypeTitle,
+            !formData.is_teacher && styles.accountTypeTitleSelected
+          ]}>
+            Student
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.accountTypeCard,
+            formData.is_teacher && styles.accountTypeCardSelected
+          ]}
+          onPress={() => handleInputChange('is_teacher', true)}
+        >
+          <MaterialIcons 
+            name="person" 
+            size={48} 
+            color={formData.is_teacher ? '#2563eb' : '#9ca3af'} 
+          />
+          <Text style={[
+            styles.accountTypeTitle,
+            formData.is_teacher && styles.accountTypeTitleSelected
+          ]}>
+            Teacher
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  // Step 2: Personal Information (First Name, Last Name)
   const renderPersonalInfoStep = () => (
     <View style={styles.step}>
       <View style={styles.stepHeader}>
-        <MaterialIcons name="person" size={36} color="#2563eb" />
-        <Text style={styles.stepTitle}>What's your name?</Text>
+        <Text style={styles.stepTitle}>Your account</Text>
       </View>
 
       <View style={styles.inputContainer}>
@@ -469,17 +516,6 @@ const RegisterScreen = () => {
         />
         {errors.last_name && <Text style={styles.errorText}>{errors.last_name}</Text>}
       </View>
-    </View>
-  );
-
-  // Step 2: Email Information
-  const renderEmailStep = () => (
-    <View style={styles.step}>
-      <View style={styles.stepHeader}>
-        <MaterialIcons name="email" size={36} color="#2563eb" />
-        <Text style={styles.stepTitle}>Email Addresses</Text>
-        <Text style={styles.stepSubtitle}>We need your school email to verify you're a WPGA student</Text>
-      </View>
 
       <View style={styles.inputContainer}>
         <Text style={styles.inputLabel}>School Email *</Text>
@@ -491,10 +527,20 @@ const RegisterScreen = () => {
           keyboardType="email-address"
           autoCapitalize="none"
           autoCorrect={false}
-          autoFocus
         />
         {errors.school_email && <Text style={styles.errorText}>{errors.school_email}</Text>}
         <Text style={styles.helperText}>Must be your @wpga.ca email address</Text>
+      </View>
+
+    </View>
+  );
+
+  // Step 2: Email Information
+  const renderEmailStep = () => (
+    <View style={styles.step}>
+      <View style={styles.stepHeader}>
+        <Text style={styles.stepTitle}>Your details</Text>
+        <Text style={styles.stepSubtitle}>Tell us a bit more about yourself</Text>
       </View>
 
       <View style={styles.inputContainer}>
@@ -513,28 +559,25 @@ const RegisterScreen = () => {
 
       <View style={styles.inputContainer}>
         <Text style={styles.inputLabel}>Grade Level (Optional)</Text>
-        <TouchableOpacity
-          style={[styles.input, styles.selectInput]}
-          onPress={() => setShowGradeOptions(!showGradeOptions)}
-        >
-          <Text style={{ color: formData.grade_level ? '#111827' : '#6b7280' }}>
-            {formData.grade_level ? (formData.grade_level === '13' ? 'Alumni (13)' : `Grade ${formData.grade_level}`) : 'Select your grade level'}
-          </Text>
-        </TouchableOpacity>
-
-        {showGradeOptions && (
-          <View style={styles.selectOptions}>
-            {gradeLevels.map(g => (
-              <TouchableOpacity
-                key={g}
-                style={styles.selectOption}
-                onPress={() => handleGradeLevelChange(g)}
-              >
-                <Text style={styles.selectOptionText}>{g === '13' ? 'Alumni (13)' : `Grade ${g}`}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
+        <View style={styles.radioGroup}>
+          {gradeLevels.map(g => (
+            <TouchableOpacity
+              key={g}
+              style={[
+                styles.radioButton,
+                formData.grade_level === g && styles.radioButtonSelected
+              ]}
+              onPress={() => handleGradeLevelChange(g)}
+            >
+              <Text style={[
+                styles.radioButtonText,
+                formData.grade_level === g && styles.radioButtonTextSelected
+              ]}>
+                {g === '13' ? 'Alum' : g}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
         <Text style={styles.helperText}>Your current grade level (8 - 13 for alumni). If in summer, grade level in Sept</Text>
       </View>
     </View>
@@ -544,9 +587,7 @@ const RegisterScreen = () => {
   const renderPasswordStep = () => (
     <View style={styles.step}>
       <View style={styles.stepHeader}>
-        <MaterialIcons name="lock" size={36} color="#2563eb" />
-        <Text style={styles.stepTitle}>Create Password</Text>
-        <Text style={styles.stepSubtitle}>Choose a secure password for your account</Text>
+        <Text style={styles.stepTitle}>Secure your account</Text>
       </View>
 
       <View style={styles.inputContainer}>
@@ -560,7 +601,6 @@ const RegisterScreen = () => {
           autoFocus
         />
         {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
-        <Text style={styles.helperText}>Make it strong! Include letters, numbers, and symbols</Text>
       </View>
 
       <View style={styles.inputContainer}>
@@ -588,13 +628,11 @@ const RegisterScreen = () => {
     </View>
   );
 
-  // Step 4: WolfNet Integration
   // Step 4: Course Selection
   const renderCoursesStep = () => (
     <View style={styles.step}>
       <View style={styles.stepHeader}>
-        <MaterialIcons name="book" size={36} color="#059669" />
-        <Text style={styles.stepTitle}>Course Experience</Text>
+        <Text style={styles.stepTitle}>Topics of interest</Text>
       </View>
 
       <View style={styles.courseSection}>
@@ -647,25 +685,6 @@ const RegisterScreen = () => {
             </View>
           </View>
         </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.preferenceItem}
-          onPress={() => setAllowGradeUpdates(!allowGradeUpdates)}
-        >
-          <View style={styles.preferenceContent}>
-            <MaterialIcons 
-              name={allowGradeUpdates ? "check-box" : "check-box-outline-blank"} 
-              size={24} 
-              color={allowGradeUpdates ? "#2563eb" : "#9ca3af"} 
-            />
-            <View style={styles.preferenceTextContainer}>
-              <Text style={styles.preferenceTitle}>Allow Grade Updates</Text>
-              <Text style={styles.preferenceDescription}>
-                Receive notifications about grade changes
-              </Text>
-            </View>
-          </View>
-        </TouchableOpacity>
       </View>
     </View>
   );
@@ -674,9 +693,7 @@ const RegisterScreen = () => {
   const renderScheduleStep = () => (
     <View style={styles.step}>
       <View style={styles.stepHeader}>
-        <MaterialIcons name="schedule" size={36} color="#8B5A2B" />
-        <Text style={styles.stepTitle}>Your Schedule</Text>
-        <Text style={styles.stepSubtitle}>Optional - Input your schedule</Text>
+        <Text style={styles.stepTitle}>Your schedule</Text>
       </View>
 
       <View style={styles.scheduleContainer}>
@@ -711,7 +728,7 @@ const RegisterScreen = () => {
         
         <View style={styles.navigationSpacer} />
         
-        {currentStep === 5 ? (
+        {currentStep === 6 ? (
           <TouchableOpacity
             style={[styles.submitButton, isSubmitting && styles.buttonDisabled]}
             onPress={handleNext}
@@ -752,10 +769,6 @@ const RegisterScreen = () => {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.header}>
-            <Text style={styles.title}>WolfKey</Text>
-          </View>
-
           {renderProgressIndicator()}
           {renderStepContent()}
         </ScrollView>
@@ -830,23 +843,13 @@ const styles = StyleSheet.create({
     color: '#1f2937',
   },
   progressContainer: {
-    marginBottom: 24,
-  },
-  progressBar: {
-    height: 4,
-    backgroundColor: '#e5e7eb',
-    borderRadius: 2,
-    marginBottom: 8,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#0ac40aff',
-    borderRadius: 2,
+    marginBottom: 16,
   },
   progressText: {
     fontSize: 14,
-    color: '#373a40ff',
-    textAlign: 'center',
+    color: '#6b7280',
+    textAlign: 'left',
+    fontWeight: '500',
   },
   stepContent: {
     flex: 1,
@@ -862,45 +865,44 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
     marginBottom: 100,
-    minHeight: 520,
     overflow: 'visible',
   },
   stepHeader: {
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 16,
   },
   stepTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#0e1219ff',
-    marginTop: 16,
+    marginTop: 8,
     marginBottom: 8,
   },
   stepSubtitle: {
     fontSize: 16,
-    color: '#34383fff',
-    textAlign: 'center',
+    color: '#6b7280',
+    textAlign: 'left',
   },
   inputContainer: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   inputLabel: {
     fontSize: 14,
     fontWeight: '600',
     color: '#282f3bff',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   input: {
-    backgroundColor: '#f9fafb',
-    borderWidth: 1,
-    borderColor: '#d1d5db',
+    backgroundColor: '#f2f2f2',
+    borderWidth: 0,
     borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
+    padding: 10,
+    fontSize: 14,
     color: '#1f2937',
   },
   inputError: {
     borderColor: '#ef4444',
+    borderWidth: 1,
     backgroundColor: '#fef2f2',
   },
   passwordInputContainer: {
@@ -930,7 +932,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#eff6ff',
     borderRadius: 12,
     padding: 10,
-    marginBottom: 16,
     borderWidth: 1,
     borderColor: '#dbeafe',
   },
@@ -1017,19 +1018,14 @@ const styles = StyleSheet.create({
     flex: 1,
     fontWeight: '500',
   },
-  courseSection: {
-    marginBottom: 8,
-  },
   courseSectionTitle: {
     fontSize: 15,
     fontWeight: 'bold',
     color: '#1f2937',
-    marginBottom: 4,
   },
   courseSectionSubtitle: {
     fontSize: 14,
     color: '#6b7280',
-    marginBottom: 16,
   },
   preferencesSection: {
     marginTop: 24,
@@ -1090,8 +1086,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 12,
+    borderRadius: 999,
     gap: 8,
+    backgroundColor: '#edf0f5',
   },
   backButtonText: {
     fontSize: 16,
@@ -1104,7 +1101,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#2563eb',
     paddingVertical: 12,
     paddingHorizontal: 24,
-    borderRadius: 12,
+    borderRadius: 999,
   },
   nextButtonText: {
     fontSize: 16,
@@ -1185,26 +1182,70 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     textAlign: 'center',
   },
-  selectInput: {
-    justifyContent: 'center',
-  },
-  selectOptions: {
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 8,
+  accountTypeContainer: {
+    flexDirection: 'row',
+    gap: 16,
     marginTop: 8,
-    overflow: 'hidden',
   },
-  selectOption: {
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+  accountTypeCard: {
+    flex: 1,
+    backgroundColor: '#f9fafb',
+    borderWidth: 2,
+    borderColor: '#e5e7eb',
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 200,
   },
-  selectOptionText: {
-    fontSize: 16,
-    color: '#111827',
+  accountTypeCardSelected: {
+    backgroundColor: '#eff6ff',
+    borderColor: '#2563eb',
+  },
+  accountTypeTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#6b7280',
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  accountTypeTitleSelected: {
+    color: '#2563eb',
+  },
+  accountTypeDescription: {
+    fontSize: 14,
+    color: '#9ca3af',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  radioGroup: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginVertical: 8,
+  },
+  radioButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: '#d1d5db',
+    backgroundColor: '#f9fafb',
+    minWidth: 40,
+    alignItems: 'center',
+  },
+  radioButtonSelected: {
+    backgroundColor: '#2563eb',
+    borderColor: '#2563eb',
+  },
+  radioButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6b7280',
+  },
+  radioButtonTextSelected: {
+    color: '#ffffff',
+    fontWeight: '600',
   },
   bottomSheetBackground: {
     backgroundColor: 'white',

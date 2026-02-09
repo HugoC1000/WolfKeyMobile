@@ -150,7 +150,7 @@ const CourseSelector = React.memo(({ onCourseSelect, selectedCourses = [] }) => 
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 14,
+    marginVertical: 5,
   },
   searchContainer: {
     position: 'relative',
@@ -242,11 +242,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#E5E7EB',
     borderRadius: 20,
-    paddingVertical: 4,
+    paddingVertical: 3,
     paddingLeft: 8,
     paddingRight: 4,
-    borderColor: '#383838',
-    borderWidth: 2,
+    borderColor: '#bbbbbb',
+    borderWidth: 1,
   },
   chipText: {
     color: '#374151',
