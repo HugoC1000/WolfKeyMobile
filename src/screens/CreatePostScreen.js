@@ -16,6 +16,7 @@ const CreatePostScreen = () => {
   const [error, setError] = useState(null);
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [showAnonInfo, setShowAnonInfo] = useState(false);
+  const [allowTeacher, setAllowTeacher] = useState(true);
   const [editorKey, setEditorKey] = useState(Date.now());
 
   // Reset form when screen comes into focus
@@ -28,6 +29,7 @@ const CreatePostScreen = () => {
         setSelectedCourses([]);
         setIsAnonymous(false);
         setShowAnonInfo(false);
+        setAllowTeacher(true);
         setError(null);
         setEditorKey(Date.now()); // Force editor remount
       };
@@ -44,6 +46,7 @@ const CreatePostScreen = () => {
 
       formData.append('title', title);
       formData.append('is_anonymous', isAnonymous ? 'true' : 'false');
+      formData.append('allow_teacher', allowTeacher ? 'true' : 'false');
       
       selectedCourses.forEach(course => {
         formData.append('courses', course.id);
@@ -64,6 +67,7 @@ const CreatePostScreen = () => {
         setSelectedCourses([]);
         setIsAnonymous(false);
         setShowAnonInfo(false);
+        setAllowTeacher(true);
         setError(null);
         
         // Force editor to remount with fresh state
@@ -104,6 +108,17 @@ const CreatePostScreen = () => {
         {error && (
           <Text style={styles.errorText}>{error}</Text>
         )}
+
+        <View style={styles.anonRow}>
+          <Switch
+            value={allowTeacher}
+            onValueChange={setAllowTeacher}
+            trackColor={{ false: '#6B7280', true: '#9ba0e2ff' }}
+            thumbColor={allowTeacher ? '#2563EB' : '#f4f3f4'}
+            style={styles.switch}
+          />
+          <Text style={styles.anonLabel}>Teacher visible</Text>
+        </View>
 
         <View style={styles.anonRow}>
           <Switch
