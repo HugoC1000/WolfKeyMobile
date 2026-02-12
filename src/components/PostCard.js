@@ -102,18 +102,19 @@ const PostCard = ({ post }) => {
               <View style={styles.profilePicPlaceholder} />
             )}
             <View style={styles.authorDetails}>
-              <Text style={styles.authorName}>
-                {post.author.full_name || 'Anonymous'}
-              </Text>
-              <Text style={styles.timestamp}>
-                {formatDateTime(post.created_at)}
-              </Text>
+              <View style={styles.authorNameRow}>
+                <Text style={styles.authorName}>
+                  {post.author.full_name || 'Anonymous'}
+                </Text>
+                <Text style={styles.timestamp}>
+                  {formatDateTime(post.created_at)}
+                </Text>
+              </View>
+              <Text style={styles.title}>{post.title}</Text>
+              {post.preview_text ? <Text style={styles.text}>{post.preview_text}</Text> : null}
             </View>
           </View>
         </View>
-        
-        <Text style={styles.title}>{post.title}</Text>
-        {post.preview_text ? <Text style={styles.text}>{post.preview_text}</Text> : <View></View>}
         
         {/* First Image */}
         {post.first_image_url && (
@@ -210,7 +211,7 @@ const styles = StyleSheet.create({
   postCard: {
     backgroundColor: 'white',
     padding: 16,
-    marginBottom: 12,
+    marginBottom: 8,
     borderRadius: 12,
     shadowColor: '#000',
     shadowOpacity: 0.1,
@@ -249,7 +250,7 @@ const styles = StyleSheet.create({
   },
   authorInfo: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     flex: 1,
   },
   profilePic: {
@@ -268,11 +269,15 @@ const styles = StyleSheet.create({
   authorDetails: {
     flex: 1,
   },
+  authorNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   authorName: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
     color: '#374151',
-    marginBottom: 2,
   },
   timestamp: {
     fontSize: 12,
@@ -281,12 +286,12 @@ const styles = StyleSheet.create({
   title: {
     fontWeight: '600',
     marginBottom: 8,
-    fontSize: 16,
+    fontSize: 15,
     color: '#1F2937',
     marginTop: 4,
   },
   text: {
-    fontSize: 14,
+    fontSize: 12,
     marginBottom: 8,
     color: '#4B5563',
     fontWeight: 400,
