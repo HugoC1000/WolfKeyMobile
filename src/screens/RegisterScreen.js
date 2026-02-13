@@ -21,6 +21,7 @@ import { useRouter } from 'expo-router';
 import BackgroundSvg from '../components/BackgroundSVG';
 import CourseSelector from '../components/CourseSelector';
 import ScheduleTab from '../components/ScheduleTab';
+import Course from '../models/Course';
 
 const RegisterScreen = () => {
   const { register } = useAuth();

@@ -4,6 +4,7 @@ import BottomSheet, { BottomSheetView, BottomSheetFlatList } from '@gorhom/botto
 import { MaterialIcons } from '@expo/vector-icons';
 import api from '../api/config';
 import { debounce } from 'lodash';
+import Course from '../models/Course';
 
 const CourseSelector = React.memo(({ 
   isVisible, 
@@ -38,7 +39,9 @@ const CourseSelector = React.memo(({
     debounce(async (query) => {
       try {
         const response = await api.get(`courses/?q=${query}`);
-        setCourses(response.data);
+        // Convert API response to Course instances
+        const courseInstances = Course.fromAPIArray(response.data);
+        setCourses(courseInstances);
       } catch (error) {
         console.error('Error searching courses:', error);
       }
@@ -71,12 +74,16 @@ const CourseSelector = React.memo(({
   }, [isVisible, selectedCourses]);
 
   const handleSelectCourse = useCallback((course) => {
-    const isAlreadySelected = internalSelectedCourses.find(c => c.id === course.id);
+    const isAlreadySelected = internalSelectedCourses.find(c => 
+      course instanceof Course ? course.equals(c) : c.id === course.id
+    );
     
     let updatedCourses;
     if (isAlreadySelected) {
       // Remove if already selected
-      updatedCourses = internalSelectedCourses.filter(c => c.id !== course.id);
+      updatedCourses = internalSelectedCourses.filter(c => 
+        course instanceof Course ? !course.equals(c) : c.id !== course.id
+      );
     } else {
       // Add if not selected
       updatedCourses = [...internalSelectedCourses, course];
@@ -88,7 +95,7 @@ const CourseSelector = React.memo(({
   }, [internalSelectedCourses, onCourseSelect]);
 
   const removeCourse = useCallback((courseToRemove) => {
-    const updatedCourses = internalSelectedCourses.filter(c => c.id !== courseToRemove.id);
+    const updatedCourses = internalSelectedCourses.filter(c => !courseToRemove.equals(c));   
     setInternalSelectedCourses(updatedCourses);
     onCourseSelect(updatedCourses);
   }, [internalSelectedCourses, onCourseSelect]);

@@ -1,4 +1,33 @@
 import api from './config';
+import Course from '../models/Course';
+
+/**
+ * Transform post course data to Course instances.
+ * 
+ * This converts raw API course objects into Course class instances,
+ * providing consistent structure and access to Course methods.
+ * 
+ * The Course class preserves all API fields (needs_help, is_experienced, etc.)
+ * while ensuring type safety and providing utility methods.
+ */
+export const transformPostCourses = (postData) => {
+  if (!postData) return postData;
+  
+  // Transform single post - convert to Course instances
+  if (postData.courses && Array.isArray(postData.courses)) {
+    postData.courses = postData.courses.map(courseData => 
+      Course.fromAPI(courseData)
+    );
+  }
+  
+  return postData;
+};
+
+// Helper function to transform array of posts
+export const transformPostsArray = (posts) => {
+  if (!Array.isArray(posts)) return posts;
+  return posts.map(post => transformPostCourses(post));
+};
 
 // Like a post
 export const likePost = async (postId) => {

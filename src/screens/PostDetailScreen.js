@@ -20,6 +20,7 @@ import BackgroundSvg from '../components/BackgroundSVG';
 import { useUser } from '../context/userContext';
 import { markNotificationsByPost } from '../api/notificationService';
 import badgeManager from '../utils/badgeManager';
+import { transformPostCourses } from '../api/postService';
 
 const PostDetailScreen = () => {
   const { id } = useLocalSearchParams();
@@ -39,10 +40,12 @@ const PostDetailScreen = () => {
   const fetchPostDetail = async () => {
     try {
       const response = await api.get(`posts/${postId}/`);
-      setPost(response.data);
-      if (response.data.solutions) {
+      // Transform course data to Course instances
+      const transformedPost = transformPostCourses(response.data);
+      setPost(transformedPost);
+      if (transformedPost.solutions) {
         setUserHasSolution(
-          response.data.solutions.some((solution) => solution.author_id === user.id)
+          transformedPost.solutions.some((solution) => solution.author_id === user.id)
         );
       }
     } catch (error) {

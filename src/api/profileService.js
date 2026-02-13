@@ -1,10 +1,49 @@
 import api from './config';
+import Course from '../models/Course';
+
+// Helper function to transform profile course data to Course instances
+const transformProfileCourses = (profileData) => {
+  if (!profileData) return profileData;
+  
+  // Transform schedule blocks
+  if (profileData.userprofile?.schedule_blocks) {
+    const transformedBlocks = {};
+    Object.entries(profileData.userprofile.schedule_blocks).forEach(([key, courseData]) => {
+      if (courseData) {
+        transformedBlocks[key] = Course.fromAPI(courseData);
+      } else {
+        transformedBlocks[key] = null;
+      }
+    });
+    profileData.userprofile.schedule_blocks = transformedBlocks;
+  }
+  
+  // Transform experienced courses
+  if (profileData.userprofile?.courses?.experienced_courses) {
+    profileData.userprofile.courses.experienced_courses = 
+      profileData.userprofile.courses.experienced_courses.map(exp => ({
+        ...exp,
+        course: exp.course ? Course.fromAPI(exp.course) : exp
+      }));
+  }
+  
+  // Transform help needed courses
+  if (profileData.userprofile?.courses?.help_needed_courses) {
+    profileData.userprofile.courses.help_needed_courses = 
+      profileData.userprofile.courses.help_needed_courses.map(help => ({
+        ...help,
+        course: help.course ? Course.fromAPI(help.course) : help
+      }));
+  }
+  
+  return profileData;
+};
 
 // Get current user's profile
 export const getCurrentProfile = async () => {
   try {
     const response = await api.get('profile/');
-    return response.data;
+    return transformProfileCourses(response.data);
   } catch (error) {
     console.error('Error fetching current profile:', error);
     throw error;
@@ -15,7 +54,7 @@ export const getCurrentProfile = async () => {
 export const getProfileByUsername = async (username) => {
   try {
     const response = await api.get(`profile/${username}/`);
-    return response.data;
+    return transformProfileCourses(response.data);
   } catch (error) {
     console.error('Error fetching profile:', error);
     throw error;

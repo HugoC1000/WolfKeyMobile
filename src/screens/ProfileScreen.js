@@ -12,6 +12,7 @@ import {
 import { useLocalSearchParams, router } from 'expo-router';
 import { useAuth } from '../context/authContext';
 import { useUser } from '../context/userContext';
+import Course from '../models/Course';
 import BackgroundSvg from '../components/BackgroundSVG';
 import { deleteAccount } from '../api/deleteAccountService';
 import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';

@@ -11,6 +11,7 @@ import {
 import PostCard from '../components/PostCard';
 import api from '../api/config';
 import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';
+import { transformPostsArray } from '../api/postService';
 
 const HEADER_HEIGHT = 45;
 const PAGE_SIZE = 10;
@@ -35,8 +36,11 @@ const ExploreScreen = () => {
       const res = await api.get(`all-posts/?page=${pageNum}&limit=${PAGE_SIZE}`);
       const data = res.data;
 
+      // Transform course data to Course instances
+      const transformedPosts = transformPostsArray(data.posts);
+
       setPosts(prev =>
-        shouldRefresh || pageNum === 1 ? data.posts : [...prev, ...data.posts]
+        shouldRefresh || pageNum === 1 ? transformedPosts : [...prev, ...transformedPosts]
       );
       setHasNext(data.has_next);
       setPage(pageNum);

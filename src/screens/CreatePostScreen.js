@@ -7,6 +7,7 @@ import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';
 import CourseSelector from '../components/CourseSelector';
 import { router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
+import Course from '../models/Course';
 
 const CreatePostScreen = () => {
   const [title, setTitle] = useState('');
