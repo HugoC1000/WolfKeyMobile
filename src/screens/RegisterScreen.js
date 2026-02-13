@@ -21,7 +21,6 @@ import { useRouter } from 'expo-router';
 import BackgroundSvg from '../components/BackgroundSVG';
 import CourseSelector from '../components/CourseSelector';
 import ScheduleTab from '../components/ScheduleTab';
-import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 
 const RegisterScreen = () => {
   const { register } = useAuth();
@@ -66,12 +65,9 @@ const RegisterScreen = () => {
   const slideAnim = useRef(new Animated.Value(0)).current;
 
   // Bottom sheet for selecting courses (registration flow)
-  const bottomSheetRef = useRef(null);
   const [showCourseSelector, setShowCourseSelector] = useState(false);
   const [selectedBlock, setSelectedBlock] = useState(null);
   const [selectedCourses, setSelectedCourses] = useState([]);
-  const [bsSubmitting, setBsSubmitting] = useState(false);
-  const snapPoints = useMemo(() => ['45%', '70%', '90%'], []);
 
   const validateStep = (step) => {
     const newErrors = {};
@@ -212,21 +208,6 @@ const RegisterScreen = () => {
 
 
 
-  // Course selection handlers
-  const handleExperiencedCoursesChange = (courses) => {
-    setExperiencedCourses(courses);
-    if (errors.experienced) {
-      setErrors(prev => ({ ...prev, experienced: null }));
-    }
-  };
-
-  const handleHelpNeededCoursesChange = (courses) => {
-    setHelpNeededCourses(courses);
-    if (errors.help) {
-      setErrors(prev => ({ ...prev, help: null }));
-    }
-  };
-
   // Add courses from schedule tab
   const handleAddExperience = (courseId) => {
     if (courseId == null) return;
@@ -266,63 +247,65 @@ const RegisterScreen = () => {
   const handleCoursePress = (courseOrBlock, block) => {
     const blockToEdit = block || courseOrBlock;
     setSelectedBlock(blockToEdit);
+    
+    // Set the current courses based on which list is being edited
+    if (blockToEdit === 'experience') {
+      setSelectedCourses(experiencedCourses);
+    } else if (blockToEdit === 'help') {
+      setSelectedCourses(helpNeededCourses);
+    } else {
+      setSelectedCourses([]);
+      console.log("S");
+      console.log(selectedCourses);
+    }
+    
+    console.log(helpNeededCourses);
+    console.log(experiencedCourses);
+
     setShowCourseSelector(true);
-    bottomSheetRef.current?.snapToIndex(1);
   };
 
   const handleCourseSelection = (courses) => {
-    setSelectedCourses(courses);
-  };
-
-  const handleSubmitCourseSelection = async () => {
-    if (selectedCourses.length > 0 && selectedBlock) {
-      const course = selectedCourses[0];
-      setBsSubmitting(true);
-      try {
-        if (selectedBlock === 'experience') {
-          setExperiencedCourses(prev => {
-            const deriveKey = (c) => (c?.id !== undefined && c?.id !== null) ? String(c.id) : (c?.name || c?.raw_text ? `raw:${c.name ?? c.raw_text}` : null);
-            const key = deriveKey(course);
-            return prev.some(c => deriveKey(c) === key) ? prev : [...prev, course];
-          });
-        } else if (selectedBlock === 'help') {
-          setHelpNeededCourses(prev => {
-            const deriveKey = (c) => (c?.id !== undefined && c?.id !== null) ? String(c.id) : (c?.name || c?.raw_text ? `raw:${c.name ?? c.raw_text}` : null);
-            const key = deriveKey(course);
-            return prev.some(c => deriveKey(c) === key) ? prev : [...prev, course];
-          });
-        } else {
-          // This is a schedule block update (e.g., editing 1A, 1B, etc.)
-          // Update the manual schedule with the selected course
-          const normalizedScheduleEntry = {
-            course: course?.name ?? course?.raw_text ?? null,
-            course_id: course?.id ?? null,
-            raw_text: course?.raw_text ?? null,
-          };
-
-          const blockKey = `block_${selectedBlock}`;
-          setManualSchedule(prev => ({
-            ...prev,
-            [blockKey]: normalizedScheduleEntry
-          }));
+    if (selectedBlock) {
+      if (selectedBlock === 'experience') {
+        setExperiencedCourses(courses);
+        // Clear error for experienced courses
+        if (errors.experienced) {
+          setErrors(prev => ({ ...prev, experienced: null }));
         }
+      } else if (selectedBlock === 'help') {
+        setHelpNeededCourses(courses);
+        // Clear error for help needed courses
+        if (errors.help) {
+          setErrors(prev => ({ ...prev, help: null }));
+        }
+      } else if (courses.length > 0) {
+        // This is a schedule block update (e.g., editing 1A, 1B, etc.)
+        // Only take the first course for schedule blocks
+        const course = courses[0];
+        const normalizedScheduleEntry = {
+          course: course?.name ?? course?.raw_text ?? null,
+          course_id: course?.id ?? null,
+          raw_text: course?.raw_text ?? null,
+        };
 
-        // close sheet
-        bottomSheetRef.current?.close();
-        setSelectedCourses([]);
-        setSelectedBlock(null);
-        setShowCourseSelector(false);
-      } catch (error) {
-        console.error('Error selecting course in registration sheet:', error);
-      } finally {
-        setBsSubmitting(false);
+        const blockKey = `block_${selectedBlock}`;
+        setManualSchedule(prev => ({
+          ...prev,
+          [blockKey]: normalizedScheduleEntry
+        }));
+        
+        // For schedule blocks, close immediately after selection (only one course per block)
+        handleCloseCourseSelector();
       }
+      // Don't close for experience/help - let the user select multiple and click Done
     }
   };
 
   const handleCloseCourseSelector = () => {
     setSelectedCourses([]);
-    bottomSheetRef.current?.close();
+    setShowCourseSelector(false);
+    setSelectedBlock(null);
   };
 
   // Final submission
@@ -642,10 +625,24 @@ const RegisterScreen = () => {
         <Text style={styles.courseSectionSubtitle}>
           Grades around 90s
         </Text>
-        <CourseSelector 
-          onCourseSelect={handleExperiencedCoursesChange} 
-          selectedCourses={experiencedCourses}
-        />
+        
+        <TouchableOpacity 
+          style={styles.addCourseButton}
+          onPress={() => handleCoursePress('experience')}
+        >
+          <MaterialIcons name="add" size={20} color="#2563EB" />
+          <Text style={styles.addCourseButtonText}>Edit Course Selection</Text>
+        </TouchableOpacity>
+        
+        {experiencedCourses.length > 0 && (
+          <View style={styles.selectedCoursesContainer}>
+            {experiencedCourses.map(course => (
+              <View key={course.id || course.name} style={styles.courseChip}>
+                <Text style={styles.courseChipText}>{course.name}</Text>
+              </View>
+            ))}
+          </View>
+        )}
         {errors.experienced && <Text style={styles.errorText}>{errors.experienced}</Text>}
       </View>
 
@@ -656,10 +653,24 @@ const RegisterScreen = () => {
         <Text style={styles.courseSectionSubtitle}>
             Not that great grades
         </Text>
-        <CourseSelector 
-          onCourseSelect={handleHelpNeededCoursesChange} 
-          selectedCourses={helpNeededCourses}
-        />
+        
+        <TouchableOpacity 
+          style={styles.addCourseButton}
+          onPress={() => handleCoursePress('help')}
+        >
+          <MaterialIcons name="add" size={20} color="#2563EB" />
+          <Text style={styles.addCourseButtonText}>Edit Course Selection</Text>
+        </TouchableOpacity>
+        
+        {helpNeededCourses.length > 0 && (
+          <View style={styles.selectedCoursesContainer}>
+            {helpNeededCourses.map(course => (
+              <View key={course.id || course.name} style={styles.courseChip}>
+                <Text style={styles.courseChipText}>{course.name}</Text>
+              </View>
+            ))}
+          </View>
+        )}
         {errors.help && <Text style={styles.errorText}>{errors.help}</Text>}
       </View>
 
@@ -774,42 +785,14 @@ const RegisterScreen = () => {
         </ScrollView>
         
         {renderNavigationButtons()}
-        {/* Bottom sheet for course selection during registration */}
-        {showCourseSelector && (
-          <BottomSheet
-            ref={bottomSheetRef}
-            index={1}
-            snapPoints={snapPoints}
-            onChange={() => {}}
-            enablePanDownToClose={false}
-            backgroundStyle={styles.bottomSheetBackground}
-            handleIndicatorStyle={styles.handleIndicator}
-          >
-            <BottomSheetView style={styles.bottomSheetContainer}>
-              <View style={styles.bottomSheetHeader}>
-                <Text style={styles.bottomSheetTitle}>Select Course</Text>
-                <TouchableOpacity onPress={handleCloseCourseSelector} style={styles.closeButton}>
-                  <MaterialIcons name="close" size={24} color="#666" />
-                </TouchableOpacity>
-              </View>
-
-              <CourseSelector onCourseSelect={handleCourseSelection} />
-
-              <View style={styles.bottomSheetFooter}>
-                <TouchableOpacity style={styles.cancelButton} onPress={handleCloseCourseSelector}>
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.submitButton, (selectedCourses.length === 0 || bsSubmitting) && styles.submitButtonDisabled]}
-                  onPress={handleSubmitCourseSelection}
-                  disabled={selectedCourses.length === 0 || bsSubmitting}
-                >
-                  <Text style={styles.submitButtonText}>{bsSubmitting ? 'Adding...' : 'Add Course'}</Text>
-                </TouchableOpacity>
-              </View>
-            </BottomSheetView>
-          </BottomSheet>
-        )}
+        
+        {/* Course Selector Bottom Sheet */}
+        <CourseSelector
+          isVisible={showCourseSelector}
+          onClose={handleCloseCourseSelector}
+          onCourseSelect={handleCourseSelection}
+          selectedCourses={selectedCourses}
+        />
       </KeyboardAvoidingView>
     </View>
   );
@@ -1026,6 +1009,46 @@ const styles = StyleSheet.create({
   courseSectionSubtitle: {
     fontSize: 14,
     color: '#6b7280',
+  },
+  addCourseButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#2563EB',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 12,
+    gap: 8,
+  },
+  addCourseButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#2563EB',
+  },
+  selectedCoursesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 8,
+  },
+  courseChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    borderRadius: 20,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderColor: '#BFDBFE',
+    borderWidth: 1,
+  },
+  courseChipText: {
+    fontSize: 14,
+    color: '#1E40AF',
+    fontWeight: '500',
   },
   preferencesSection: {
     marginTop: 24,

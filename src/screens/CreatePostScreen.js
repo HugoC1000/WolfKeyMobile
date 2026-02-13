@@ -18,6 +18,7 @@ const CreatePostScreen = () => {
   const [showAnonInfo, setShowAnonInfo] = useState(false);
   const [allowTeacher, setAllowTeacher] = useState(true);
   const [editorKey, setEditorKey] = useState(Date.now());
+  const [isCourseBottomSheetVisible, setIsCourseBottomSheetVisible] = useState(false);
 
   // Reset form when screen comes into focus
   useFocusEffect(
@@ -32,6 +33,7 @@ const CreatePostScreen = () => {
         setAllowTeacher(true);
         setError(null);
         setEditorKey(Date.now()); // Force editor remount
+        setIsCourseBottomSheetVisible(false);
       };
     }, [])
   );
@@ -69,6 +71,7 @@ const CreatePostScreen = () => {
         setShowAnonInfo(false);
         setAllowTeacher(true);
         setError(null);
+        setIsCourseBottomSheetVisible(false);
         
         // Force editor to remount with fresh state
         setEditorKey(Date.now());
@@ -87,27 +90,47 @@ const CreatePostScreen = () => {
   };
 
   return (
-    <ScrollableScreenWrapper title="Ask a Question">
-      <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-        
-        <TextInput
-          style={styles.titleInput}
-          placeholder="What's your question? Be specific."
-          value={title}
-          onChangeText={setTitle}
-        />
-        
-        <EditorComponent 
-          key={editorKey}
-          onSave={setContent}
-          placeholder="Provide more details about your question..."
-        />
+    <View style={styles.screenContainer}>
+      <ScrollableScreenWrapper title="Ask a Question">
+        <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+          
+          <TextInput
+            style={styles.titleInput}
+            placeholder="What's your question? Be specific."
+            value={title}
+            onChangeText={setTitle}
+          />
+          
+          <EditorComponent 
+            key={editorKey}
+            onSave={setContent}
+            placeholder="Provide more details about your question..."
+          />
 
-        <CourseSelector onCourseSelect={setSelectedCourses} />
-        
-        {error && (
-          <Text style={styles.errorText}>{error}</Text>
-        )}
+          {/* Course Selection Button */}
+          <TouchableOpacity 
+            style={styles.courseButton}
+            onPress={() => setIsCourseBottomSheetVisible(true)}
+          >
+            <Text style={styles.courseButtonText}>
+              Select courses (Recommended)
+            </Text>
+          </TouchableOpacity>
+
+          {/* Display selected courses */}
+          {selectedCourses.length > 0 && (
+            <View style={styles.selectedCoursesContainer}>
+              {selectedCourses.map(course => (
+                <View key={course.id} style={styles.courseChip}>
+                  <Text style={styles.courseChipText}>{course.name}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+          
+          {error && (
+            <Text style={styles.errorText}>{error}</Text>
+          )}
 
         <View style={styles.anonRow}>
           <Switch
@@ -154,11 +177,23 @@ const CreatePostScreen = () => {
           </Text>
         </TouchableOpacity>
       </ScrollView>
-    </ScrollableScreenWrapper>
+      </ScrollableScreenWrapper>
+
+      {/* Course Selector Bottom Sheet */}
+      <CourseSelector 
+        isVisible={isCourseBottomSheetVisible}
+        onClose={() => setIsCourseBottomSheetVisible(false)}
+        onCourseSelect={setSelectedCourses}
+        selectedCourses={selectedCourses}
+      />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  screenContainer: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     marginBottom: 40,
@@ -202,6 +237,42 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 12,
+  },
+  courseButton: {
+    backgroundColor: 'white',
+    padding: 12,
+    borderRadius: 999,
+    alignItems: 'center',
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginBottom: 12,
+  },
+  courseButtonText: {
+    color: '#2563EB',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  selectedCoursesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 12,
+    gap: 8,
+  },
+  courseChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    borderRadius: 20,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderColor: '#BFDBFE',
+    borderWidth: 1,
+  },
+  courseChipText: {
+    fontSize: 14,
+    color: '#1E40AF',
+    fontWeight: '500',
   },
   submitButton: {
     backgroundColor: '#2563EB',

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,10 +8,7 @@ import {
   Alert,
   ActivityIndicator,
   RefreshControl,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
-import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useAuth } from '../context/authContext';
 import { useUser } from '../context/userContext';
@@ -53,24 +50,11 @@ const ProfileScreen = () => {
   // Privacy preferences state
   const [allowScheduleComparison, setAllowScheduleComparison] = useState(true);
 
-  // Bottom sheet states
+  // Course selector states
   const [showCourseSelector, setShowCourseSelector] = useState(false);
   const [selectedBlock, setSelectedBlock] = useState(null);
-  const [currentSnapIndex, setCurrentSnapIndex] = useState(-1);
   const [selectedCourses, setSelectedCourses] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const bottomSheetRef = useRef(null);
-
-  const snapPoints = useMemo(() => ['45%', '70%', '90%'], []);
-
-  const handleSheetChanges = useCallback((index) => {
-    setCurrentSnapIndex(index);
-    if (index === -1) {
-      setShowCourseSelector(false);
-      setSelectedBlock(null);
-      setSelectedCourses([]);
-    }
-  }, []);
 
   const fetchProfile = async () => {
     try {
@@ -327,8 +311,8 @@ const ProfileScreen = () => {
     if (isCurrentUser) {
       const blockToEdit = block || courseOrBlock;
       setSelectedBlock(blockToEdit);
+      setSelectedCourses([]);
       setShowCourseSelector(true);
-      bottomSheetRef.current?.snapToIndex(1);
     }
   };
 
@@ -338,21 +322,20 @@ const ProfileScreen = () => {
 
     const handleSubmitCourseSelection = async () => {
     if (selectedCourses.length > 0 && selectedBlock) {
-      const course = selectedCourses[0];
-      
       setIsSubmitting(true);
       
       try {
         if (selectedBlock === 'experience') {
-          // Add experience
-          await addExperience(course.id);
-          Alert.alert('Success', 'Course experience added!');
+          // Add all selected courses as experience
+          await Promise.all(selectedCourses.map(course => addExperience(course.id)));
+          Alert.alert('Success', `${selectedCourses.length} course${selectedCourses.length > 1 ? 's' : ''} added to experience!`);
         } else if (selectedBlock === 'help') {
-          // Add help request
-          await addHelpRequest(course.id);
-          Alert.alert('Success', 'Help request added!');
+          // Add all selected courses as help requests
+          await Promise.all(selectedCourses.map(course => addHelpRequest(course.id)));
+          Alert.alert('Success', `${selectedCourses.length} help request${selectedCourses.length > 1 ? 's' : ''} added!`);
         } else {
-          // Update schedule block
+          // Update schedule block - only use first course
+          const course = selectedCourses[0];
           const scheduleUpdate = {
             [`block_${selectedBlock}`]: course.id
           };
@@ -361,8 +344,7 @@ const ProfileScreen = () => {
         }
         
         await fetchProfile();
-        bottomSheetRef.current?.close();
-        setSelectedCourses([]);
+        handleCloseCourseSelector();
       } catch (error) {
         console.error('Error updating course:', error);
         Alert.alert('Error', 'Failed to update course');
@@ -374,26 +356,20 @@ const ProfileScreen = () => {
 
   const handleCloseCourseSelector = () => {
     setSelectedCourses([]);
-    bottomSheetRef.current?.close();
+    setShowCourseSelector(false);
+    setSelectedBlock(null);
   };
-
-  const handleHeaderTap = () => {
-    if (currentSnapIndex === 0) {
-      bottomSheetRef.current?.snapToIndex(1);
-    }
-  };
-
 
   const handleAddExperienceFromTab = () => {
     setSelectedBlock('experience');
+    setSelectedCourses([]);
     setShowCourseSelector(true);
-    bottomSheetRef.current?.snapToIndex(1);
   };
 
   const handleAddHelpFromTab = () => {
-    setSelectedBlock('help'); 
+    setSelectedBlock('help');
+    setSelectedCourses([]);
     setShowCourseSelector(true);
-    bottomSheetRef.current?.snapToIndex(1);
   };
 
   const renderTabButton = (tabKey, title, iconName) => {
@@ -620,96 +596,19 @@ const ProfileScreen = () => {
       </ScrollableScreenWrapper>
 
       {/* Course Selection Bottom Sheet */}
-      {showCourseSelector && (
-        <BottomSheet
-          ref={bottomSheetRef}
-          index={1}
-          snapPoints={snapPoints}
-          onChange={handleSheetChanges}
-          enablePanDownToClose={false}
-          backgroundStyle={styles.bottomSheetBackground}
-          handleIndicatorStyle={styles.handleIndicator}
-        >
-          <BottomSheetView style={styles.bottomSheetContainer}>
-            <KeyboardAvoidingView 
-              style={styles.keyboardView}
-              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            >
-
-              <TouchableOpacity 
-                style={styles.bottomSheetHeader} 
-                onPress={handleHeaderTap}
-                activeOpacity={currentSnapIndex === 0 ? 0.7 : 1}
-                disabled={currentSnapIndex !== 0}
-              >
-                <View style={styles.headerLeft}>
-                  <Text style={styles.bottomSheetTitle}>
-                    {selectedBlock === 'experience' 
-                      ? 'Add Course You Can Help With'
-                      : selectedBlock === 'help'
-                      ? 'Add Course You Need Help With'
-                      : `Select Course for Block ${selectedBlock}`
-                    }
-                  </Text>
-                  {currentSnapIndex === 0 && (
-                    <Text style={styles.expandHint}>Tap to expand</Text>
-                  )}
-                </View>
-                <TouchableOpacity 
-                  style={styles.closeButton} 
-                  onPress={handleCloseCourseSelector}
-                >
-                  <MaterialIcons name="close" size={24} color="#666" />
-                </TouchableOpacity>
-              </TouchableOpacity>
-
-              {/* Course Selector */}
-              <View style={[
-                styles.courseSelectorContainer, 
-                currentSnapIndex === 0 && styles.hiddenCourseSelector
-              ]}>
-                <CourseSelector onCourseSelect={handleCourseSelection} />
-              </View>
-
-              {/* Footer Actions */}
-              {currentSnapIndex > 0 && (
-                <View style={styles.footer}>
-                  <TouchableOpacity 
-                    style={styles.cancelButton} 
-                    onPress={handleCloseCourseSelector}
-                    disabled={isSubmitting}
-                  >
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity 
-                    style={[
-                      styles.submitButton, 
-                      (selectedCourses.length === 0 || isSubmitting) && styles.submitButtonDisabled
-                    ]} 
-                    onPress={handleSubmitCourseSelection}
-                    disabled={selectedCourses.length === 0 || isSubmitting}
-                  >
-                    <Text style={[
-                      styles.submitButtonText,
-                      (selectedCourses.length === 0 || isSubmitting) && styles.submitButtonTextDisabled
-                    ]}>
-                      {isSubmitting 
-                        ? 'Adding...' 
-                        : selectedBlock === 'experience'
-                        ? 'Add Experience'
-                        : selectedBlock === 'help'
-                        ? 'Add Help Request'
-                        : 'Update Course'
-                      }
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </KeyboardAvoidingView>
-          </BottomSheetView>
-        </BottomSheet>
-      )}
+      <CourseSelector 
+        isVisible={showCourseSelector}
+        onClose={() => {
+          // Only auto-submit if courses were selected
+          if (selectedCourses.length > 0 && selectedBlock) {
+            handleSubmitCourseSelection();
+          } else {
+            handleCloseCourseSelector();
+          }
+        }}
+        onCourseSelect={handleCourseSelection}
+        selectedCourses={selectedCourses}
+      />
     </View>
   );
 };
@@ -848,108 +747,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
-  },
-  bottomSheetBackground: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: -2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  handleIndicator: {
-    backgroundColor: '#ddd',
-    width: 40,
-    height: 4,
-  },
-  bottomSheetContainer: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingBottom: 20,
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  bottomSheetHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingVertical: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    minHeight: 30,
-  },
-  headerLeft: {
-    flex: 1,
-    paddingRight: 16,
-  },
-  bottomSheetTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1a1a1b',
-    marginBottom: 4,
-  },
-  expandHint: {
-    fontSize: 11,
-    color: '#999',
-    marginTop: 2,
-    fontStyle: 'italic',
-  },
-  closeButton: {
-    padding: 4,
-  },
-  courseSelectorContainer: {
-    flex: 1,
-  },
-  hiddenCourseSelector: {
-    position: 'absolute',
-    left: -10000,
-    opacity: 0,
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    paddingVertical: 16,
-    paddingBottom: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-    gap: 12,
-    backgroundColor: 'white',
-  },
-  cancelButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  cancelButtonText: {
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '500',
-  },
-  submitButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 6,
-    backgroundColor: '#4CAF50',
-  },
-  submitButtonDisabled: {
-    backgroundColor: '#ccc',
-  },
-  submitButtonText: {
-    fontSize: 14,
-    color: 'white',
-    fontWeight: '600',
-  },
-  submitButtonTextDisabled: {
-    color: '#999',
   },
 });
 
