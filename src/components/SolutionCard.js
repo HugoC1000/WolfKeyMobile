@@ -99,7 +99,7 @@ const SolutionCard = ({
     <View style={styles.votingContainer}>
       <TouchableOpacity 
         style={[styles.voteButton, userVote === 1 && styles.votedUpButton]}
-        onPress={() => handleVote(1)}
+        onPress={() => handleVote('upvote')}
       >
         <MaterialIcons 
           name="keyboard-arrow-up" 
@@ -114,7 +114,7 @@ const SolutionCard = ({
       
       <TouchableOpacity 
         style={[styles.voteButton, userVote === -1 && styles.votedDownButton]}
-        onPress={() => handleVote(-1)}
+        onPress={() => handleVote('downvote')}
       >
         <MaterialIcons 
           name="keyboard-arrow-down" 
@@ -289,9 +289,6 @@ const styles = StyleSheet.create({
     color: '#1a1a1b',
     minWidth: 20,
     textAlign: 'center',
-  },
-  votedCount: {
-    color: '#FF4500',
   },
   actionsContainer: {
     flexDirection: 'row',
