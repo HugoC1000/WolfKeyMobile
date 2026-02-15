@@ -23,6 +23,11 @@ const SolutionCard = ({
   const [userVote, setUserVote] = useState(solution.user_vote || 0);
   const [isAccepted, setIsAccepted] = useState(solution.is_accepted || initialIsAccepted || false);
 
+  // Sync local state with props when they change (e.g., after refresh)
+  useEffect(() => {
+    setIsAccepted(solution.is_accepted || initialIsAccepted || false);
+  }, [solution.is_accepted, initialIsAccepted]);
+
   const handleVote = async (voteType) => {
     try {
       const endpoint = `solutions/${solution.id}/vote/`;
