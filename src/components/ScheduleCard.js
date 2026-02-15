@@ -400,7 +400,7 @@ const styles = StyleSheet.create({
     elevation: 5,
     backgroundColor: 'white',
     overflow: 'visible',
-    marginVertical: 5,
+    marginVertical: 0,
     position: 'relative',
   },
   leftArrow: {

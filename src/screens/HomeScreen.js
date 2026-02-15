@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   greetingContainer: {
-    marginBottom: 12,
+    marginBottom: 8,
   },
   greeting: {
     fontSize: 18,
