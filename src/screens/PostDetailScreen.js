@@ -45,7 +45,7 @@ const PostDetailScreen = () => {
       setPost(transformedPost);
       if (transformedPost.solutions) {
         setUserHasSolution(
-          transformedPost.solutions.some((solution) => solution.author_id === user.id)
+          transformedPost.solutions.some((solution) => solution.author.id === user.id)
         );
       }
     } catch (error) {
