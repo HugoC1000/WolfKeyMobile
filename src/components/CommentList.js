@@ -9,24 +9,24 @@ import { getFullImageUrl } from '../api/config';
 
 const CommentList = ({ comments = [], onReply, onEdit, onDelete }) => {
   const { user } = useUser();
-  const [expandedComments, setExpandedComments] = useState(new Set());
+  // const [expandedComments, setExpandedComments] = useState(new Set());
 
   if (!comments || !Array.isArray(comments) || comments.length === 0) {
     return null;
   }
 
-  const toggleComment = (commentId) => {
-    const newExpanded = new Set(expandedComments);
-    if (newExpanded.has(commentId)) {
-      newExpanded.delete(commentId);
-    } else {
-      newExpanded.add(commentId);
-    }
-    setExpandedComments(newExpanded);
-  };
+  // const toggleComment = (commentId) => {
+  //   const newExpanded = new Set(expandedComments);
+  //   if (newExpanded.has(commentId)) {
+  //     newExpanded.delete(commentId);
+  //   } else {
+  //     newExpanded.add(commentId);
+  //   }
+  //   setExpandedComments(newExpanded);
+  // };
 
   const renderComment = (comment, depth = 0) => {
-    const isExpanded = expandedComments.has(comment.id);
+    // const isExpanded = expandedComments.has(comment.id);
     const hasReplies = comment.replies && comment.replies.length > 0;
     
     return (
@@ -94,7 +94,7 @@ const CommentList = ({ comments = [], onReply, onEdit, onDelete }) => {
               <Text style={styles.replyText}>Reply</Text>
             </TouchableOpacity>
             
-            {hasReplies && (
+            {/* {hasReplies && (
               <TouchableOpacity 
                 style={styles.toggleButton}
                 onPress={() => toggleComment(comment.id)}
@@ -108,12 +108,12 @@ const CommentList = ({ comments = [], onReply, onEdit, onDelete }) => {
                   {isExpanded ? 'Hide' : 'Show'} {comment.replies.length} {comment.replies.length === 1 ? 'reply' : 'replies'}
                 </Text>
               </TouchableOpacity>
-            )}
+            )} */}
           </View>
         </View>
         
         {/* Render nested replies */}
-        {hasReplies && isExpanded && (
+        {hasReplies && (
           <View style={styles.repliesContainer}>
             {comment.replies.map(reply => renderComment(reply, depth + 1))}
           </View>
@@ -125,9 +125,6 @@ const CommentList = ({ comments = [], onReply, onEdit, onDelete }) => {
   return (
     <View style={styles.container}>
       <View style={styles.headerContainer}>
-        <Text style={styles.commentTitle}>
-          Comments ({comments.filter(comment => !comment.parent).length})
-        </Text>
       </View>
       {comments.filter(comment => !comment.parent).map(comment => renderComment(comment))}
     </View>
@@ -136,10 +133,9 @@ const CommentList = ({ comments = [], onReply, onEdit, onDelete }) => {
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 8,
+    marginTop: 0,
   },
   headerContainer: {
-    paddingBottom: 6,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
     marginBottom: 6,
