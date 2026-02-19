@@ -3,7 +3,7 @@
     "name": "WolfKey",
     "slug": "wolfkey-mobile",
     "scheme": "wolfkey",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "orientation": "portrait",
     "icon": "./assets/light-icon.png",
     "userInterfaceStyle": "automatic",
@@ -17,7 +17,7 @@
       "icon": "./assets/WolfKeyIcon.icon",
       "supportsTablet": false,
       "bundleIdentifier": "com.hugoc1000.wolfkeymobile",
-      "buildNumber": "20",
+      "buildNumber": "21",
       "infoPlist": {
         "UIBackgroundModes": [
           "remote-notification"
