@@ -2,7 +2,7 @@
   "fill" : {
     "linear-gradient" : [
       "display-p3:1.00000,1.00000,1.00000,1.00000",
-      "display-p3:0.68956,0.73929,0.79111,1.00000"
+      "display-p3:0.90421,0.97208,1.00000,1.00000"
     ],
     "orientation" : {
       "start" : {
@@ -19,11 +19,33 @@
     {
       "layers" : [
         {
-          "blend-mode" : "normal",
-          "fill" : "none",
+          "blend-mode-specializations" : [
+            {
+              "value" : "normal"
+            },
+            {
+              "appearance" : "dark",
+              "value" : "normal"
+            }
+          ],
+          "fill-specializations" : [
+            {
+              "value" : "none"
+            },
+            {
+              "appearance" : "dark",
+              "value" : "none"
+            }
+          ],
           "glass" : true,
           "image-name" : "Image.png",
           "name" : "Image",
+          "opacity-specializations" : [
+            {
+              "appearance" : "dark",
+              "value" : 1
+            }
+          ],
           "position" : {
             "scale" : 0.48,
             "translation-in-points" : [
