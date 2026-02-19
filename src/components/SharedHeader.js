@@ -41,7 +41,7 @@ const SharedHeader = ({ scrollY, isScrollingUp, title, isHome }) => {
           >
             {isHome ? (
               <Image
-                source={require('../../assets/icon.png')}
+                source={require('../../assets/light-icon.png')}
                 style={{ width: 40, height: 40, borderRadius: 12 }}
               />
             ) : (
