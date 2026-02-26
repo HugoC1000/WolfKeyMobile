@@ -83,3 +83,77 @@ export async function markNotificationsByPost(postId) {
     return { success: false };
   }
 }
+
+/**
+ * Parse and handle deep link navigation from notification data
+ * Supports both push notification format and in-app notification deep_link format
+ * 
+ * @param {Object} data - Notification data object or deep_link object
+ * @param {Object} router - expo-router router instance
+ * @returns {boolean} - Whether navigation was handled
+ * 
+ * TWO NOTIFICATION DATA FORMATS:
+ * 
+ * 1. Direct Data (Push Notifications) - when user taps push notification from outside app:
+ *    { type: 'comment', post_id: '123', comment_id: '456', username: 'john' }
+ * 
+ * 2. Nested deep_link (In-App Notifications) - when user taps notification in NotificationsScreen:
+ *    { deep_link: { type: 'comment', screen: 'PostDetail', params: { postId: '123', commentId: '456' } } }
+ * 
+ * This function handles both by checking data.params (nested) OR using data directly (push notifications)
+ */
+export function handleDeepLink(data, router) {
+  if (!data || !router) {
+    console.warn('handleDeepLink: Missing data or router');
+    return false;
+  }
+
+  try {
+    // Support both formats: direct data and nested deep_link
+    const type = data.type;
+    const params = data.params || data; // For deep_link.params or direct data
+    
+    switch (type) {
+      case 'post_detail':
+      case 'comment':
+      case 'solution_detail':
+        // Support both postId (deep_link format) and post_id (push notification format)
+        const postId = params.postId || params.post_id;
+        if (postId) {
+          router.push({
+            pathname: '/post-detail/[id]',
+            params: {
+              id: postId,
+              commentId: params.commentId || params.comment_id || undefined,
+              solutionId: params.solutionId || params.solution_id || undefined,
+            }
+          });
+          return true;
+        }
+        break;
+        
+      case 'profile':
+        if (params.username) {
+          router.push({
+            pathname: '/(tabs)/profile-screen',
+            params: { username: params.username }
+          });
+          return true;
+        }
+        break;
+        
+      case 'notifications':
+        router.push('/(tabs)/notifications');
+        return true;
+        
+      default:
+        console.log('Unhandled notification type:', type);
+        return false;
+    }
+  } catch (error) {
+    console.error('Error handling deep link:', error);
+    return false;
+  }
+  
+  return false;
+}

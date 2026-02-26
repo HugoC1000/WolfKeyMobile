@@ -14,7 +14,7 @@ import { router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { GlassView } from 'expo-glass-effect';
 import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';
-import { getNotifications, markAsRead, markAllAsRead } from '../api/notificationService';
+import { getNotifications, markAsRead, markAllAsRead, handleDeepLink } from '../api/notificationService';
 import { COLORS } from '../utils/constants';
 import { formatTime } from '../utils/timeUtils';
 import badgeManager from '../utils/badgeManager';
@@ -92,38 +92,7 @@ const NotificationsScreen = () => {
 
     const deepLink = notification.deep_link;
     if (deepLink && deepLink.screen) {
-      try {
-        switch (deepLink.type) {
-          case 'post_detail':
-          case 'comment':
-          case 'solution_detail':
-            if (deepLink.params?.postId) {
-              router.push({
-                pathname: '/post-detail/[id]',
-                params: {
-                  id: deepLink.params.postId,
-                  commentId: deepLink.params.commentId || undefined,
-                  solutionId: deepLink.params.solutionId || undefined,
-                }
-              });
-            }
-            break;
-            
-          case 'profile':
-            if (deepLink.params?.username) {
-              router.push({
-                pathname: '/(tabs)/profile-screen',
-                params: { username: deepLink.params.username }
-              });
-            }
-            break;
-            
-          default:
-            console.log('Unhandled notification deep link:', deepLink);
-        }
-      } catch (error) {
-        console.error('Error navigating from notification:', error);
-      }
+      handleDeepLink(deepLink, router);
     }
   };
 
