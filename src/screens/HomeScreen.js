@@ -11,7 +11,10 @@ import {
   Platform,
   RefreshControl,
   AppState,
+  TouchableOpacity,
 } from 'react-native';
+import { router } from 'expo-router';
+import { MaterialIcons } from '@expo/vector-icons';
 import Schedule from '../components/ScheduleCard';
 import PostCard from '../components/PostCard';
 import api from '../api/config';
@@ -172,50 +175,67 @@ const HomeScreen = () => {
   }, [user?.first_name, user?.id]);
 
   return (
-    <View style={styles.rootContainer}>
-      <ScrollableScreenWrapper title="Home" isHome={true}>
-          <Animated.FlatList
-            data={posts}
-            renderItem={({ item }) => <PostCard post={item} />}
-            keyExtractor={(item) => item.id.toString()}
-            ListHeaderComponent={ListHeader}
-            contentContainerStyle={{ ...styles.container, flexGrow: 1 }}
-            onEndReached={handleLoadMore}
-            onEndReachedThreshold={0.5}
-            onMomentumScrollBegin={() => {
-              onEndReachedCalledDuringMomentum.current = false;
-            }}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={handleRefresh}
-                colors={['#4A90E2']}
-                tintColor="#4A90E2"
-                progressBackgroundColor="#ffffff"
-                progressViewOffset={HEADER_HEIGHT +70}
-              />
-            }
+    <>
+      <View style={styles.rootContainer}>
+        <ScrollableScreenWrapper title="Home" isHome={true}>
+            <Animated.FlatList
+              data={posts}
+              renderItem={({ item }) => <PostCard post={item} />}
+              keyExtractor={(item) => item.id.toString()}
+              ListHeaderComponent={ListHeader}
+              contentContainerStyle={{ ...styles.container, flexGrow: 1 }}
+              onEndReached={handleLoadMore}
+              onEndReachedThreshold={0.5}
+              onMomentumScrollBegin={() => {
+                onEndReachedCalledDuringMomentum.current = false;
+              }}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={handleRefresh}
+                  colors={['#4A90E2']}
+                  tintColor="#4A90E2"
+                  progressBackgroundColor="#ffffff"
+                  progressViewOffset={HEADER_HEIGHT +70}
+                />
+              }
 
-          ListFooterComponent={
-            loadingMore && hasNext ? (
-              <ActivityIndicator style={styles.loader} />
-            ) : (
-              <View style={{ height: 40 }} />
-            )
-          }
-          ListEmptyComponent={
-            !loading && posts.length === 0 ? (
-              <Text style={styles.emptyText}>
-                {authError 
-                  ? 'Session expired. Please login again.' 
-                  : 'No posts available'
-                }
-              </Text>
-            ) : null
-          }
-        />
-      </ScrollableScreenWrapper>
-    </View>
+            ListFooterComponent={
+              loadingMore && hasNext ? (
+                <ActivityIndicator style={styles.loader} />
+              ) : (
+                <View style={{ height: 40 }} />
+              )
+            }
+            ListEmptyComponent={
+              !loading && posts.length === 0 ? (
+                <Text style={styles.emptyText}>
+                  {authError 
+                    ? 'Session expired. Please login again.' 
+                    : 'No posts available'
+                  }
+                </Text>
+              ) : null
+            }
+          />
+        </ScrollableScreenWrapper>
+      </View>
+      
+      {/* Floating Action Button */}
+      <GlassView
+                    glassEffectStyle="regular"
+              style={styles.fab}
+              isInteractive>
+      <TouchableOpacity
+        onPress={() => {
+          router.push('/create-post');
+        }}
+      >
+        <MaterialIcons name="post-add" size={28} color="#000000" />
+      </TouchableOpacity>
+
+      </GlassView>
+    </>
   );
 };
 
@@ -300,6 +320,22 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 24,
     color: '#666',
+  },
+  fab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 100,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    zIndex: 9999,
   },
 });
 

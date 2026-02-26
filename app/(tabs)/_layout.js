@@ -59,12 +59,11 @@ export default function TabsLayout() {
           android: <Icon src={<VectorIcon family={Ionicons} name="compass" />} />,
         })}
       </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="create-post">
-        <Label>Ask</Label>
+      <NativeTabs.Trigger name="profile-screen">
+        <Label>Profile</Label>
         {Platform.select({
-          ios: <Icon sf={{ default: 'plus.circle', selected: 'plus.circle.fill' }} />,
-          android: <Icon src={<VectorIcon family={Ionicons} name="add-circle" />} />,
+          ios: <Icon sf={{ default: 'person', selected: 'person.fill' }} />,
+          android: <Icon src={<VectorIcon family={Ionicons} name="person" />} />,
         })}
       </NativeTabs.Trigger>
 
@@ -77,13 +76,14 @@ export default function TabsLayout() {
         })}
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="profile-screen">
-        <Label>Profile</Label>
+      <NativeTabs.Trigger name="volunteer-screen">
+        <Label>Volunteer</Label>
         {Platform.select({
-          ios: <Icon sf={{ default: 'person', selected: 'person.fill' }} />,
-          android: <Icon src={<VectorIcon family={Ionicons} name="person" />} />,
+          ios: <Icon sf={{ default: 'heart', selected: 'heart.fill' }} />,
+          android: <Icon src={<VectorIcon family={Ionicons} name="heart" />} />,
         })}
       </NativeTabs.Trigger>
+
     </NativeTabs>
   );
 }

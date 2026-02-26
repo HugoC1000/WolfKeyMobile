@@ -303,7 +303,6 @@ const styles = StyleSheet.create({
   buttonContainer: {
     flexDirection: 'row',
     gap: 12,
-    marginTop: 24,
     marginBottom: 32,
   },
   cancelButton: {

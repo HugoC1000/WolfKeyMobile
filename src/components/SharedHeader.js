@@ -32,7 +32,7 @@ const SharedHeader = ({ scrollY, isScrollingUp, title, isHome }) => {
   return (
     <>
       {/* Header Content */}
-      <Animated.View style={[styles.headerContent,  ]}>
+      <Animated.View style={[styles.headerContent]}>
         <GlassContainer style={styles.headerContentContainer}>
           <GlassView
             glassEffectStyle="regular"
@@ -40,13 +40,13 @@ const SharedHeader = ({ scrollY, isScrollingUp, title, isHome }) => {
             isInteractive
           >
             {isHome ? (
-              <Image
-                source={require('../../assets/light-icon.png')}
-                style={{ width: 40, height: 40, borderRadius: 12 }}
-              />
+                <Image
+                  source={require('../../assets/light-icon.png')}
+                  style={{ width: 40, height: 40, borderRadius: 12 }}
+                />
             ) : (
               <TouchableOpacity  style = {{borderRadius: 999}} onPress={() => navigation.goBack()}>
-                <Ionicons name="chevron-back" size={32} color="#000" style = {{borderRadius: 999}}/>
+                <Ionicons name="chevron-back" size={32} color="#000"/>
               </TouchableOpacity>
             )}
           </GlassView>
@@ -65,7 +65,6 @@ const SharedHeader = ({ scrollY, isScrollingUp, title, isHome }) => {
               isInteractive
             >
               <TouchableOpacity 
-                style={{borderRadius: 999}} 
                 onPress={() => router.push('/lunch-card')}
               >
                 <MaterialIcons name="credit-card" size={28} color="#000" />
@@ -107,18 +106,18 @@ const styles = StyleSheet.create({
     height: HEADER_HEIGHT,
   },
   leftContent: {
+    width: 46,
+    height: 46,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 999,
-    padding: 6,
-    overflow: 'hidden',
+    borderRadius: 24,
   },
   rightContent: {
+    width: 46,
+    height: 46,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 999,
-    padding: 6,
-    overflow: 'hidden',
+    borderRadius: 24,
     marginLeft: 'auto',
   },
   titleWrapper: {
@@ -133,7 +132,7 @@ const styles = StyleSheet.create({
     alignContent: 'center',
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 99,
+    borderRadius: 20,
     paddingVertical:  5,
     paddingHorizontal: 20,
   },
