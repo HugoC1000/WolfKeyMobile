@@ -137,13 +137,14 @@ const Schedule = () => {
   useEffect(() => {
     const loadInitialSchedules = async () => {
       setLoading(true);
-      await Promise.all([
-        fetchScheduleForOffset(currentDayOffset - 1),
-        fetchScheduleForOffset(currentDayOffset),
-        fetchScheduleForOffset(currentDayOffset + 1),
-      ]);
+      // Load current day first
+      await fetchScheduleForOffset(currentDayOffset);
       setLoading(false);
       initialLoadDone.current = true;
+      
+      // Preload adjacent days in background (don't wait for them)
+      fetchScheduleForOffset(currentDayOffset - 1);
+      fetchScheduleForOffset(currentDayOffset + 1);
     };
 
     loadInitialSchedules();

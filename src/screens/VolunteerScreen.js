@@ -91,6 +91,21 @@ const VolunteerScreen = () => {
     }
   };
 
+  const quickActionsData = [
+    {
+      id: 'log-hours',
+      title: 'Log Hours',
+      icon: 'edit',
+      url: 'https://docs.google.com/forms/d/e/1FAIpQLSf11H9-OXDOos2l5HM041oZO7mgHR4bo9ycJdFOfeRHMHCsHw/viewform',
+    },
+    {
+      id: 'request-pin',
+      title: 'Request a Pin',
+      icon: 'card-giftcard',
+      url: 'https://docs.google.com/forms/d/e/1FAIpQLSfdZwB-5wlC4_zwrGRRyBsUxx-Vw1XaOmJ9RfJ_UelwUDeDnQ/viewform?usp=sf_link',
+    },
+  ];
+
   const renderMilestone = (milestone, index) => {
     const isAchieved = milestone.achieved || false;
     const isInProgress = !isAchieved && nextPin?.id === milestone.id;
@@ -156,6 +171,21 @@ const VolunteerScreen = () => {
     );
   };
 
+  const renderQuickAction = (action) => {
+    return (
+      <TouchableOpacity
+        key={action.id}
+        style={styles.quickActionButton}
+        onPress={() => handleResourcePress(action.url)}
+      >
+        <View style={styles.quickActionIconContainer}>
+          <MaterialIcons name={action.icon} size={24} color={COLORS.white} />
+        </View>
+        <Text style={styles.quickActionText}>{action.title}</Text>
+      </TouchableOpacity>
+    );
+  };
+
   // Calculate progress to next pin
   const getProgressToNextPin = () => {
     if (!currentPin || !nextPin) return null;
@@ -217,6 +247,11 @@ const VolunteerScreen = () => {
                 <MaterialIcons name="emoji-events" size={32} color="#FFD700" />
               </View>
             </View>
+          </View>
+
+          {/* Quick Actions Section */}
+          <View style={styles.quickActionsContainer}>
+            {quickActionsData.map(renderQuickAction)}
           </View>
 
           
@@ -340,6 +375,32 @@ const styles = StyleSheet.create({
     right: 12,
     top: 12,
     opacity: 0.4,
+  },
+  quickActionsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
+  },
+  quickActionButton: {
+    flex: 1,
+    backgroundColor: COLORS.primary,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...SHADOWS.small,
+  },
+  quickActionIconContainer: {
+    marginBottom: 8,
+  },
+  quickActionText: {
+    fontSize: FONTS.sizes.small,
+    fontWeight: '600',
+    color: COLORS.white,
+    fontFamily: FONTS.fontFamily,
+    textAlign: 'center',
   },
   progressCard: {
     backgroundColor: COLORS.white,

@@ -85,7 +85,7 @@ const ExploreScreen = () => {
           ListHeaderComponent={ListHeader}
           contentContainerStyle={{ ...styles.container, flexGrow: 1 }}
           onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.5}
+          onEndReachedThreshold={0.1}
           onMomentumScrollBegin={() => {
             onEndReachedCalledDuringMomentum.current = false;
           }}

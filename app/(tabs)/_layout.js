@@ -3,7 +3,6 @@ import { Platform } from 'react-native';
 import { NativeTabs, Icon, Label, Badge, VectorIcon } from 'expo-router/unstable-native-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../src/utils/constants';
-import { getUnreadCount } from '../../src/api/notificationService';
 import badgeManager from '../../src/utils/badgeManager';
 
 export default function TabsLayout() {
@@ -12,31 +11,18 @@ export default function TabsLayout() {
   const isIOS = Platform.OS === 'ios';
 
   useEffect(() => {
-    // Subscribe to badge manager updates
+    // Initialize badge manager which handles the initial sync and polling
+    badgeManager.initialize();
+    
+    // Subscribe to badge manager updates for UI
     const unsubscribe = badgeManager.subscribe((count) => {
       setUnreadCount(count);
     });
 
-    // Initial fetch
-    fetchUnreadCount();
-
-    // Poll for updates every 30 seconds (backup)
-    const interval = setInterval(fetchUnreadCount, 30000);
-
     return () => {
       unsubscribe();
-      clearInterval(interval);
     };
   }, []);
-
-  const fetchUnreadCount = async () => {
-    try {
-      const count = await getUnreadCount();
-      setUnreadCount(count);
-    } catch (error) {
-      console.error('Error fetching unread count:', error);
-    }
-  };
   return (
     <NativeTabs
       tintColor={COLORS.primary}

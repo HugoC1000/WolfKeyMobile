@@ -69,9 +69,6 @@ const HomeScreen = () => {
     try {
       // Check if user is authenticated before making request
       const token = await getAuthToken();
-      // console.log('HOME SCREEN: Fetching posts for page:', pageNum);
-      // console.log('HOME SCREEN: Auth token present:', !!token);
-      // console.log('HOME SCREEN: User ID:', user?.id);
       
       if (!token) {
         console.error('HOME SCREEN: No auth token found, cannot fetch posts');
@@ -185,7 +182,7 @@ const HomeScreen = () => {
               ListHeaderComponent={ListHeader}
               contentContainerStyle={{ ...styles.container, flexGrow: 1 }}
               onEndReached={handleLoadMore}
-              onEndReachedThreshold={0.5}
+              onEndReachedThreshold={0.1}
               onMomentumScrollBegin={() => {
                 onEndReachedCalledDuringMomentum.current = false;
               }}
