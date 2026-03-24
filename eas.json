@@ -20,5 +20,11 @@
         "image": "latest"
       }
     }
+  },
+  "submit": {
+    "production": {
+      "ios": {},
+      "android": {}
+    }
   }
 }
