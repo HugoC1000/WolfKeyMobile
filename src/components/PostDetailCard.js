@@ -5,16 +5,29 @@ import { globalStyles } from '../utils/styles';
 import BackgroundSvg from '../components/BackgroundSVG';
 import { formatDateTime } from '../utils/timeUtils';
 import { getFullImageUrl } from '../api/config';
+import PollCard from './PollCard';
 
 
 
-const PostDetailCard = ({ post, isReference }) => {
+const PostDetailCard = ({
+  post,
+  isReference,
+  showPollWhenReference = false,
+  pollIsVotable = true,
+}) => {
+  const detailPollData = post?.poll_data || {
+    poll_options: post?.poll_options,
+    poll_info: post?.poll_info,
+    user_vote: post?.user_vote,
+  };
+  const hasPollData = Array.isArray(detailPollData?.poll_options) && detailPollData.poll_options.length > 0;
+
   return (
     <View style={[styles.postCard, isReference && styles.referenceCard]}>
       {!isReference && (
         <View style={styles.header}>
           <View style={styles.authorInfo}>
-            {post.author.userprofile.profile_picture ? (
+            {post?.author?.userprofile?.profile_picture ? (
               <Image 
                 source={{ uri: getFullImageUrl(post.author.userprofile.profile_picture) }}
                 style={styles.profilePic}
@@ -32,6 +45,13 @@ const PostDetailCard = ({ post, isReference }) => {
       <Text style={[styles.title, isReference && styles.referenceTitle]}>
         {post.title}
       </Text>
+      {hasPollData && (!isReference || showPollWhenReference) && (
+        <PollCard
+          postId={post.id}
+          pollData={detailPollData}
+          isVotable={pollIsVotable}
+        />
+      )}
       <EditorJsRenderer blocks={post.content?.blocks} />
     </View>
   );

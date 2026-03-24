@@ -83,3 +83,25 @@ export const getPostShareInfo = async (postId) => {
     throw error;
   }
 };
+
+export const voteOnPoll = async (postId, selectedOptionIds = []) => {
+  const payload = { selected_option_ids: selectedOptionIds };
+
+  try {
+    const response = await api.post(`posts/${postId}/vote/`, payload);
+    return response.data;
+  } catch (error) {
+    console.error('Error voting on poll:', error);
+    throw error;
+  }
+};
+
+export const removePollVote = async (postId) => {
+  try {
+    const response = await api.post(`posts/${postId}/remove-vote/`);
+    return response.data;
+  } catch (error) {
+    console.error('Error removing poll vote:', error);
+    throw error;
+  }
+};

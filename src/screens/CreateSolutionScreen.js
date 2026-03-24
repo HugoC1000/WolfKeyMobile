@@ -77,7 +77,14 @@ const CreateSolutionScreen = () => {
         </View>
       ) : (
         <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-          {post && <PostDetailCard post={post} isReference={true} />}
+          {post && (
+            <PostDetailCard
+              post={post}
+              isReference={true}
+              showPollWhenReference={true}
+              pollIsVotable={false}
+            />
+          )}
         <Text style={styles.sectionTitle}>Your Solution</Text>
         <EditorComponent 
           onSave={setSolution}

@@ -6,6 +6,7 @@ import { useUser } from '../context/userContext';
 import { likePost, unlikePost, followPost, unfollowPost } from '../api/postService';
 import { getFullImageUrl } from '../api/config';
 import { formatDateTime } from '../utils/timeUtils';
+import PollCard from './PollCard';
 
 
 const PostCard = ({ post }) => {
@@ -93,7 +94,7 @@ const PostCard = ({ post }) => {
         {/* Author and Date Section */}
         <View style={styles.header}>
           <View style={styles.authorInfo}>
-            {post.author.userprofile.profile_picture ? (
+            {post?.author?.userprofile?.profile_picture ? (
               <Image 
                 source={{ uri: getFullImageUrl(post.author.userprofile.profile_picture) }}
                 style={styles.profilePic}
@@ -112,6 +113,13 @@ const PostCard = ({ post }) => {
               </View>
               <Text style={styles.title}>{post.title}</Text>
               {post.preview_text ? <Text style={styles.text}>{post.preview_text}</Text> : null}
+
+              {post.poll_data && (
+                <PollCard
+                  postId={post.id}
+                  pollData={post.poll_data}
+                />
+              )}
             </View>
           </View>
         </View>
