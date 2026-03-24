@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, Text, ScrollView, TextInput, Pressable } from 'react-native';
 import { Switch } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import EditorComponent from '../components/EditorComponent';
 import api from '../api/config';
 import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';
 import CourseSelector from '../components/CourseSelector';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import Course from '../models/Course';
 
 const CreatePostScreen = () => {
+  const params = useLocalSearchParams();
+  const postType = params?.type || 'standard'; // 'standard' or 'poll'
+  
   const [title, setTitle] = useState('');
   const [content, setContent] = useState(null);
   const [selectedCourses, setSelectedCourses] = useState([]);
@@ -20,6 +24,11 @@ const CreatePostScreen = () => {
   const [allowTeacher, setAllowTeacher] = useState(true);
   const [editorKey, setEditorKey] = useState(Date.now());
   const [isCourseBottomSheetVisible, setIsCourseBottomSheetVisible] = useState(false);
+  
+  // Poll-specific state
+  const [pollOptions, setPollOptions] = useState(['', '']);
+  const [allowMultiple, setAllowMultiple] = useState(false);
+  const [isPublicVoting, setIsPublicVoting] = useState(true);
 
   // Reset form when screen comes into focus
   useFocusEffect(
@@ -35,33 +44,76 @@ const CreatePostScreen = () => {
         setError(null);
         setEditorKey(Date.now()); // Force editor remount
         setIsCourseBottomSheetVisible(false);
+        setPollOptions(['', '']);
+        setAllowMultiple(false);
+        setIsPublicVoting(true);
       };
     }, [])
   );
 
+  const handleAddOption = () => {
+    setPollOptions([...pollOptions, '']);
+  };
+
+  const handleRemoveOption = (index) => {
+    if (pollOptions.length > 2) {
+      setPollOptions(pollOptions.filter((_, i) => i !== index));
+    }
+  };
+
+  const handleUpdateOption = (index, text) => {
+    const newOptions = [...pollOptions];
+    newOptions[index] = text;
+    setPollOptions(newOptions);
+  };
+
   const handleSubmit = async () => {
     if (!content || !title) return;
+    const isPoll = postType === 'poll';
+    let nonEmptyOptions = [];
+    
+    // Validate poll options if it's a poll
+    if (isPoll) {
+      nonEmptyOptions = pollOptions.filter(opt => opt.trim().length > 0);
+      if (nonEmptyOptions.length < 2) {
+        setError('Please provide at least 2 poll options');
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     setError(null);
 
     try {
-      const formData = new FormData();
+      const requestPayload = {
+        title,
+        is_anonymous: isAnonymous,
+        allow_teacher: allowTeacher,
+        courses: selectedCourses.map((course) => course.id),
+        content: JSON.stringify(content),
+      };
 
-      formData.append('title', title);
-      formData.append('is_anonymous', isAnonymous ? 'true' : 'false');
-      formData.append('allow_teacher', allowTeacher ? 'true' : 'false');
-      
-      selectedCourses.forEach(course => {
-        formData.append('courses', course.id);
-      });
+      if (isPoll) {
+        requestPayload.poll_data = {
+          isPoll: true,
+          question: title,
+          answers: nonEmptyOptions,
+          allowMultiple,
+          isPublicVoting,
+        };
 
-      formData.append('content', JSON.stringify(content));
+        console.log('[POLL CREATE] Request JSON:', JSON.stringify(requestPayload, null, 2));
+      }
 
-      const response = await api.post('/posts/create/', formData, {
+      const response = await api.post('/posts/create/', requestPayload, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          'Content-Type': 'application/json',
         },
       });
+
+      if (isPoll) {
+        console.log('[POLL CREATE] Response JSON:', JSON.stringify(response.data, null, 2));
+      }
 
       if (response.status === 201) {
         // Clear all form fields
@@ -73,6 +125,9 @@ const CreatePostScreen = () => {
         setAllowTeacher(true);
         setError(null);
         setIsCourseBottomSheetVisible(false);
+        setPollOptions(['', '']);
+        setAllowMultiple(false);
+        setIsPublicVoting(true);
         
         // Force editor to remount with fresh state
         setEditorKey(Date.now());
@@ -84,6 +139,9 @@ const CreatePostScreen = () => {
       }
     } catch (error) {
       console.error('Error creating post:', error);
+      if (isPoll && error.response?.data) {
+        console.log('[POLL CREATE] Error Response JSON:', JSON.stringify(error.response.data, null, 2));
+      }
       setError(error.response?.data?.error || 'Failed to create post');
     } finally {
       setIsSubmitting(false);
@@ -92,12 +150,12 @@ const CreatePostScreen = () => {
 
   return (
     <View style={styles.screenContainer}>
-      <ScrollableScreenWrapper title="Ask a Question">
+      <ScrollableScreenWrapper title={postType === 'poll' ? 'Create a Poll' : 'Ask a Question'}>
         <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
           
           <TextInput
             style={styles.titleInput}
-            placeholder="What's your question? Be specific."
+            placeholder={postType === 'poll' ? "What's your poll question?" : "What's your question? Be specific."}
             value={title}
             onChangeText={setTitle}
           />
@@ -105,8 +163,67 @@ const CreatePostScreen = () => {
           <EditorComponent 
             key={editorKey}
             onSave={setContent}
-            placeholder="Provide more details about your question..."
+            placeholder={postType === 'poll' ? "Provide more details about your poll..." : "Provide more details about your question..."}
           />
+
+          {/* Poll Options Section */}
+          {postType === 'poll' && (
+            <View style={styles.pollSection}>
+              <Text style={styles.pollSectionTitle}>Options</Text>
+              
+              {pollOptions.map((option, index) => (
+                <View key={index} style={styles.optionInputContainer}>
+                  <TextInput
+                    style={styles.optionInput}
+                    placeholder="Type your option"
+                    value={option}
+                    onChangeText={(text) => handleUpdateOption(index, text)}
+                  />
+                  {pollOptions.length > 2 && (
+                    <TouchableOpacity
+                      onPress={() => handleRemoveOption(index)}
+                      style={styles.deleteButton}
+                    >
+                      <MaterialIcons name="delete-outline" size={20} color="#DC2626" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              ))}
+              
+              <TouchableOpacity
+                style={styles.addOptionButton}
+                onPress={handleAddOption}
+              >
+                <MaterialIcons name="add" size={20} color="#2563EB" />
+                <Text style={styles.addOptionButtonText}>Add another option</Text>
+              </TouchableOpacity>
+
+              {/* Poll Settings */}
+              <View style={styles.pollSettingsContainer}>
+                <View style={styles.anonRow}>
+                  <Switch
+                    value={allowMultiple}
+                    onValueChange={setAllowMultiple}
+                    trackColor={{ false: '#6B7280', true: '#9ba0e2ff' }}
+                    thumbColor={allowMultiple ? '#2563EB' : '#f4f3f4'}
+                    style={styles.switch}
+                  />
+                  <Text style={styles.anonLabel}>Allow Multiple Options</Text>
+                </View>
+
+                <View style={styles.anonRow}>
+                  <Switch
+                    value={isPublicVoting}
+                    onValueChange={setIsPublicVoting}
+                    trackColor={{ false: '#6B7280', true: '#9ba0e2ff' }}
+                    thumbColor={isPublicVoting ? '#2563EB' : '#f4f3f4'}
+                    style={styles.switch}
+                  />
+                  <Text style={styles.anonLabel}>Public Voting (show voter profiles)</Text>
+                </View>
+              </View>
+            </View>
+          )}
 
           {/* Course Selection Button */}
           <TouchableOpacity 
@@ -174,7 +291,7 @@ const CreatePostScreen = () => {
           disabled={isSubmitting || !content || !title}
         >
           <Text style={styles.submitButtonText}>
-            {isSubmitting ? 'Posting...' : 'Post Question'}
+            {isSubmitting ? (postType === 'poll' ? 'Creating Poll...' : 'Posting...') : (postType === 'poll' ? 'Create Poll' : 'Post Question')}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -296,6 +413,64 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 8,
     fontSize: 14,
+  },
+  // Poll-specific styles
+  pollSection: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 16,
+    marginVertical: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  pollSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 12,
+  },
+  optionInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+    gap: 8,
+  },
+  optionInput: {
+    flex: 1,
+    backgroundColor: 'white',
+    padding: 12,
+    borderRadius: 8,
+    fontSize: 14,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  deleteButton: {
+    padding: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addOptionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    marginTop: 8,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: '#2563EB',
+    borderRadius: 8,
+    gap: 6,
+  },
+  addOptionButtonText: {
+    color: '#2563EB',
+    fontWeight: '500',
+    fontSize: 14,
+  },
+  pollSettingsContainer: {
+    marginTop: 16,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
   },
 });
 

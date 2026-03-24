@@ -3,12 +3,8 @@ import {
   View,
   Text,
   Animated,
-  FlatList,
   StyleSheet,
-  Image,
-  StatusBar,
   ActivityIndicator,
-  Platform,
   RefreshControl,
   AppState,
   TouchableOpacity,
@@ -19,12 +15,11 @@ import Schedule from '../components/ScheduleCard';
 import PostCard from '../components/PostCard';
 import api from '../api/config';
 import { getAuthToken, removeAuthToken } from '../api/config';
-import BackgroundSvg from '../components/BackgroundSVG';
 import { useUser } from '../context/userContext';
 import { useAuth } from '../context/authContext';
 import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';
-import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
 import { transformPostsArray } from '../api/postService';
+import { GlassContainer, GlassView } from 'expo-glass-effect';
 
 
 const HEADER_HEIGHT = 45; // Height of the header
@@ -39,10 +34,45 @@ const HomeScreen = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [authError, setAuthError] = useState(false);
+  const [fabState, setFabState] = useState({ open: false });
   const { user } = useUser();
   const { logout } = useAuth();
   const onEndReachedCalledDuringMomentum = useRef(false);
   const appStateRef = useRef(AppState.currentState);
+  const fabRotation = useRef(new Animated.Value(0)).current;
+
+  const setFabOpen = useCallback((open) => {
+    setFabState({ open });
+    Animated.timing(fabRotation, {
+      toValue: open ? 1 : 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  }, [fabRotation]);
+
+  const fabIconRotate = fabRotation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '45deg'],
+  });
+
+  const fabActions = [
+    {
+      icon: 'help',
+      label: 'Create Post',
+      onPress: () => {
+        setFabOpen(false);
+        router.push('/create-post?type=standard');
+      },
+    },
+    {
+      icon: 'poll',
+      label: 'Create Poll',
+      onPress: () => {
+        setFabOpen(false);
+        router.push('/create-post?type=poll');
+      },
+    },
+  ];
 
   // Handle token expiration and authentication errors
   const handleAuthError = useCallback(async () => {
@@ -118,9 +148,24 @@ const HomeScreen = () => {
     fetchPosts(1);
   }, [user?.id]);
 
+  const handleAppStateChange = useCallback((nextAppState) => {
+    if (
+      nextAppState === 'active' &&
+      appStateRef.current !== 'active' &&
+      user &&
+      !loading &&
+      !loadingMore &&
+      !refreshing &&
+      !authError
+    ) {
+      fetchPosts(1, true);
+    }
+    appStateRef.current = nextAppState;
+  }, [user, fetchPosts, loading, loadingMore, refreshing, authError]);
+
   useEffect(() => {
     const subscription = AppState.addEventListener('change', handleAppStateChange);
-    
+
     return () => {
       subscription?.remove();
     };
@@ -137,39 +182,16 @@ const HomeScreen = () => {
     fetchPosts(1, true);
   };
 
-  const handleAppStateChange = useCallback((nextAppState) => {
-    
-    if (
-      nextAppState === 'active' &&
-      appStateRef.current !== 'active' &&
-      user &&
-      !loading &&
-      !loadingMore &&
-      !refreshing &&
-      !authError
-    ) {
-      fetchPosts(1, true);
-    }
-    appStateRef.current = nextAppState;
-  }, [user, fetchPosts, loading, loadingMore, refreshing, authError]);
-
   const ListHeader = useCallback(() => {
-    const glassAvailable = isLiquidGlassAvailable();
-    
-    console.log('Glass Effect - Available:', glassAvailable);
-    
     return (
       <View>
         <View style={styles.headerSpacer} />
-        <View style={styles.greetingContainer}>
-          
-        </View>
         <View style={styles.scheduleContainer}>
           <Schedule key={user?.id} />
         </View>
       </View>
     );
-  }, [user?.first_name, user?.id]);
+  }, [user?.id]);
 
   return (
     <>
@@ -218,20 +240,48 @@ const HomeScreen = () => {
         </ScrollableScreenWrapper>
       </View>
       
-      {/* Floating Action Button */}
-      <GlassView
-                    glassEffectStyle="regular"
-              style={styles.fab}
-              isInteractive>
-      <TouchableOpacity
-        onPress={() => {
-          router.push('/create-post');
-        }}
-      >
-        <MaterialIcons name="post-add" size={28} color="#000000" />
-      </TouchableOpacity>
+      {/* FAB Group with Glass Effect Container */}
+      {fabState.open && (
+        <TouchableOpacity
+          style={styles.fabBackdrop}
+          onPress={() => setFabOpen(false)}
+        />
+      )}
 
-      </GlassView>
+      {fabState.open && (
+        <View style={styles.fabActionsStack}>
+          {fabActions.map((action, index) => (
+            <GlassContainer key={index} spacing={32} style={styles.fabActionPill}>
+              <GlassView style={styles.fabActionPillGlass} glassEffectStyle="regular" isInteractive>
+                <TouchableOpacity
+                  style={styles.fabAction}
+                  onPress={action.onPress}
+                >
+                  <MaterialIcons name={action.icon} size={20} />
+                  <Text style={styles.fabActionLabel}>{action.label}</Text>
+                </TouchableOpacity>
+              </GlassView>
+            </GlassContainer>
+          ))}
+        </View>
+      )}
+
+      <GlassContainer spacing={32} style={styles.fabButtonContainer}>
+        <GlassView style={styles.fabButtonGlass} glassEffectStyle="regular" isInteractive>
+          <TouchableOpacity
+            style={styles.fabButton}
+            onPress={() => setFabOpen(!fabState.open)}
+          >
+            <Animated.View style={{ transform: [{ rotate: fabIconRotate }] }}>
+              <MaterialIcons
+                name="add"
+                size={28}
+                color="#000000"
+              />
+            </Animated.View>
+          </TouchableOpacity>
+        </GlassView>
+      </GlassContainer>
     </>
   );
 };
@@ -245,67 +295,8 @@ const styles = StyleSheet.create({
     paddingTop: HEADER_HEIGHT,
     paddingHorizontal: 16,
   },
-  header: {
-    height: HEADER_HEIGHT,
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    elevation: 5,
-    backgroundColor: "transparent"
-  },
-  headerWrapper: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    zIndex: 1000, 
-  },
   headerSpacer: {
     height: HEADER_HEIGHT,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    marginLeft: 10,
-  },
-  greetingContainer: {
-    marginBottom: 8,
-  },
-  greeting: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-  glassCard: {
-    padding: 16,
-    borderRadius: 24,
-    margin: 16,
-    minHeight: 80,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  glassText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
-  },
-  fallbackCard: {
-    padding: 16,
-    borderRadius: 24,
-    margin: 16,
-    backgroundColor: 'rgba(10, 132, 255, 0.1)',
-    minHeight: 80,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(10, 132, 255, 0.2)',
-  },
-  fallbackText: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-  },
-    marginTop: 10,
   },
   scheduleContainer: {
     marginBottom: 16,
@@ -318,21 +309,73 @@ const styles = StyleSheet.create({
     marginTop: 24,
     color: '#666',
   },
-  fab: {
+  fabBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 9998,
+  },
+  fabButtonContainer: {
     position: 'absolute',
     right: 20,
     bottom: 100,
     width: 56,
     height: 56,
     borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
     elevation: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     zIndex: 9999,
+  },
+  fabActionsStack: {
+    position: 'absolute',
+    right: 20,
+    bottom: 170,
+    alignItems: 'flex-end',
+    zIndex: 9999,
+  },
+  fabActionPill: {
+    borderRadius: 999,
+    marginBottom: 8,
+    alignSelf: 'flex-end',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    zIndex: 9999,
+  },
+  fabActionPillGlass: {
+    borderRadius: 999,
+    alignSelf: 'flex-end',
+  },
+  fabAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    gap: 8,
+  },
+  fabButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 999,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fabButtonGlass: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+  },
+  fabActionLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1F2937',
   },
 });
 

@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
+import { Alert, Animated, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { removePollVote, voteOnPoll } from '../api/postService';
 import { getFullImageUrl } from '../api/config';
@@ -52,11 +52,42 @@ const PollCard = ({ postId, pollData, style, isVotable = true }) => {
   const [draftSelectedIds, setDraftSelectedIds] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [isResultsModalVisible, setIsResultsModalVisible] = useState(false);
+  const animatedValues = useRef({});
+  const shouldAnimateNextResults = useRef(false);
 
   useEffect(() => {
     const nextPayload = getPollPayload(pollData);
     setPayload(nextPayload);
   }, [pollData]);
+
+  // Keep animated values in sync with payload; animate only when a new vote is submitted.
+  useEffect(() => {
+    const nextOptions = Array.isArray(payload?.poll_options) ? payload.poll_options : [];
+
+    nextOptions.forEach((option) => {
+      const optionId = toNumber(option.id);
+      if (optionId) {
+        const percentage = toNumber(option.percentage, 0);
+
+        if (!animatedValues.current[optionId]) {
+          animatedValues.current[optionId] = new Animated.Value(0);
+        }
+
+        if (shouldAnimateNextResults.current) {
+          animatedValues.current[optionId].setValue(0);
+          Animated.timing(animatedValues.current[optionId], {
+            toValue: percentage,
+            duration: 650,
+            useNativeDriver: false,
+          }).start();
+        } else {
+          animatedValues.current[optionId].setValue(percentage);
+        }
+      }
+    });
+
+    shouldAnimateNextResults.current = false;
+  }, [payload]);
 
   const options = useMemo(
     () => (Array.isArray(payload?.poll_options) ? payload.poll_options : []),
@@ -82,14 +113,16 @@ const PollCard = ({ postId, pollData, style, isVotable = true }) => {
 
   const totalVotes = toNumber(pollInfo.total_votes, 0);
 
-  const applyResponsePayload = (responseData, fallbackSelection) => {
+  const applyResponsePayload = (responseData, fallbackSelection, config = {}) => {
     const normalized = getPollPayload(responseData);
+    const { animateBars = false } = config;
 
     if (!normalized) {
       setDraftSelectedIds(fallbackSelection || []);
       return;
     }
 
+    shouldAnimateNextResults.current = animateBars;
     setPayload(normalized);
   };
 
@@ -99,7 +132,7 @@ const PollCard = ({ postId, pollData, style, isVotable = true }) => {
     setSubmitting(true);
     try {
       const data = await voteOnPoll(postId, nextSelection);
-      applyResponsePayload(data, nextSelection);
+      applyResponsePayload(data, nextSelection, { animateBars: true });
     } catch (error) {
       console.error('Error submitting poll vote:', error);
       Alert.alert('Error', 'Failed to submit your vote. Please try again.');
@@ -108,7 +141,7 @@ const PollCard = ({ postId, pollData, style, isVotable = true }) => {
     }
   };
 
-  const handleSelectOption = async (optionId) => {
+  const handleSelectOption = (optionId) => {
     const normalizedId = toNumber(optionId);
     if (!normalizedId) return;
 
@@ -124,21 +157,16 @@ const PollCard = ({ postId, pollData, style, isVotable = true }) => {
     const allowMultiple = !!pollInfo.allow_multiple_choice;
     const currentlySelected = activeSelectedIds.includes(normalizedId);
 
-    let nextSelection = [];
-
     if (allowMultiple) {
-      nextSelection = currentlySelected
+      const nextSelection = currentlySelected
         ? activeSelectedIds.filter((id) => id !== normalizedId)
         : [...activeSelectedIds, normalizedId];
 
       setDraftSelectedIds(nextSelection);
       return;
-    } else {
-      nextSelection = [normalizedId];
-
-      setDraftSelectedIds(nextSelection);
-      return;
     }
+
+    setDraftSelectedIds([normalizedId]);
   };
 
   const handleVotePress = async () => {
@@ -152,7 +180,7 @@ const PollCard = ({ postId, pollData, style, isVotable = true }) => {
     setSubmitting(true);
     try {
       const data = await removePollVote(postId);
-      applyResponsePayload(data, []);
+      applyResponsePayload(data, [], { animateBars: false });
     } catch (error) {
       console.error('Error removing poll vote:', error);
       Alert.alert('Error', 'Failed to remove your vote. Please try again.');
@@ -192,6 +220,15 @@ const PollCard = ({ postId, pollData, style, isVotable = true }) => {
           ? option.recent_voters.slice(0, 3)
           : [];
 
+        if (!animatedValues.current[optionId]) {
+          animatedValues.current[optionId] = new Animated.Value(0);
+        }
+
+        const animatedWidth = animatedValues.current[optionId].interpolate({
+          inputRange: [0, 100],
+          outputRange: ['0%', '100%'],
+        });
+
         return (
           <TouchableOpacity
             key={optionId || `${option.text}`}
@@ -205,7 +242,14 @@ const PollCard = ({ postId, pollData, style, isVotable = true }) => {
           >
             {shouldShowResults && (
               <View style={styles.optionFillWrap}>
-                <View style={[styles.optionFill, { width: `${percentage}%` }]} />
+                <Animated.View
+                  style={[
+                    styles.optionFill,
+                    {
+                      width: animatedWidth,
+                    },
+                  ]}
+                />
               </View>
             )}
 
