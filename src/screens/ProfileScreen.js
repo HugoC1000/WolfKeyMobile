@@ -3,7 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
+  ScrollView,
   Alert,
   ActivityIndicator,
   RefreshControl,
@@ -13,17 +13,12 @@ import { useUser } from '../context/userContext';
 import BackgroundSvg from '../components/BackgroundSVG';
 import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';
 import ProfileCard from '../components/ProfileCard';
-import PostCard from '../components/PostCard';
 import * as ImagePicker from 'expo-image-picker';
-import api from '../api/config';
-import { transformPostsArray } from '../api/postService';
 import {
   getCurrentProfile,
   getProfileByUsername,
   uploadProfilePicture,
 } from '../api/profileService';
-
-const PAGE_SIZE = 10;
 
 const ProfileScreen = () => {
   const { user } = useUser();
@@ -34,11 +29,6 @@ const ProfileScreen = () => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [posts, setPosts] = useState([]);
-  const [page, setPage] = useState(1);
-  const [hasNext, setHasNext] = useState(true);
-  const [loadingPosts, setLoadingPosts] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
 
   const fetchProfile = async () => {
     try {
@@ -50,43 +40,12 @@ const ProfileScreen = () => {
       }
 
       setProfile(profileData);
-      await fetchProfilePosts(1, true, profileData);
     } catch (error) {
       console.error('Error fetching profile:', error);
       Alert.alert('Error', 'Failed to load profile');
     } finally {
       setLoading(false);
       setRefreshing(false);
-    }
-  };
-
-  const fetchProfilePosts = async (pageNum = 1, reset = false, profileData = profile) => {
-    if (!profileData) return;
-    if (pageNum > 1 && (!hasNext || loadingMore)) return;
-
-    if (reset) {
-      setLoadingPosts(true);
-    } else {
-      setLoadingMore(true);
-    }
-
-    try {
-      const res = await api.get(`all-posts/?page=${pageNum}&limit=${PAGE_SIZE}`);
-      const transformedPosts = transformPostsArray(res.data.posts || []);
-      const filtered = transformedPosts.filter((post) => {
-        const authorId = post?.author?.id;
-        const authorUsername = post?.author?.username;
-        return authorId === profileData.id || authorUsername === profileData.username;
-      });
-
-      setPosts((prev) => (reset || pageNum === 1 ? filtered : [...prev, ...filtered]));
-      setHasNext(Boolean(res.data.has_next));
-      setPage(pageNum);
-    } catch (error) {
-      console.error('Error fetching profile posts:', error);
-    } finally {
-      setLoadingPosts(false);
-      setLoadingMore(false);
     }
   };
 
@@ -97,12 +56,6 @@ const ProfileScreen = () => {
   const onRefresh = () => {
     setRefreshing(true);
     fetchProfile();
-  };
-
-  const handleLoadMore = () => {
-    if (!loadingMore && hasNext) {
-      fetchProfilePosts(page + 1, false);
-    }
   };
 
   const handleImagePress = async () => {
@@ -213,43 +166,26 @@ const ProfileScreen = () => {
         onSettingsPress={isCurrentUser ? handleSettingsPress : undefined}
         showSettings={isCurrentUser}
       >
-        <FlatList
-          data={posts}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => <PostCard post={item} />}
+        <ScrollView
           style={styles.content}
-          ListHeaderComponent={
-            <>
-              <ProfileCard
-                profile={profile}
-                isCurrentUser={isCurrentUser}
-                onEditPress={handleEditPress}
-                onCompareSchedules={handleCompareSchedules}
-                onImagePress={handleImagePress}
-              />
-
-              <View style={styles.contentPanel}>
-                <Text style={styles.postsTitle}>Posts</Text>
-              </View>
-            </>
-          }
-          ListEmptyComponent={
-            !loadingPosts ? (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.placeholderText}>No posts yet.</Text>
-              </View>
-            ) : null
-          }
-          ListFooterComponent={
-            loadingMore ? <ActivityIndicator style={styles.footerLoader} color="#2563eb" /> : <View style={{ height: 40 }} />
-          }
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.2}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
           showsVerticalScrollIndicator={false}
-        />
+        >
+          <ProfileCard
+            profile={profile}
+            isCurrentUser={isCurrentUser}
+            onEditPress={handleEditPress}
+            onCompareSchedules={handleCompareSchedules}
+            onImagePress={handleImagePress}
+          />
+
+          <View style={styles.contentPanel}>
+            <Text style={styles.postsTitle}>Posts</Text>
+            <Text style={styles.placeholderText}>No posts yet.</Text>
+          </View>
+        </ScrollView>
       </ScrollableScreenWrapper>
     </View>
   );
@@ -266,21 +202,10 @@ const styles = StyleSheet.create({
   contentPanel: {
     marginHorizontal: 16,
     marginTop: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 14,
-    backgroundColor: 'rgba(248, 250, 252, 0.96)',
-  },
-  emptyContainer: {
-    marginHorizontal: 16,
-    marginTop: 12,
     padding: 16,
     borderRadius: 14,
     backgroundColor: 'rgba(248, 250, 252, 0.96)',
     minHeight: 92,
-  },
-  footerLoader: {
-    marginVertical: 16,
   },
   postsTitle: {
     color: '#111827',
