@@ -10,7 +10,7 @@ const STATUS_BAR_HEIGHT = Platform.OS === 'ios'
   ? (Device.modelName === 'iPhone SE' ? 0 : 44)
   : StatusBar.currentHeight || 0;
 
-const ScrollableScreenWrapper = ({ children, title, isHome, backgroundHue }) => {
+const ScrollableScreenWrapper = ({ children, title, isHome, backgroundHue, onSettingsPress, showSettings }) => {
   const { user } = useUser();
   const scrollY = useRef(new Animated.Value(0)).current;
   const [isScrollingUp, setIsScrollingUp] = useState(true);
@@ -52,6 +52,8 @@ const ScrollableScreenWrapper = ({ children, title, isHome, backgroundHue }) => 
           isScrollingUp={isScrollingUp} 
           title={title}
           isHome = {isHome}
+          onSettingsPress={onSettingsPress}
+          showSettings={showSettings}
         />
         {React.cloneElement(children, {
           onScroll: combinedScrollHandler,

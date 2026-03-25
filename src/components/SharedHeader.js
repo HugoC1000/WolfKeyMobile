@@ -25,7 +25,7 @@ const STATUS_BAR_HEIGHT =
 
 const TOTAL_HEADER_HEIGHT = HEADER_HEIGHT + STATUS_BAR_HEIGHT;
 
-const SharedHeader = ({ scrollY, isScrollingUp, title, isHome }) => {
+const SharedHeader = ({ scrollY, isScrollingUp, title, isHome, onSettingsPress, showSettings }) => {
   const navigation = useNavigation();
   const router = useRouter();
 
@@ -68,6 +68,19 @@ const SharedHeader = ({ scrollY, isScrollingUp, title, isHome }) => {
                 onPress={() => router.push('/lunch-card')}
               >
                 <MaterialIcons name="credit-card" size={28} color="#000" />
+              </TouchableOpacity>
+            </GlassView>
+          )}
+          {showSettings && (
+            <GlassView
+              glassEffectStyle="regular"
+              style={styles.rightContent}
+              isInteractive
+            >
+              <TouchableOpacity 
+                onPress={onSettingsPress}
+              >
+                <MaterialIcons name="settings" size={28} color="#000" />
               </TouchableOpacity>
             </GlassView>
           )}
