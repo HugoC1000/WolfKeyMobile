@@ -187,8 +187,8 @@ const ProfileScreen = () => {
       <BackgroundSvg hue={user?.userprofile?.background_hue} />
       <ScrollableScreenWrapper
         title={isCurrentUser ? 'My Profile' : `${profile?.user?.username}'s Profile`}
-        onSettingsPress={isCurrentUser ? handleSettingsPress : undefined}
-        showSettings={isCurrentUser}
+        onSettingsPress={handleSettingsPress}
+        isSetting={isCurrentUser}
         contentPaddingTop={0}
       >
         <ScrollView

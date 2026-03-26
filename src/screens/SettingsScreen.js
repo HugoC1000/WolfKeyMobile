@@ -358,7 +358,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingTop: 16,
+    marginTop: 65,
   },
   loadingContainer: {
     flex: 1,

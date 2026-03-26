@@ -25,7 +25,7 @@ const STATUS_BAR_HEIGHT =
 
 const TOTAL_HEADER_HEIGHT = HEADER_HEIGHT + STATUS_BAR_HEIGHT;
 
-const SharedHeader = ({ scrollY, isScrollingUp, title, isHome, onSettingsPress, showSettings }) => {
+const SharedHeader = ({ scrollY, isScrollingUp, title, isHome, onSettingsPress, isSetting }) => {
   const navigation = useNavigation();
   const router = useRouter();
 
@@ -73,7 +73,7 @@ const SharedHeader = ({ scrollY, isScrollingUp, title, isHome, onSettingsPress, 
               </TouchableOpacity>
             </GlassView>
           )}
-          {showSettings && (
+          {isSetting && (
             <GlassView
               glassEffectStyle="regular"
               style={styles.rightContent}
