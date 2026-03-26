@@ -24,6 +24,8 @@ const ExploreScreen = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const onEndReachedCalledDuringMomentum = useRef(false);
+  const initialLoadComplete = useRef(false);
+  const lastFetchTime = useRef(0);
 
   const fetchPosts = async (pageNum, shouldRefresh = false) => {
     if ((pageNum > 1 && !hasNext) || loadingMore) return;
@@ -50,12 +52,20 @@ const ExploreScreen = () => {
       setLoading(false);
       setLoadingMore(false);
       setRefreshing(false);
+      if (pageNum === 1) {
+        initialLoadComplete.current = true;
+      }
     }
   };
 
   const handleLoadMore = () => {
     if (!onEndReachedCalledDuringMomentum.current) {
-      fetchPosts(page + 1);
+      // Only load more if initial load is complete and debounce time has passed
+      const now = Date.now();
+      if (initialLoadComplete.current && now - lastFetchTime.current > 300) {
+        lastFetchTime.current = now;
+        fetchPosts(page + 1);
+      }
       onEndReachedCalledDuringMomentum.current = true;
     }
   };

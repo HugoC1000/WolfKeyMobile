@@ -39,6 +39,8 @@ const HomeScreen = () => {
   const { logout } = useAuth();
   const onEndReachedCalledDuringMomentum = useRef(false);
   const appStateRef = useRef(AppState.currentState);
+  const initialLoadComplete = useRef(false);
+  const lastFetchTime = useRef(0);
   const fabRotation = useRef(new Animated.Value(0)).current;
 
   const setFabOpen = useCallback((open) => {
@@ -129,6 +131,9 @@ const HomeScreen = () => {
       setLoading(false);
       setLoadingMore(false);
       setRefreshing(false);
+      if (pageNum === 1) {
+        initialLoadComplete.current = true;
+      }
     }
   }, [hasNext, loadingMore, authError, handleAuthError]);
 
@@ -173,7 +178,12 @@ const HomeScreen = () => {
 
   const handleLoadMore = () => {
     if (!onEndReachedCalledDuringMomentum.current) {
-      fetchPosts(page + 1);
+      // Only load more if initial load is complete and debounce time has passed
+      const now = Date.now();
+      if (initialLoadComplete.current && now - lastFetchTime.current > 300) {
+        lastFetchTime.current = now;
+        fetchPosts(page + 1);
+      }
       onEndReachedCalledDuringMomentum.current = true;
     }
   };
