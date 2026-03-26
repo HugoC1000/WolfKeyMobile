@@ -38,6 +38,8 @@ const SharedHeader = ({ scrollY, isScrollingUp, title, isHome, onSettingsPress, 
             glassEffectStyle="regular"
             style={styles.leftContent}
             isInteractive
+              tintColor='FFFFFF10'
+
           >
             {isHome ? (
                 <Image
@@ -75,6 +77,7 @@ const SharedHeader = ({ scrollY, isScrollingUp, title, isHome, onSettingsPress, 
             <GlassView
               glassEffectStyle="regular"
               style={styles.rightContent}
+              tintColor='FFFFFF15'
               isInteractive
             >
               <TouchableOpacity 

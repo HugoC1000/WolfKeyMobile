@@ -13,7 +13,9 @@ import { useUser } from '../context/userContext';
 import BackgroundSvg from '../components/BackgroundSVG';
 import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';
 import ProfileCard from '../components/ProfileCard';
+import PostCard from '../components/PostCard';
 import * as ImagePicker from 'expo-image-picker';
+import api from '../api/config';
 import {
   getCurrentProfile,
   getProfileByUsername,
@@ -29,6 +31,26 @@ const ProfileScreen = () => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [posts, setPosts] = useState([]);
+  const [postsLoading, setPostsLoading] = useState(false);
+
+  const fetchProfilePosts = async (profileUsername) => {
+    if (!profileUsername) {
+      setPosts([]);
+      return;
+    }
+
+    try {
+      setPostsLoading(true);
+      const response = await api.get(`profile/${profileUsername}/posts/`);
+      setPosts(response?.data?.posts || []);
+    } catch (error) {
+      console.error('Error fetching profile posts:', error);
+      setPosts([]);
+    } finally {
+      setPostsLoading(false);
+    }
+  };
 
   const fetchProfile = async () => {
     try {
@@ -40,6 +62,8 @@ const ProfileScreen = () => {
       }
 
       setProfile(profileData);
+      const profileUsername = profileData?.username || profileData?.user?.username || user?.username || username;
+      await fetchProfilePosts(profileUsername);
     } catch (error) {
       console.error('Error fetching profile:', error);
       Alert.alert('Error', 'Failed to load profile');
@@ -165,6 +189,7 @@ const ProfileScreen = () => {
         title={isCurrentUser ? 'My Profile' : `${profile?.user?.username}'s Profile`}
         onSettingsPress={isCurrentUser ? handleSettingsPress : undefined}
         showSettings={isCurrentUser}
+        contentPaddingTop={0}
       >
         <ScrollView
           style={styles.content}
@@ -173,17 +198,26 @@ const ProfileScreen = () => {
           }
           showsVerticalScrollIndicator={false}
         >
-          <ProfileCard
-            profile={profile}
-            isCurrentUser={isCurrentUser}
-            onEditPress={handleEditPress}
-            onCompareSchedules={handleCompareSchedules}
-            onImagePress={handleImagePress}
-          />
-
           <View style={styles.contentPanel}>
-            <Text style={styles.postsTitle}>Posts</Text>
-            <Text style={styles.placeholderText}>No posts yet.</Text>
+            <ProfileCard
+              profile={profile}
+              isCurrentUser={isCurrentUser}
+              onEditPress={handleEditPress}
+              onCompareSchedules={handleCompareSchedules}
+              onImagePress={handleImagePress}
+            />
+
+            <View style={styles.postsSection}>
+              {postsLoading ? (
+                <ActivityIndicator size="small" color="#2563eb" style={styles.postsLoadingIndicator} />
+              ) : posts.length > 0 ? (
+                posts.map((post) => (
+                  <PostCard key={post.id} post={post} />
+                ))
+              ) : (
+                <Text style={styles.placeholderText}>No posts yet.</Text>
+              )}
+            </View>
           </View>
         </ScrollView>
       </ScrollableScreenWrapper>
@@ -197,21 +231,25 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingTop: 72,
+    paddingTop: 0,
   },
   contentPanel: {
-    marginHorizontal: 16,
-    marginTop: 8,
-    padding: 16,
-    borderRadius: 14,
-    backgroundColor: 'rgba(248, 250, 252, 0.96)',
-    minHeight: 92,
+    marginHorizontal: 0,
+    marginTop: 0,
+    marginBottom: 16,
+    borderRadius: 38,
+    backgroundColor: '#FFFFFF',
   },
   postsTitle: {
     color: '#111827',
     fontSize: 18,
     fontWeight: '700',
-    marginBottom: 10,
+  },
+  postsLoadingIndicator: {
+    marginVertical: 4,
+  },
+  postsSection: {
+    marginTop: 10,
   },
   placeholderText: {
     color: '#374151',

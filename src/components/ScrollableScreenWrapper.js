@@ -10,7 +10,7 @@ const STATUS_BAR_HEIGHT = Platform.OS === 'ios'
   ? (Device.modelName === 'iPhone SE' ? 0 : 44)
   : StatusBar.currentHeight || 0;
 
-const ScrollableScreenWrapper = ({ children, title, isHome, backgroundHue, onSettingsPress, showSettings }) => {
+const ScrollableScreenWrapper = ({ children, title, isHome, backgroundHue, onSettingsPress, showSettings, contentPaddingTop }) => {
   const { user } = useUser();
   const scrollY = useRef(new Animated.Value(0)).current;
   const [isScrollingUp, setIsScrollingUp] = useState(true);
@@ -60,7 +60,7 @@ const ScrollableScreenWrapper = ({ children, title, isHome, backgroundHue, onSet
           scrollEventThrottle: 16,
           contentContainerStyle: [
             children.props.contentContainerStyle,
-            { paddingTop: STATUS_BAR_HEIGHT}
+            { paddingTop: contentPaddingTop !== undefined ? contentPaddingTop : STATUS_BAR_HEIGHT}
           ]
         })}
       </View>

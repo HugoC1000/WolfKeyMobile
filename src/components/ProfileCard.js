@@ -45,12 +45,14 @@ const ProfileCard = ({
   const rawHue = profile?.userprofile?.background_hue;
   const hue = Number.isFinite(rawHue) ? rawHue : 220;
   const normalizedHue = ((hue % 360) + 360) % 360;
-  const secondHue = (normalizedHue + 28) % 360;
-  const thirdHue = (normalizedHue + 58) % 360;
+  const secondHue = (normalizedHue + 10) % 360;
+  const thirdHue = (normalizedHue + 18) % 360;
+  const fourthHue = (normalizedHue + 42) % 360;
   const gradientColors = [
-    `hsla(${normalizedHue}, 58%, 24%, 0.96)`,
-    `hsla(${secondHue}, 62%, 18%, 0.95)`,
-    `hsla(${thirdHue}, 66%, 14%, 0.96)`,
+    `hsla(${normalizedHue}, 100%, 50%, 1)`,
+    `hsla(${secondHue}, 80%, 40%, 0.96)`,
+    `hsla(${thirdHue}, 100%, 40%, 0.75)`,
+    `hsla(${fourthHue}, 70%, 20%, 0.8)`,
   ];
 
   const fullName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
@@ -162,25 +164,20 @@ const ProfileCard = ({
         ) : (
           <Text style={styles.metaText}>No social links</Text>
         )}
-        <Text style={styles.metaText}>{contributionsCount} contributions</Text>
       </View>
 
       <View style={styles.statsContainer}>
         <View style={styles.statItem}>
+          <Text style={styles.statNumber}>{solutionsCount}</Text>
+          <Text style={styles.statLabel}>Solution Count</Text>
+        </View>
+        <View style={styles.statItem}>
           <Text style={styles.statNumber}>{postsCount}</Text>
-          <Text style={styles.statLabel}>Posts</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{contributionsCount}</Text>
-          <Text style={styles.statLabel}>Contributions</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{accountAgeYears}</Text>
-          <Text style={styles.statLabel}>Account Age</Text>
+          <Text style={styles.statLabel}>Post Count</Text>
         </View>
         <View style={[styles.statItem, styles.lastStatItem]}>
-          <Text style={styles.statNumber}>{solutionsCount}</Text>
-          <Text style={styles.statLabel}>Actions</Text>
+          <Text style={styles.statNumber}>{accountAgeYears}</Text>
+          <Text style={styles.statLabel}>Account Age</Text>
         </View>
       </View>
     </>
@@ -217,18 +214,16 @@ const ProfileCard = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 8,
-    marginHorizontal: 16,
-    borderRadius: 18,
+    borderBottomLeftRadius: 36,
+    borderBottomRightRadius: 36,
+    borderTopLeftRadius: 38,
+    borderTopRightRadius: 38,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOpacity: 0.18,
     shadowRadius: 16,
     elevation: 6,
     backgroundColor: 'rgba(3, 12, 29, 0.8)',
-  },
-  gradientLayer: {
-    borderRadius: 18,
   },
   glassContent: {
     paddingVertical: 16,
@@ -238,6 +233,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     marginBottom: 12,
+    paddingTop: 90,
   },
   imageContainer: {
     position: 'relative',
