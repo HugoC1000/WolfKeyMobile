@@ -20,7 +20,7 @@ const STATUS_BAR_HEIGHT =
   Platform.OS === 'ios'
     ? Device.modelName === 'iPhone SE'
       ? 0
-      : 44
+      : 50
     : StatusBar.currentHeight || 0;
 
 const TOTAL_HEADER_HEIGHT = HEADER_HEIGHT + STATUS_BAR_HEIGHT;

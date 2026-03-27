@@ -109,16 +109,14 @@ const Schedule = () => {
       const day = String(date.getDate()).padStart(2, '0');
       const isoDate = `${year}-${month}-${day}`;
 
-      const [scheduleData, uniformData] = await Promise.all([
-        scheduleService.getProcessedSchedule(user.id, isoDate),
-        scheduleService.getCeremonialUniform(isoDate).catch(() => false),
-      ]);
+      // Use new combined endpoint (single call instead of two)
+      const combinedData = await scheduleService.getCombinedSchedule(user.id, isoDate);
 
       const schedule = {
-        blocks: transformScheduleData(scheduleData.schedule),
-        uniformRequired: uniformData,
-        earlyDismissal: scheduleData?.early_dismissal || false,
-        lateStart: scheduleData?.late_start || false,
+        blocks: transformScheduleData(combinedData.processed_schedule),
+        uniformRequired: false, // Combined endpoint doesn't include uniform data yet
+        earlyDismissal: combinedData.early_dismissal || false,
+        lateStart: combinedData.late_start || false,
       };
 
       setScheduleCache(prev => ({ ...prev, [offset]: schedule }));

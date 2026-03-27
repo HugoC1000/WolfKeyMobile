@@ -92,5 +92,35 @@ export const scheduleService = {
       });
       throw error;
     }
+  },
+
+  // Combined endpoint: fetches raw + processed schedule + uniform + flags in single call
+  getCombinedSchedule: async (userId, isoDate) => {
+    try {
+      const params = {
+        t: new Date().getTime()
+      };
+      if (isoDate) {
+        params.date = isoDate;
+      }
+
+      const response = await api.get(`schedules/combined/${userId}/`, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        params: params
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching combined schedule:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message,
+        url: error.config?.url
+      });
+      throw error;
+    }
   }
 };
