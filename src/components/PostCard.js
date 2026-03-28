@@ -104,26 +104,43 @@ const PostCard = ({ post }) => {
         {/* Author and Date Section */}
         <View style={styles.header}>
           <View style={styles.authorInfo}>
-            <TouchableOpacity
-              onPress={handleAuthorPress}
-              activeOpacity={0.7}
-              style={styles.authorClickable}
-            >
-              {post?.author?.userprofile?.profile_picture ? (
-                <Image
-                  source={{ uri: getFullImageUrl(post.author.userprofile.profile_picture) }}
-                  style={styles.profilePic}
-                />
-              ) : (
-                <View style={styles.profilePicPlaceholder} />
-              )}
-            </TouchableOpacity>
+            {post.author?.username ? (
+              <TouchableOpacity
+                onPress={handleAuthorPress}
+                activeOpacity={0.7}
+                style={styles.authorClickable}
+              >
+                {post?.author?.userprofile?.profile_picture ? (
+                  <Image
+                    source={{ uri: getFullImageUrl(post.author.userprofile.profile_picture) }}
+                    style={styles.profilePic}
+                  />
+                ) : (
+                  <View style={styles.profilePicPlaceholder} />
+                )}
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.authorClickable}>
+                {post?.author?.userprofile?.profile_picture ? (
+                  <Image
+                    source={{ uri: getFullImageUrl(post.author.userprofile.profile_picture) }}
+                    style={styles.profilePic}
+                  />
+                ) : (
+                  <View style={styles.profilePicPlaceholder} />
+                )}
+              </View>
+            )}
 
             <View style={styles.authorDetails}>
               <View style={styles.authorNameRow}>
-                <TouchableOpacity onPress={handleAuthorPress} activeOpacity={0.7}>
+                {post.author?.username ? (
+                  <TouchableOpacity onPress={handleAuthorPress} activeOpacity={0.7}>
+                    <Text style={styles.authorName}>{post.author.full_name || 'Anonymous'}</Text>
+                  </TouchableOpacity>
+                ) : (
                   <Text style={styles.authorName}>{post.author.full_name || 'Anonymous'}</Text>
-                </TouchableOpacity>
+                )}
                 <Text style={styles.timestamp}>{formatDateTime(post.created_at)}</Text>
               </View>
               <Text style={styles.title}>{post.title}</Text>

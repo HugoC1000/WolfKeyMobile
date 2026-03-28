@@ -4,11 +4,14 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { globalStyles } from '../utils/styles';
 import EditorJsRenderer from './EditorJsRenderer';
 import { useUser } from '../context/userContext';
+import { useRouter } from 'expo-router';
 import { getFullImageUrl } from '../api/config';
+import { formatDateTime } from '../utils/timeUtils';
 
 
 const CommentList = ({ comments = [], onReply, onEdit, onDelete }) => {
   const { user } = useUser();
+  const router = useRouter();
   // const [expandedComments, setExpandedComments] = useState(new Set());
 
   if (!comments || !Array.isArray(comments) || comments.length === 0) {
@@ -32,87 +35,96 @@ const CommentList = ({ comments = [], onReply, onEdit, onDelete }) => {
     return (
       <View key={comment.id} style={styles.commentWrapper}>
         <View style={[
-          styles.commentContainer, 
-          { marginLeft: depth * 12 },
+          styles.commentContainer,
+          { marginLeft: depth * 8 },
           depth > 0 && styles.nestedComment
         ]}>
-          {/* Left border for nested comments */}
-          {depth > 0 && <View style={styles.nestingIndicator} />}
-          
+          {/* nesting indicator removed */}
+
           <View style={styles.commentHeader}>
             <View style={styles.authorInfo}>
-              {comment.author.userprofile?.profile_picture ? (
-                <Image 
-                  source={{ uri: getFullImageUrl(comment.author.userprofile.profile_picture) }}
-                  style={styles.profilePic}
-                />
-              ) : (
-                <View style={styles.profilePicPlaceholder}>
-                  <Text style={styles.profilePicText}>
-                    {comment.author.first_name?.charAt(0) || comment.author.username?.charAt(0) || '?'}
-                  </Text>
+                {comment.author?.username ? (
+                  <TouchableOpacity
+                    onPress={() => router.push({ pathname: '/profile-screen', params: { username: comment.author.username } })}
+                    activeOpacity={0.7}
+                    style={styles.authorClickable}
+                  >
+                    {comment.author.userprofile?.profile_picture ? (
+                      <Image
+                        source={{ uri: getFullImageUrl(comment.author.userprofile.profile_picture) }}
+                        style={styles.profilePic}
+                      />
+                    ) : (
+                      <View style={styles.profilePicPlaceholder}>
+                        <Text style={styles.profilePicText}>
+                          {comment.author.first_name?.charAt(0) || comment.author.username?.charAt(0) || '?'}
+                        </Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                ) : (
+                  <View style={styles.authorClickable}>
+                    {comment.author.userprofile?.profile_picture ? (
+                      <Image
+                        source={{ uri: getFullImageUrl(comment.author.userprofile.profile_picture) }}
+                        style={styles.profilePic}
+                      />
+                    ) : (
+                      <View style={styles.profilePicPlaceholder}>
+                        <Text style={styles.profilePicText}>
+                          {comment.author.first_name?.charAt(0) || comment.author.username?.charAt(0) || '?'}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                )}
+
+                <View style={styles.authorDetails}>
+                  {comment.author?.username ? (
+                    <TouchableOpacity onPress={() => router.push({ pathname: '/profile-screen', params: { username: comment.author.username } })} activeOpacity={0.7}>
+                      <Text style={styles.commentAuthor}>{comment.author.full_name}</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <Text style={styles.commentAuthor}>{comment.author.full_name}</Text>
+                  )}
+                  <Text style={styles.commentDateInline}>{formatDateTime(comment.created_at)}</Text>
                 </View>
-              )}
-              <View>
-                <Text style={styles.commentAuthor}>
-                  {comment.author.full_name}
-                </Text>
-                <Text style={styles.commentDate}>
-                  {new Date(comment.created_at).toLocaleDateString()}
-                </Text>
-              </View>
             </View>
-            
-            {user?.id === comment.author.id && (
-              <View style={styles.commentActions}>
-                <TouchableOpacity 
-                  style={styles.actionButton}
-                  onPress={() => onEdit?.(comment)}
-                >
-                  <MaterialIcons name="edit" size={14} color="#666" />
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={styles.actionButton}
-                  onPress={() => onDelete?.(comment.id)}
-                >
-                  <MaterialIcons name="delete" size={14} color="#666" />
-                </TouchableOpacity>
-              </View>
-            )}
+
+            <View style={styles.commentActions}>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => onReply?.(comment)}
+              >
+                <MaterialIcons name="reply" size={14} color="#666" />
+                <Text style={styles.replyText}>Reply</Text>
+
+              </TouchableOpacity>
+
+              {user?.id === comment.author.id && (
+                <>
+                  <TouchableOpacity
+                    style={styles.actionButton}
+                    onPress={() => onEdit?.(comment)}
+                  >
+                    <MaterialIcons name="edit" size={14} color="#666" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.actionButton}
+                    onPress={() => onDelete?.(comment.id)}
+                  >
+                    <MaterialIcons name="delete" size={14} color="#666" />
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
           </View>
-          
+
           <View style={styles.commentContent}>
             <EditorJsRenderer blocks={comment.content?.blocks} />
           </View>
-          
-          <View style={styles.commentFooter}>
-            <TouchableOpacity 
-              style={styles.replyButton}
-              onPress={() => onReply?.(comment)}
-            >
-              <MaterialIcons name="reply" size={14} color="#666" />
-              <Text style={styles.replyText}>Reply</Text>
-            </TouchableOpacity>
-            
-            {/* {hasReplies && (
-              <TouchableOpacity 
-                style={styles.toggleButton}
-                onPress={() => toggleComment(comment.id)}
-              >
-                <MaterialIcons 
-                  name={isExpanded ? "expand-less" : "expand-more"} 
-                  size={16} 
-                  color="#666" 
-                />
-                <Text style={styles.toggleText}>
-                  {isExpanded ? 'Hide' : 'Show'} {comment.replies.length} {comment.replies.length === 1 ? 'reply' : 'replies'}
-                </Text>
-              </TouchableOpacity>
-            )} */}
-          </View>
         </View>
-        
-        {/* Render nested replies */}
+
         {hasReplies && (
           <View style={styles.repliesContainer}>
             {comment.replies.map(reply => renderComment(reply, depth + 1))}
@@ -146,26 +158,16 @@ const styles = StyleSheet.create({
     color: '#1a1a1b',
   },
   commentWrapper: {
-    marginBottom: 8,
+    marginBottom: 6,
   },
   commentContainer: {
     backgroundColor: '#fafafa',
-    borderRadius: 8,
-    padding: 12,
+    borderRadius: 6,
+    padding: 8,
     position: 'relative',
   },
   nestedComment: {
     backgroundColor: '#f5f5f5',
-    borderLeftWidth: 2,
-    borderLeftColor: '#ddd',
-  },
-  nestingIndicator: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 2,
-    backgroundColor: '#4CAF50',
   },
   commentHeader: {
     flexDirection: 'row',
@@ -178,23 +180,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
+  authorClickable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 6,
+    paddingRight: 2,
+    paddingBottom: 2,
+  },
   profilePic: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     marginRight: 8,
   },
   profilePicPlaceholder: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     marginRight: 8,
-    backgroundColor: '#DDD6FE',
+    backgroundColor: '#EEE8FF',
     alignItems: 'center',
     justifyContent: 'center',
   },
   profilePicText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '500',
     color: '#666',
   },
@@ -203,10 +212,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1a1a1b',
   },
-  commentDate: {
+  authorDetails: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  commentDateInline: {
     fontSize: 10,
     color: '#787c82',
-    marginTop: 1,
+    marginLeft: 8,
   },
   commentActions: {
     flexDirection: 'row',
@@ -215,9 +228,11 @@ const styles = StyleSheet.create({
   actionButton: {
     padding: 4,
     marginLeft: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   commentContent: {
-    marginBottom: 4,
+    marginBottom: 6,
   },
   commentFooter: {
     flexDirection: 'row',

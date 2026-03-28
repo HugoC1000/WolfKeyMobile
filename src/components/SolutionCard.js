@@ -147,28 +147,48 @@ const SolutionCard = ({
       styles.container,
       isAccepted && styles.acceptedContainer
     ]}>
-        <TouchableOpacity 
-          style={styles.header}
-          onPress={handleAuthorPress}
-          activeOpacity={0.7}
-        >
+        <View style={styles.header}>
           <View style={styles.authorInfo}>
-            {solution.author.userprofile.profile_picture ? (
-              <Image 
-                source={{ uri:  getFullImageUrl(solution.author.userprofile.profile_picture) }}
-                style={styles.profilePic}
-              />
+            {solution.author?.username ? (
+              <TouchableOpacity
+                onPress={handleAuthorPress}
+                activeOpacity={0.7}
+                style={styles.authorClickable}
+              >
+                {solution.author.userprofile.profile_picture ? (
+                  <Image
+                    source={{ uri: getFullImageUrl(solution.author.userprofile.profile_picture) }}
+                    style={styles.profilePic}
+                  />
+                ) : (
+                  <View style={styles.profilePicPlaceholder} />
+                )}
+              </TouchableOpacity>
             ) : (
-              <View style={styles.profilePicPlaceholder} />
+              <View style={styles.authorClickable}>
+                {solution.author.userprofile.profile_picture ? (
+                  <Image
+                    source={{ uri: getFullImageUrl(solution.author.userprofile.profile_picture) }}
+                    style={styles.profilePic}
+                  />
+                ) : (
+                  <View style={styles.profilePicPlaceholder} />
+                )}
+              </View>
             )}
+
             <View style={styles.authorMeta}>
-              <Text style={styles.author}>{solution.author.full_name}</Text>
-              <Text style={styles.date}>
-                {formatDateTime(solution.created_at)}
-              </Text>
+              {solution.author?.username ? (
+                <TouchableOpacity onPress={handleAuthorPress} activeOpacity={0.7}>
+                  <Text style={styles.author}>{solution.author.full_name}</Text>
+                </TouchableOpacity>
+              ) : (
+                <Text style={styles.author}>{solution.author.full_name}</Text>
+              )}
+              <Text style={styles.date}>{formatDateTime(solution.created_at)}</Text>
             </View>
           </View>
-        </TouchableOpacity>
+        </View>
 
       <View style={styles.footer}>
         {renderVoteButtons()}
@@ -261,6 +281,13 @@ const styles = StyleSheet.create({
   authorMeta: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  authorClickable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 6,
+    paddingRight: 2,
+    paddingBottom: 2,
   },
   author: {
     fontSize: 13,
