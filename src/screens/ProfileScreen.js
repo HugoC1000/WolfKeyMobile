@@ -186,7 +186,7 @@ const ProfileScreen = () => {
     <View style={styles.container}>
       <BackgroundSvg hue={user?.userprofile?.background_hue} />
       <ScrollableScreenWrapper
-        title={isCurrentUser ? 'My Profile' : `${profile?.user?.username}'s Profile`}
+        title={isCurrentUser ? 'My Profile' : `${profile?.first_name} ${profile?.last_name}'s Profile`}
         onSettingsPress={handleSettingsPress}
         isSetting={isCurrentUser}
         contentPaddingTop={0}
@@ -255,6 +255,8 @@ const styles = StyleSheet.create({
     color: '#374151',
     fontSize: 15,
     lineHeight: 22,
+    textAlign: 'center',
+    marginBottom: 10,
   },
   loadingContainer: {
     flex: 1,

@@ -1,5 +1,6 @@
 import React from 'react';
-import { StyleSheet, Text, View, Image } from 'react-native';
+import { StyleSheet, Text, View, Image, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
 import EditorJsRenderer from './EditorJsRenderer';
 import { globalStyles } from '../utils/styles';
 import BackgroundSvg from '../components/BackgroundSVG';
@@ -15,6 +16,7 @@ const PostDetailCard = ({
   showPollWhenReference = false,
   pollIsVotable = true,
 }) => {
+  const router = useRouter();
   const detailPollData = post?.poll_data || {
     poll_options: post?.poll_options,
     poll_info: post?.poll_info,
@@ -22,10 +24,25 @@ const PostDetailCard = ({
   };
   const hasPollData = Array.isArray(detailPollData?.poll_options) && detailPollData.poll_options.length > 0;
 
+  // Navigate to author's profile
+  const handleAuthorPress = () => {
+    if (post.author?.username && !post.is_anonymous) {
+      router.push({
+        pathname: '/profile-screen',
+        params: { username: post.author.username },
+      });
+    }
+  };
+
   return (
     <View style={[styles.postCard, isReference && styles.referenceCard]}>
       {!isReference && (
-        <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.header}
+          onPress={handleAuthorPress}
+          activeOpacity={0.7}
+          disabled={post.is_anonymous}
+        >
           <View style={styles.authorInfo}>
             {post?.author?.userprofile?.profile_picture ? (
               <Image 
@@ -40,7 +57,7 @@ const PostDetailCard = ({
               {formatDateTime(post.created_at)}
             </Text>
           </View>
-        </View>
+        </TouchableOpacity>
       )}
       <Text style={[styles.title, isReference && styles.referenceTitle]}>
         {post.title}

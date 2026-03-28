@@ -6,7 +6,9 @@ import {
   StyleSheet,
   TouchableOpacity,
   Linking,
+  Platform,
 } from 'react-native';
+import * as Device from 'expo-device';
 import { MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getFullImageUrl } from '../api/config';
@@ -65,9 +67,10 @@ const ProfileCard = ({
 
   const accountAgeYears = (() => {
     const created = profile.user?.date_joined || profileData?.created_at || profile.created_at;
-    if (!created) return '0y';
-    const years = Math.max(0, Math.floor((Date.now() - new Date(created).getTime()) / (365.25 * 24 * 60 * 60 * 1000)));
-    return `${years}y`;
+    if (!created) return '0.0y';
+    const years = Math.max(0, (Date.now() - new Date(created).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+    const rounded = years.toFixed(1);
+    return `${rounded}y`;
   })();
 
   const socialLinks = [
@@ -216,8 +219,16 @@ const styles = StyleSheet.create({
   container: {
     borderBottomLeftRadius: 36,
     borderBottomRightRadius: 36,
-    borderTopLeftRadius: 38,
-    borderTopRightRadius: 38,
+    borderTopLeftRadius:   Platform.OS === 'ios'
+        ? Device.modelName === 'iPhone SE'
+          ? 0
+          : 0
+        : StatusBar.currentHeight || 38,
+    borderTopRightRadius: Platform.OS === 'ios'
+        ? Device.modelName === 'iPhone SE'
+          ? 0
+          : 0
+        : StatusBar.currentHeight || 38,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOpacity: 0.18,

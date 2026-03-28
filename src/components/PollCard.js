@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { Alert, Animated, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { removePollVote, voteOnPoll } from '../api/postService';
 import { getFullImageUrl } from '../api/config';
@@ -48,6 +49,7 @@ const formatPercentage = (value) => {
 };
 
 const PollCard = ({ postId, pollData, style, isVotable = true }) => {
+  const router = useRouter();
   const [payload, setPayload] = useState(() => getPollPayload(pollData));
   const [draftSelectedIds, setDraftSelectedIds] = useState([]);
   const [submitting, setSubmitting] = useState(false);
@@ -263,14 +265,23 @@ const PollCard = ({ postId, pollData, style, isVotable = true }) => {
                         {recentVoters.map((voter, index) => {
                           const voterName = (voter?.full_name || '').trim();
                           const initial = voterName ? voterName[0].toUpperCase() : '?';
+                          const handlePress = (event) => {
+                            event?.stopPropagation?.();
+                            const username = voter?.username || voter?.user?.username;
+                            if (username) {
+                              router.push({ pathname: '/profile-screen', params: { username } });
+                            }
+                          };
 
                           return (
-                            <View
+                            <TouchableOpacity
                               key={`${optionId}-recent-${voter?.id || index}`}
                               style={[
                                 styles.recentVoterAvatarWrap,
                                 index > 0 && styles.recentVoterAvatarOverlap,
                               ]}
+                              onPress={handlePress}
+                              activeOpacity={0.8}
                             >
                               {voter?.profile_picture_url ? (
                                 <Image
@@ -282,7 +293,7 @@ const PollCard = ({ postId, pollData, style, isVotable = true }) => {
                                   <Text style={styles.recentVoterInitial}>{initial}</Text>
                                 </View>
                               )}
-                            </View>
+                            </TouchableOpacity>
                           );
                         })}
                       </View>
@@ -386,16 +397,33 @@ const PollCard = ({ postId, pollData, style, isVotable = true }) => {
                     {voters.length === 0 ? (
                       <Text style={styles.emptyVotersText}>No votes yet.</Text>
                     ) : (
-                      voters.map((voter, idx) => (
-                        <View key={`${voter?.id || 'voter'}-${idx}`} style={styles.voterRow}>
-                          {voter?.profile_picture_url ? (
-                            <Image source={{ uri: getFullImageUrl(voter.profile_picture_url) }} style={styles.voterAvatar} />
-                          ) : (
-                            <View style={styles.voterAvatarFallback} />
-                          )}
-                          <Text style={styles.voterName}>{voter?.full_name || 'Unknown User'}</Text>
-                        </View>
-                      ))
+                      voters.map((voter, idx) => {
+                        const handlePress = (event) => {
+                          event?.stopPropagation?.();
+                          const username = voter?.username || voter?.user?.username;
+                          console.log(voter);
+                          if (username) {
+                            router.push({ pathname: '/profile-screen', params: { username } });
+                            setIsResultsModalVisible(false);
+                          }
+                        };
+
+                        return (
+                          <TouchableOpacity
+                            key={`${voter?.id || 'voter'}-${idx}`}
+                            style={styles.voterRow}
+                            onPress={handlePress}
+                            activeOpacity={0.8}
+                          >
+                            {voter?.profile_picture_url ? (
+                              <Image source={{ uri: getFullImageUrl(voter.profile_picture_url) }} style={styles.voterAvatar} />
+                            ) : (
+                              <View style={styles.voterAvatarFallback} />
+                            )}
+                            <Text style={styles.voterName}>{voter?.full_name || 'Unknown User'}</Text>
+                          </TouchableOpacity>
+                        );
+                      })
                     )}
                   </View>
                 );
@@ -432,8 +460,9 @@ const styles = StyleSheet.create({
     borderColor: '#E5E7EB',
   },
   selectedOption: {
-    borderColor: '#93C5FD',
+    borderColor: '#1b59e0',
     backgroundColor: '#EFF6FF',
+    borderWidth: 2,
   },
   optionFillWrap: {
     ...StyleSheet.absoluteFillObject,
