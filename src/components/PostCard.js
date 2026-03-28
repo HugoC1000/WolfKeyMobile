@@ -289,7 +289,6 @@ const styles = StyleSheet.create({
   authorClickable: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 8,
     paddingRight: 2,
     paddingBottom: 2,
   },

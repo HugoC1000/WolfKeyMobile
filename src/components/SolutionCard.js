@@ -266,14 +266,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   profilePic: {
-    width: 24,
-    height: 24,
+    width: 26,
+    height: 26,
     borderRadius: 12,
     marginRight: 6,
   },
   profilePicPlaceholder: {
-    width: 24,
-    height: 24,
+    width: 26,
+    height: 26,
     borderRadius: 12,
     marginRight: 6,
     backgroundColor: '#DDD6FE',
@@ -285,7 +285,6 @@ const styles = StyleSheet.create({
   authorClickable: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 6,
     paddingRight: 2,
     paddingBottom: 2,
   },
