@@ -190,6 +190,11 @@ const SolutionCard = ({
           </View>
         </View>
 
+      {/* Solution content */}
+      <View style={styles.content}>
+        <EditorJsRenderer blocks={solution.content?.blocks} />
+      </View>
+
       <View style={styles.footer}>
         {renderVoteButtons()}
         

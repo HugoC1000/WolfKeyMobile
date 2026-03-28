@@ -201,16 +201,6 @@ const PollCard = ({ postId, pollData, style, isVotable = true }) => {
         <Text style={styles.subtitle}>
           {pollInfo.allow_multiple_choice ? 'Select one or more answers' : 'Select one answer'}
         </Text>
-        {isPublicVoting && hasUserVote && (
-          <TouchableOpacity
-            onPress={(event) => {
-              event?.stopPropagation?.();
-              setIsResultsModalVisible(true);
-            }}
-          >
-            <Text style={styles.showResultsText}>Show results</Text>
-          </TouchableOpacity>
-        )}
       </View>
 
       {options.map((option) => {
@@ -335,6 +325,18 @@ const PollCard = ({ postId, pollData, style, isVotable = true }) => {
           </TouchableOpacity>
         );
       })}
+
+      {isPublicVoting && hasUserVote && (
+        <TouchableOpacity
+          onPress={(event) => {
+            event?.stopPropagation?.();
+            setIsResultsModalVisible(true);
+          }}
+          style={styles.showResultsButton}
+        >
+          <Text style={styles.showResultsText}>Show results</Text>
+        </TouchableOpacity>
+      )}
 
       {isVotable && !hasUserVote && (
         <TouchableOpacity
@@ -580,6 +582,12 @@ const styles = StyleSheet.create({
     color: '#2563EB',
     fontSize: 13,
     fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
+  showResultsButton: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
   },
   modalBackdrop: {
     flex: 1,
