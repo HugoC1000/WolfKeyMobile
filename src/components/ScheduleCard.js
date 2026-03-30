@@ -114,7 +114,7 @@ const Schedule = () => {
 
       const schedule = {
         blocks: transformScheduleData(combinedData.processed_schedule),
-        uniformRequired: false, // Combined endpoint doesn't include uniform data yet
+        uniformRequired: combinedData.ceremonial_uniform_required || false,
         earlyDismissal: combinedData.early_dismissal || false,
         lateStart: combinedData.late_start || false,
       };
