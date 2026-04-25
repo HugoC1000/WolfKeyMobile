@@ -7,6 +7,7 @@ import { likePost, unlikePost, followPost, unfollowPost } from '../api/postServi
 import { getFullImageUrl } from '../api/config';
 import { formatDateTime } from '../utils/timeUtils';
 import PollCard from './PollCard';
+import { TextWithLinks } from '../utils/linkParser';
 
 
 const PostCard = ({ post }) => {
@@ -144,7 +145,7 @@ const PostCard = ({ post }) => {
                 <Text style={styles.timestamp}>{formatDateTime(post.created_at)}</Text>
               </View>
               <Text style={styles.title}>{post.title}</Text>
-              {post.preview_text ? <Text style={styles.text}>{post.preview_text}</Text> : null}
+              {post.preview_text ? <TextWithLinks text={post.preview_text} style={styles.text} /> : null}
 
               {post.poll_data && (
                 <PollCard postId={post.id} pollData={post.poll_data} />

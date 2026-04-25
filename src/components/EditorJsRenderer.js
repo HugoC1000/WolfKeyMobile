@@ -2,22 +2,10 @@ import React from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
 import { globalStyles } from '../utils/styles';
 import { getFullImageUrl } from '../api/config';
+import { TextWithLinks } from '../utils/linkParser';
 
 const EditorJsRenderer = ({ blocks }) => {
   if (!blocks) return null;
-
-  // Helper function to strip HTML tags and decode entities
-  const stripHtmlAndDecode = (text) => {
-    if (!text) return '';
-    return text
-      .replace(/<[^>]*>/g, '') // Remove HTML tags
-      .replace(/&nbsp;/g, ' ') // Replace &nbsp; with regular space
-      .replace(/&amp;/g, '&') // Replace &amp; with &
-      .replace(/&lt;/g, '<') // Replace &lt; with <
-      .replace(/&gt;/g, '>') // Replace &gt; with >
-      .replace(/&quot;/g, '"') // Replace &quot; with "
-      .replace(/&#39;/g, "'"); // Replace &#39; with '
-  };
 
   const renderBlock = (block, index) => {
     const key = block.id || `block-${index}`;
@@ -25,23 +13,24 @@ const EditorJsRenderer = ({ blocks }) => {
     switch (block.type) {
       case 'paragraph':
         return (
-          <Text key={key} style={styles.paragraph}>
-            {stripHtmlAndDecode(block.data.text)}
-          </Text>
+          <TextWithLinks 
+            key={key} 
+            text={block.data.text}
+            style={styles.paragraph}
+          />
         );
 
       case 'header':
         return (
-          <Text 
+          <TextWithLinks 
             key={key} 
+            text={block.data.text}
             style={[
               styles.header,
               block.data.level === 2 && styles.headerTwo,
               block.data.level === 3 && styles.headerThree
             ]}
-          >
-            {stripHtmlAndDecode(block.data.text)}
-          </Text>
+          />
         );
 
       case 'list':
@@ -52,9 +41,10 @@ const EditorJsRenderer = ({ blocks }) => {
                 <Text style={styles.bullet}>
                   {block.data.style === 'ordered' ? `${index + 1}.` : '•'}
                 </Text>
-                <Text style={styles.listItemText}>
-                  {typeof item === 'string' ? item : item.content}
-                </Text>
+                <TextWithLinks 
+                  text={typeof item === 'string' ? item : item.content}
+                  style={styles.listItemText}
+                />
               </View>
             ))}
           </View>
