@@ -199,32 +199,34 @@ const PollCard = ({ postId, pollData, style, isVotable = true }) => {
     <View style={[styles.container, style]}>
       <View style={styles.topRow}>
         <Text style={styles.subtitle}>
-          {pollInfo.allow_multiple_choice ? 'Select one or more answers' : 'Select one answer'}
+          {isPublicVoting ? 'Public voting' : 'Private voting'}
         </Text>
       </View>
+      {(() => {
+        const maxVotes = Math.max(...options.map(opt => toNumber(opt.vote_count, 0)), 0);
+        return options.map((option) => {
+          const optionId = toNumber(option.id);
+          const selected = activeSelectedIds.includes(optionId);
+          const percentage = Math.max(0, Math.min(100, toNumber(option.percentage, 0)));
+          const voteCount = toNumber(option.vote_count, 0);
+          const isHighestVote = maxVotes > 0 && voteCount === maxVotes;
+          const recentVoters = Array.isArray(option?.recent_voters)
+            ? option.recent_voters.slice(0, 3)
+            : [];
 
-      {options.map((option) => {
-        const optionId = toNumber(option.id);
-        const selected = activeSelectedIds.includes(optionId);
-        const percentage = Math.max(0, Math.min(100, toNumber(option.percentage, 0)));
-        const voteCount = toNumber(option.vote_count, 0);
-        const recentVoters = Array.isArray(option?.recent_voters)
-          ? option.recent_voters.slice(0, 3)
-          : [];
+          if (!animatedValues.current[optionId]) {
+            animatedValues.current[optionId] = new Animated.Value(0);
+          }
 
-        if (!animatedValues.current[optionId]) {
-          animatedValues.current[optionId] = new Animated.Value(0);
-        }
+          const animatedWidth = animatedValues.current[optionId].interpolate({
+            inputRange: [0, 100],
+            outputRange: ['0%', '100%'],
+          });
 
-        const animatedWidth = animatedValues.current[optionId].interpolate({
-          inputRange: [0, 100],
-          outputRange: ['0%', '100%'],
-        });
-
-        return (
-          <TouchableOpacity
-            key={optionId || `${option.text}`}
-            style={[styles.option, selected && styles.selectedOption]}
+          return (
+            <TouchableOpacity
+              key={optionId || `${option.text}`}
+              style={[styles.option, isHighestVote && styles.highestVoteOption]}
             activeOpacity={0.85}
             onPress={(event) => {
               event?.stopPropagation?.();
@@ -236,7 +238,7 @@ const PollCard = ({ postId, pollData, style, isVotable = true }) => {
               <View style={styles.optionFillWrap}>
                 <Animated.View
                   style={[
-                    styles.optionFill,
+                    isHighestVote ? styles.optionFillHighest : styles.optionFill,
                     {
                       width: animatedWidth,
                     },
@@ -247,7 +249,9 @@ const PollCard = ({ postId, pollData, style, isVotable = true }) => {
 
             <View style={styles.optionContent}>
               <View style={styles.optionMain}>
-                <Text style={styles.optionText}>{option.text}</Text>
+                <Text style={[styles.optionText, shouldShowResults && styles.optionTextPostVote]}>
+                  {option.text}
+                </Text>
                 {shouldShowResults && (
                   <View style={styles.optionMetaRow}>
                     {recentVoters.length > 0 && (
@@ -289,7 +293,7 @@ const PollCard = ({ postId, pollData, style, isVotable = true }) => {
                       </View>
                     )}
 
-                    <Text style={styles.optionMeta}>
+                    <Text style={[styles.optionMeta, shouldShowResults && styles.optionMetaPostVote]}>
                       {voteCount} {voteCount === 1 ? 'vote' : 'votes'} {formatPercentage(option.percentage)}%
                     </Text>
                   </View>
@@ -301,7 +305,7 @@ const PollCard = ({ postId, pollData, style, isVotable = true }) => {
                   <MaterialIcons
                     name={selected ? 'check-box' : 'check-box-outline-blank'}
                     size={28}
-                    color={selected ? '#2563EB' : '#9CA3AF'}
+                    color={selected ? '#06266b' : '#9CA3AF'}
                   />
                 ) : (
                   selected && (
@@ -318,13 +322,14 @@ const PollCard = ({ postId, pollData, style, isVotable = true }) => {
                       : (selected ? 'radio-button-checked' : 'radio-button-unchecked')
                   }
                   size={30}
-                  color={selected ? '#2563EB' : '#9CA3AF'}
+                  color={selected ? '#06266b' : '#9CA3AF'}
                 />
               )}
             </View>
           </TouchableOpacity>
         );
-      })}
+        });
+      })()}
 
       {isPublicVoting && hasUserVote && (
         <TouchableOpacity
@@ -334,9 +339,11 @@ const PollCard = ({ postId, pollData, style, isVotable = true }) => {
           }}
           style={styles.showResultsButton}
         >
-          <Text style={styles.showResultsText}>Show results</Text>
+          <Text style={styles.showResultsText}>Show results • {totalVotes} {totalVotes === 1 ? 'vote' : 'votes'}</Text>
         </TouchableOpacity>
       )}
+
+      
 
       {isVotable && !hasUserVote && (
         <TouchableOpacity
@@ -444,34 +451,41 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     color: '#6B7280',
-    fontSize: 13,
+    fontSize: 10,
     fontWeight: '500',
   },
   topRow: {
-    marginBottom: 8,
+    marginBottom: 3,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   option: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#ececec',
     borderRadius: 14,
-    marginBottom: 8,
+    marginBottom: 4,
     overflow: 'hidden',
-    borderWidth: 1,
+    borderWidth: 0,
     borderColor: '#E5E7EB',
   },
-  selectedOption: {
-    borderColor: '#1b59e0',
-    backgroundColor: '#EFF6FF',
-    borderWidth: 2,
+  highestVoteOption: {
+    backgroundColor: '#22863A',
+    borderWidth: 0,
   },
   optionFillWrap: {
     ...StyleSheet.absoluteFillObject,
   },
   optionFill: {
     height: '100%',
-    backgroundColor: 'rgba(37, 99, 235, 0.12)',
+    backgroundColor: '#999999',
+    borderTopRightRadius: 12,
+    borderBottomRightRadius: 12,
+  },
+  optionFillHighest: {
+    height: '100%',
+    backgroundColor: '#45d266',
+    borderTopRightRadius: 10,
+    borderBottomRightRadius: 10,
   },
   optionContent: {
     flexDirection: 'row',
@@ -484,15 +498,21 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   optionText: {
-    color: '#111827',
+    color: '#1F2937',
     fontSize: 12,
     fontWeight: '600',
     marginBottom: 2,
+  },
+  optionTextPostVote: {
+    color: '#000000',
   },
   optionMeta: {
     color: '#6B7280',
     fontSize: 11,
     fontWeight: '500',
+  },
+  optionMetaPostVote: {
+    color: '#000000',
   },
   optionMetaRow: {
     marginTop: 2,
@@ -507,7 +527,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    borderWidth: 1,
+    borderWidth: 0,
     borderColor: '#FFFFFF',
     overflow: 'hidden',
     backgroundColor: '#E5E7EB',
@@ -531,16 +551,15 @@ const styles = StyleSheet.create({
     color: '#374151',
   },
   selectedBadge: {
-    width: 34,
-    height: 34,
+    width: 25,
+    height: 25,
     borderRadius: 17,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#06266b',
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 12,
   },
   removeVoteButton: {
-    marginTop: 4,
     borderRadius: 999,
     backgroundColor: '#F3F4F6',
     paddingVertical: 7,
@@ -579,7 +598,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   showResultsText: {
-    color: '#2563EB',
+    color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '600',
     textDecorationLine: 'underline',
@@ -587,7 +606,7 @@ const styles = StyleSheet.create({
   showResultsButton: {
     alignSelf: 'flex-start',
     paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingVertical: 2,
   },
   modalBackdrop: {
     flex: 1,
