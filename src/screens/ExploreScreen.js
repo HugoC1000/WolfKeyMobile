@@ -1,5 +1,5 @@
 // screens/ExploreScreen.js
-import React, { useRef, useState, useCallback, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,8 +8,11 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+import { router } from 'expo-router';
 import PostCard from '../components/PostCard';
+import SearchBarCard from '../components/SearchBarCard';
 import api from '../api/config';
+import { searchUsers } from '../api/profileService';
 import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';
 import { transformPostsArray } from '../api/postService';
 
@@ -23,6 +26,9 @@ const ExploreScreen = () => {
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchTimeout, setSearchTimeout] = useState(null);
   const onEndReachedCalledDuringMomentum = useRef(false);
   const initialLoadComplete = useRef(false);
   const lastFetchTime = useRef(0);
@@ -74,16 +80,36 @@ const ExploreScreen = () => {
     fetchPosts(1, true);
   };
 
+  const handleSearchUsers = (query) => {
+    setSearchQuery(query);
+    
+    // Clear previous timeout
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+
+    // Set new timeout for debounced search
+    if (query.trim()) {
+      const timeout = setTimeout(async () => {
+        const results = await searchUsers(query);
+        setSearchResults(results);
+      }, 300);
+      setSearchTimeout(timeout);
+    } else {
+      setSearchResults([]);
+    }
+  };
+
+  const handleUserResultPress = (username) => {
+    setSearchQuery('');
+    setSearchResults([]);
+    router.push({ pathname: '/profile-screen', params: { username } });
+  };
+
   // Fetch posts when component mounts
   useEffect(() => {
     fetchPosts(1);
   }, []);
-
-  const ListHeader = useCallback(() => (
-    <View>
-      <View style={styles.headerSpacer} />
-    </View>
-  ), []);
 
   return (
     <View style={styles.rootContainer}>
@@ -92,8 +118,17 @@ const ExploreScreen = () => {
           data={posts}
           renderItem={({ item }) => <PostCard post={item} />}
           keyExtractor={(item) => item.id.toString()}
-          ListHeaderComponent={ListHeader}
-          contentContainerStyle={{ ...styles.container, flexGrow: 1 }}
+          ListHeaderComponent={
+            <View style={styles.searchBarContainer}>
+              <SearchBarCard
+                profileHue={220}
+                searchResults={searchResults}
+                onSearch={handleSearchUsers}
+                onResultPress={handleUserResultPress}
+              />
+            </View>
+          }
+          contentContainerStyle={styles.container}
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.1}
           onMomentumScrollBegin={() => {
@@ -132,12 +167,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'transparent',
   },
-  container: {
-    paddingTop: HEADER_HEIGHT,
-    paddingHorizontal: 16,
+  searchBarContainer: {
+    marginTop: 50,
+    marginBottom: 16,
   },
-  headerSpacer: {
-    height: HEADER_HEIGHT + 5,
+  container: {
+    paddingHorizontal: 16,
+    paddingTop: HEADER_HEIGHT,
+    flexGrow: 1,
   },
   exploreTitle: {
     fontSize: 24,

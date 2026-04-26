@@ -181,3 +181,16 @@ export const uploadLunchCard = async (imageData) => {
     throw error;
   }
 };
+
+// Search users by username or full name
+export const searchUsers = async (query) => {
+  try {
+    const response = await api.get('search-users/', {
+      params: { query }
+    });
+    return response.data.users || [];
+  } catch (error) {
+    console.error('Error searching users:', error);
+    return [];
+  }
+};

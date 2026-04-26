@@ -112,8 +112,14 @@ const EditProfileScreen = () => {
       };
 
       await updateProfile(updateData);
-      
-      await updateUser({ background_hue: formData.background_hue });
+      const refreshedProfile = await getCurrentProfile();
+      await updateUser({
+        first_name: refreshedProfile?.first_name,
+        last_name: refreshedProfile?.last_name,
+        username: refreshedProfile?.username,
+        email: refreshedProfile?.email,
+        userprofile: refreshedProfile?.userprofile || {},
+      });
       
       Alert.alert('Success', 'Profile updated successfully!');
       router.back();

@@ -32,7 +32,7 @@ import CourseSelector from '../components/CourseSelector';
 
 const SettingsScreen = () => {
   const { logout } = useAuth();
-  const { user, clearUser } = useUser();
+  const { user, clearUser, updateUser } = useUser();
   const router = useRouter();
 
   const [allowScheduleComparison, setAllowScheduleComparison] = useState(true);
@@ -44,16 +44,26 @@ const SettingsScreen = () => {
   const [selectedCourses, setSelectedCourses] = useState([]);
 
   useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  useEffect(() => {
     if (user?.userprofile?.allow_schedule_comparison !== undefined) {
       setAllowScheduleComparison(user.userprofile.allow_schedule_comparison);
     }
-    fetchProfile();
   }, [user]);
 
   const fetchProfile = async () => {
     try {
       const profileData = await getCurrentProfile();
       setProfile(profileData);
+      await updateUser({
+        first_name: profileData?.first_name,
+        last_name: profileData?.last_name,
+        username: profileData?.username,
+        email: profileData?.email,
+        userprofile: profileData?.userprofile || {},
+      });
     } catch (error) {
       console.error('Error fetching profile:', error);
     } finally {

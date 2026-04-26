@@ -29,14 +29,28 @@ export async function unregisterPushToken(pushToken) {
   }
 }
 
-export async function getNotifications() {
+export async function getNotifications(page = 1, limit = 10) {
   try {
-    const res = await api.get('notifications/');
-    if (res.data.success) {
-      return Array.isArray(res.data.data.notifications) ? res.data.data.notifications : [];
-    } else {
-      throw new Error(res.data.error || 'Failed to load notifications');
-    }
+    const res = await api.get(`notifications/?page=${page}&limit=${limit}`);
+    const root = res?.data || {};
+    const payload = root?.success ? (root?.data || {}) : root;
+
+    const notifications = Array.isArray(payload?.notifications)
+      ? payload.notifications
+      : Array.isArray(payload?.results)
+      ? payload.results
+      : [];
+
+    const hasNext = typeof payload?.has_next === 'boolean'
+      ? payload.has_next
+      : Boolean(payload?.next);
+
+    return {
+      notifications,
+      hasNext,
+      page: Number(payload?.page) || page,
+      totalCount: Number(payload?.total_count) || Number(payload?.count) || notifications.length,
+    };
   } catch (e) {
     console.error('getNotifications error:', e?.response?.data || e.message);
     throw e;

@@ -226,7 +226,10 @@ const PollCard = ({ postId, pollData, style, isVotable = true }) => {
           return (
             <TouchableOpacity
               key={optionId || `${option.text}`}
-              style={[styles.option, isHighestVote && styles.highestVoteOption]}
+              style={[
+                styles.option,
+                shouldShowResults && isHighestVote && styles.highestVoteOption,
+              ]}
             activeOpacity={0.85}
             onPress={(event) => {
               event?.stopPropagation?.();
@@ -339,7 +342,7 @@ const PollCard = ({ postId, pollData, style, isVotable = true }) => {
           }}
           style={styles.showResultsButton}
         >
-          <Text style={styles.showResultsText}>Show results • {totalVotes} {totalVotes === 1 ? 'vote' : 'votes'}</Text>
+          <Text style={styles.showResultsText}>Show results ({totalVotes})</Text>
         </TouchableOpacity>
       )}
 
@@ -598,9 +601,9 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   showResultsText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '600',
+    color: '#000000',
+    fontSize: 12,
+    fontWeight: '400',
     textDecorationLine: 'underline',
   },
   showResultsButton: {

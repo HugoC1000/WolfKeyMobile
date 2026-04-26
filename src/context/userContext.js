@@ -53,7 +53,8 @@ export const UserProvider = ({ children }) => {
         const userprofileFields = [
           'background_hue', 'bio', 'allow_schedule_comparison', 
           'allow_grade_updates', 'profile_picture', 'lunch_card',
-          'grade_level', 'has_wolfnet_password', 'is_moderator', 'points'
+          'grade_level', 'has_wolfnet_password', 'is_moderator', 'points',
+          'schedule_blocks'
         ];
         
         // Separate updates into top-level and userprofile updates

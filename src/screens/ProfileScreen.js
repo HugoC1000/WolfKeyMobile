@@ -13,6 +13,7 @@ import { useUser } from '../context/userContext';
 import BackgroundSvg from '../components/BackgroundSVG';
 import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';
 import ProfileCard from '../components/ProfileCard';
+import CourseComparisonCard from '../components/CourseComparisonCard';
 import PostCard from '../components/PostCard';
 import * as ImagePicker from 'expo-image-picker';
 import api from '../api/config';
@@ -207,6 +208,14 @@ const ProfileScreen = () => {
               onImagePress={handleImagePress}
             />
 
+            {!isCurrentUser && (
+              <CourseComparisonCard
+                viewedProfile={profile}
+                currentProfile={user}
+                isCurrentUser={isCurrentUser}
+              />
+            )}
+
             <View style={styles.postsSection}>
               {postsLoading ? (
                 <ActivityIndicator size="small" color="#2563eb" style={styles.postsLoadingIndicator} />
@@ -236,7 +245,7 @@ const styles = StyleSheet.create({
   contentPanel: {
     marginHorizontal: 0,
     marginTop: 0,
-    marginBottom: 16,
+    marginBottom: 100,
     borderRadius: 38,
     backgroundColor: '#FFFFFF',
   },

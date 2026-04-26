@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
+  Animated,
   View,
   Text,
   Image,
@@ -7,6 +8,7 @@ import {
   TouchableOpacity,
   Linking,
   Platform,
+  StatusBar,
 } from 'react-native';
 import * as Device from 'expo-device';
 import { MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
@@ -43,6 +45,41 @@ const ProfileCard = ({
   };
 
   const glassAvailable = isLiquidGlassAvailable();
+  const gradientPulse = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const pulseLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(gradientPulse, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(gradientPulse, {
+          toValue: 0,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    pulseLoop.start();
+
+    return () => {
+      pulseLoop.stop();
+    };
+  }, [gradientPulse]);
+
+  const pulseScale = gradientPulse.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.06],
+  });
+
+  const pulseOpacity = gradientPulse.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 1],
+  });
+
   const profileData = profile.userprofile || profile;
   const rawHue = profile?.userprofile?.background_hue;
   const hue = Number.isFinite(rawHue) ? rawHue : 220;
@@ -197,6 +234,27 @@ const ProfileCard = ({
         >
           <GlassView style={styles.glassContent}>
             {containerContent}
+                  <Animated.View
+                    pointerEvents="none"
+                    style={[
+                      styles.animatedGradientOverlay,
+                      {
+                        opacity: pulseOpacity,
+                        transform: [{ scale: pulseScale }],
+                      },
+                    ]}
+                  >
+                    <LinearGradient
+                      colors={[
+                        'rgba(255, 255, 255, 0.2)',
+                        'rgba(255, 255, 255, 0.3)',
+                        'rgba(255, 255, 255, 0.2)',
+                      ]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={StyleSheet.absoluteFill}
+                    />
+                  </Animated.View>
           </GlassView>
         </LinearGradient>
       </GlassContainer>
@@ -210,8 +268,7 @@ const ProfileCard = ({
       end={{ x: 1, y: 1 }}
       style={styles.container}
     >
-      {containerContent}
-    </LinearGradient>
+      {containerContent}    </LinearGradient>
   );
 };
 
@@ -234,11 +291,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.18,
     shadowRadius: 16,
     elevation: 6,
+    zIndex: 10,
     backgroundColor: 'rgba(3, 12, 29, 0.8)',
   },
   glassContent: {
     paddingVertical: 16,
     paddingHorizontal: 16,
+  },
+  animatedGradientOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 5,
   },
   hero: {
     flexDirection: 'row',
