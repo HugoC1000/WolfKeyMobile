@@ -23,6 +23,7 @@ import { uploadLunchCard, getCurrentProfile } from '../api/profileService';
 import { getFullImageUrl } from '../api/config';
 import { useUser } from '../context/userContext';
 import * as Device from 'expo-device';
+import { triggerPressHaptic, triggerSuccessHaptic } from '../utils/haptics';
 
 const STATUS_BAR_HEIGHT = Platform.OS === 'ios' 
   ? (Device.modelName === 'iPhone SE' ? 0 : 44)
@@ -60,6 +61,8 @@ const LunchCardScreen = () => {
   };
 
   const pickImage = async () => {
+    await triggerPressHaptic();
+
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
@@ -86,6 +89,8 @@ const LunchCardScreen = () => {
   };
 
   const takePhoto = async () => {
+    await triggerPressHaptic();
+
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
@@ -133,6 +138,7 @@ const LunchCardScreen = () => {
       };
 
       await uploadLunchCard(imageToUpload);
+      await triggerSuccessHaptic();
       Alert.alert('Success', 'Lunch card uploaded successfully!', [
         {
           text: 'OK',
@@ -147,6 +153,7 @@ const LunchCardScreen = () => {
   };
 
   const handleRetakePhoto = () => {
+    void triggerPressHaptic();
     showImagePickerOptions();
   };
 

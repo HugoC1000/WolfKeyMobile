@@ -17,6 +17,7 @@ import BackgroundSvg from '../components/BackgroundSVG';
 import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';
 import { MaterialIcons } from '@expo/vector-icons';
 import { updateProfile, getCurrentProfile } from '../api/profileService';
+import { triggerSuccessHaptic } from '../utils/haptics';
 
 const HEADER_HEIGHT = 80;
 
@@ -260,7 +261,10 @@ const EditProfileScreen = () => {
 
             <TouchableOpacity
               style={styles.saveButton}
-              onPress={handleSave}
+              onPress={() => {
+                void triggerSuccessHaptic();
+                handleSave();
+              }}
               disabled={loading}
             >
               {loading ? (

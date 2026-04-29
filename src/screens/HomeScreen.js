@@ -20,6 +20,7 @@ import { useAuth } from '../context/authContext';
 import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';
 import { transformPostsArray } from '../api/postService';
 import { GlassContainer, GlassView } from 'expo-glass-effect';
+import { triggerPressHaptic } from '../utils/haptics';
 
 
 const HEADER_HEIGHT = 45; // Height of the header
@@ -62,6 +63,7 @@ const HomeScreen = () => {
       icon: 'help',
       label: 'Create Post',
       onPress: () => {
+        void triggerPressHaptic();
         setFabOpen(false);
         router.push('/create-post?type=standard');
       },
@@ -70,6 +72,7 @@ const HomeScreen = () => {
       icon: 'poll',
       label: 'Create Poll',
       onPress: () => {
+        void triggerPressHaptic();
         setFabOpen(false);
         router.push('/create-post?type=poll');
       },
@@ -280,7 +283,10 @@ const HomeScreen = () => {
         <GlassView style={styles.fabButtonGlass} glassEffectStyle="regular" isInteractive>
           <TouchableOpacity
             style={styles.fabButton}
-            onPress={() => setFabOpen(!fabState.open)}
+            onPress={() => {
+              void triggerPressHaptic();
+              setFabOpen(!fabState.open);
+            }}
           >
             <Animated.View style={{ transform: [{ rotate: fabIconRotate }] }}>
               <MaterialIcons

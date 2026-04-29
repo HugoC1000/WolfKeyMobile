@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { removePollVote, voteOnPoll } from '../api/postService';
 import { getFullImageUrl } from '../api/config';
+import { triggerPressHaptic } from '../utils/haptics';
 
 
 const getPollPayload = (raw) => {
@@ -79,7 +80,7 @@ const PollCard = ({ postId, pollData, style, isVotable = true }) => {
           animatedValues.current[optionId].setValue(0);
           Animated.timing(animatedValues.current[optionId], {
             toValue: percentage,
-            duration: 650,
+            duration: 1000,
             useNativeDriver: false,
           }).start();
         } else {
@@ -164,10 +165,12 @@ const PollCard = ({ postId, pollData, style, isVotable = true }) => {
         ? activeSelectedIds.filter((id) => id !== normalizedId)
         : [...activeSelectedIds, normalizedId];
 
+      void triggerPressHaptic();
       setDraftSelectedIds(nextSelection);
       return;
     }
 
+    void triggerPressHaptic();
     setDraftSelectedIds([normalizedId]);
   };
 

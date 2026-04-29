@@ -9,26 +9,32 @@ import { formatDateTime } from '../utils/timeUtils';
 import PollCard from './PollCard';
 import { TextWithLinks } from '../utils/linkParser';
 
-
 const PostCard = ({ post }) => {
   const router = useRouter();
   const { user } = useUser();
 
-  const [isLiked, setIsLiked] = useState(post.is_liked_by_user || false);
-  const [likeCount, setLikeCount] = useState(post.like_count || 0);
-  const [isFollowing, setIsFollowing] = useState(post.is_following || false);
-  const [followerCount, setFollowerCount] = useState(post.followers_count || 0);
+  const [isLiked, setIsLiked] = useState(Boolean(post.is_liked));
+  const [likeCount, setLikeCount] = useState(Number(post.like_count) || 0);
+  const [isFollowing, setIsFollowing] = useState(Boolean(post.is_following));
+  const [followerCount, setFollowerCount] = useState(Number(post.followers_count) || 0);
+
+  useEffect(() => {
+    setIsLiked(Boolean(post.is_liked));
+    setLikeCount(Number(post.like_count) || 0);
+    setIsFollowing(Boolean(post.is_following));
+    setFollowerCount(Number(post.followers_count) || 0);
+  }, [post]);
   
   const handleLike = async () => {
     try {
       if (isLiked) {
         const response = await unlikePost(post.id);
         setIsLiked(false);
-        setLikeCount(response.like_count);
+        setLikeCount(Number(response?.like_count ?? response?.data?.like_count ?? likeCount - 1) || 0);
       } else {
         const response = await likePost(post.id);
         setIsLiked(true);
-        setLikeCount(response.like_count);
+        setLikeCount(Number(response?.like_count ?? response?.data?.like_count ?? likeCount + 1) || 0);
       }
     } catch (error) {
       console.error('Error toggling like:', error);
@@ -41,11 +47,11 @@ const PostCard = ({ post }) => {
       if (isFollowing) {
         const response = await unfollowPost(post.id);
         setIsFollowing(false);
-        setFollowerCount(response.followers_count);
+        setFollowerCount(Number(response?.followers_count ?? response?.data?.followers_count ?? followerCount - 1) || 0);
       } else {
         const response = await followPost(post.id);
         setIsFollowing(true);
-        setFollowerCount(response.followers_count);
+        setFollowerCount(Number(response?.followers_count ?? response?.data?.followers_count ?? followerCount + 1) || 0);
       }
     } catch (error) {
       console.error('Error toggling follow:', error);

@@ -14,6 +14,7 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { GlassView, GlassContainer } from 'expo-glass-effect';
+import { triggerPressHaptic, triggerSuccessHaptic } from '../utils/haptics';
 
 const HEADER_HEIGHT = 45;
 const STATUS_BAR_HEIGHT =
@@ -67,7 +68,10 @@ const SharedHeader = ({ scrollY, isScrollingUp, title, isHome, onSettingsPress, 
               isInteractive
             >
               <TouchableOpacity 
-                onPress={() => router.push('/lunch-card')}
+                onPress = {() => {
+                  void triggerPressHaptic();
+                  router.push('/lunch-card')
+                }}
               >
                 <MaterialIcons name="credit-card" size={28} color="#000" />
               </TouchableOpacity>

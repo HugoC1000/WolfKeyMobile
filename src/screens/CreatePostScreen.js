@@ -9,6 +9,7 @@ import CourseSelector from '../components/CourseSelector';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import Course from '../models/Course';
+import { triggerPressHaptic, triggerSuccessHaptic } from '../utils/haptics';
 
 const CreatePostScreen = () => {
   const params = useLocalSearchParams();
@@ -68,6 +69,8 @@ const CreatePostScreen = () => {
   };
 
   const handleSubmit = async () => {
+    await triggerPressHaptic();
+
     if (!content || !title) return;
     const isPoll = postType === 'poll';
     let nonEmptyOptions = [];
@@ -116,6 +119,8 @@ const CreatePostScreen = () => {
       }
 
       if (response.status === 201) {
+        await triggerSuccessHaptic();
+
         // Clear all form fields
         setTitle('');
         setContent(null);
