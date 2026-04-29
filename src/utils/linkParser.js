@@ -126,7 +126,7 @@ export const TextWithLinks = React.memo(({ text, style, linkStyle, ...props }) =
   };
 
   return (
-    <Text style={style} {...props}>
+    <Text style={style} {...props} selectable={true}>
       {parts.map((part, index) => {
         if (part.type === 'link') {
           return (
@@ -135,13 +135,14 @@ export const TextWithLinks = React.memo(({ text, style, linkStyle, ...props }) =
               style={[defaultLinkStyle, linkStyle]}
               onPress={() => openUrl(part.url)}
               suppressHighlighting={false}
+              selectable={true}
             >
               {part.content}
             </Text>
           );
         }
         return (
-          <Text key={index}>
+          <Text key={index} selectable={true}>
             {part.content}
           </Text>
         );

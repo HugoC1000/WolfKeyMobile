@@ -62,6 +62,7 @@ const PostDetailCard = ({
       <Text style={[styles.title, isReference && styles.referenceTitle]}>
         {post.title}
       </Text>
+      <EditorJsRenderer blocks={post.content?.blocks} />
       {hasPollData && (!isReference || showPollWhenReference) && (
         <PollCard
           postId={post.id}
@@ -69,7 +70,6 @@ const PostDetailCard = ({
           isVotable={pollIsVotable}
         />
       )}
-      <EditorJsRenderer blocks={post.content?.blocks} />
     </View>
   );
 };

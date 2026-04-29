@@ -38,7 +38,7 @@ const EditorJsRenderer = ({ blocks }) => {
           <View key={key} style={styles.list}>
             {block.data.items.map((item, index) => (
               <View key={index} style={styles.listItem}>
-                <Text style={styles.bullet}>
+                <Text style={styles.bullet} selectable={true}>
                   {block.data.style === 'ordered' ? `${index + 1}.` : '•'}
                 </Text>
                 <TextWithLinks 
@@ -61,7 +61,7 @@ const EditorJsRenderer = ({ blocks }) => {
               resizeMode="contain"
             />
             {block.data.caption && (
-              <Text style={styles.imageCaption}>{block.data.caption}</Text>
+              <Text style={styles.imageCaption} selectable={true}>{block.data.caption}</Text>
             )}
           </View>
         );
@@ -69,9 +69,9 @@ const EditorJsRenderer = ({ blocks }) => {
       case 'code':
         return (
           <View key={key} style={styles.codeContainer}>
-            <Text style={styles.codeText}>{block.data.code}</Text>
+            <Text style={styles.codeText} selectable={true}>{block.data.code}</Text>
             {block.data.language && (
-              <Text style={styles.codeLanguage}>{block.data.language}</Text>
+              <Text style={styles.codeLanguage} selectable={true}>{block.data.language}</Text>
             )}
           </View>
         );
@@ -79,7 +79,7 @@ const EditorJsRenderer = ({ blocks }) => {
       case 'math':
         return (
           <View key={key} style={styles.mathContainer}>
-            <Text style={styles.mathText}>{block.data.content}</Text>
+            <Text style={styles.mathText} selectable={true}>{block.data.content}</Text>
           </View>
         );
 
