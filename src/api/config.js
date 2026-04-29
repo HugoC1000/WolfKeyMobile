@@ -42,7 +42,6 @@ const API_URL = isDevelopment
 
 console.log('API Base URL:', API_URL);
 
-console.log(API_URL);
 
 const api = axios.create({
   baseURL: API_URL,
@@ -50,7 +49,7 @@ const api = axios.create({
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   },
-  timeout: 60000,
+  timeout: 30000,
 });
 
 // Enhanced error logging

@@ -11,6 +11,7 @@ import {
   StatusBar,
   Modal,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { GlassView } from 'expo-glass-effect';
 import { Ionicons } from '@expo/vector-icons';
@@ -38,6 +39,8 @@ const LunchCardScreen = () => {
   const [loading, setLoading] = useState(true);
   const [existingLunchCard, setExistingLunchCard] = useState(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+  const [isLocalCache, setIsLocalCache] = useState(false);
 
   // Gesture values
   const scale = useSharedValue(1);
@@ -138,6 +141,24 @@ const LunchCardScreen = () => {
       };
 
       await uploadLunchCard(imageToUpload);
+      // Cache the actual image data locally
+      try {
+        const imageResponse = await fetch(imageData.uri);
+        if (imageResponse.ok) {
+          const blob = await imageResponse.blob();
+          const reader = new FileReader();
+          reader.onloadend = async () => {
+            const base64 = reader.result;
+            await AsyncStorage.setItem('lunchCardImage', base64);
+            console.log('Cached lunch card image after upload');
+          };
+          reader.readAsDataURL(blob);
+        }
+      } catch (cacheError) {
+        console.log('Could not cache uploaded image:', cacheError.message);
+      }
+      setIsLocalCache(false);
+      setIsOnline(true);
       await triggerSuccessHaptic();
       Alert.alert('Success', 'Lunch card uploaded successfully!', [
         {
@@ -146,7 +167,24 @@ const LunchCardScreen = () => {
       ]);
     } catch (error) {
       console.error('Error uploading lunch card:', error);
-      Alert.alert('Error', 'Failed to upload lunch card. Please try again.');
+      const errorStr = (error?.message || '').toLowerCase();
+      const isNetworkError = errorStr.includes('network') || 
+                            errorStr.includes('timeout') ||
+                            errorStr.includes('enotfound') ||
+                            errorStr.includes('econnrefused') ||
+                            errorStr.includes('econnreset') ||
+                            errorStr.includes('enetunreach') ||
+                            error?.code === 'ENOTFOUND' ||
+                            error?.code === 'ECONNREFUSED' ||
+                            error?.code === 'ECONNRESET' ||
+                            error?.code === 'ENETUNREACH';
+      const errorMsg = isNetworkError
+        ? 'No internet connection. Please check your connection and try again.'
+        : 'Failed to upload lunch card. Please try again.';
+      if (isNetworkError) {
+        setIsOnline(false);
+      }
+      Alert.alert('Error', errorMsg);
     } finally {
       setUploading(false);
     }
@@ -161,28 +199,63 @@ const LunchCardScreen = () => {
     navigation.goBack();
   };
 
-  // Fetch existing lunch card on mount
+  // Load lunch card from user context on mount
   React.useEffect(() => {
-    const fetchLunchCard = async () => {
+    const loadLunchCard = async () => {
       try {
         setLoading(true);
-        const profile = await getCurrentProfile();
-        if (profile?.userprofile?.lunch_card) {
-          const lunchCardUrl = getFullImageUrl(profile.userprofile.lunch_card);
-          console.log(lunchCardUrl);
+        
+        // First, preload cached image if available (instant UX)
+        try {
+          const cachedImage = await AsyncStorage.getItem('lunchCardImage');
+          if (cachedImage) {
+            console.log('Preloaded lunch card from local cache');
+            setImage({ uri: cachedImage });
+            setIsLocalCache(true);
+          }
+        } catch (cacheError) {
+          console.log('Could not preload cached image:', cacheError.message);
+        }
+        
+        // Then fetch fresh image from network in the background
+        if (user?.userprofile?.lunch_card) {
+          const lunchCardUrl = getFullImageUrl(user.userprofile.lunch_card);
+          console.log('Fetching fresh lunch card URL from context:', lunchCardUrl);
           setExistingLunchCard(lunchCardUrl);
-          console.log("Set lunch card");
-          setImage({ uri: lunchCardUrl });
+          setIsOnline(true);
+          
+          // Download and cache the actual image data
+          try {
+            const imageResponse = await fetch(lunchCardUrl);
+            if (imageResponse.ok) {
+              const blob = await imageResponse.blob();
+              const reader = new FileReader();
+              reader.onloadend = async () => {
+                const base64 = reader.result;
+                await AsyncStorage.setItem('lunchCardImage', base64);
+                console.log('Updated cached lunch card image');
+              };
+              reader.readAsDataURL(blob);
+              // Update with fresh image from network
+              setImage({ uri: lunchCardUrl });
+              setIsLocalCache(false);
+            }
+          } catch (imageError) {
+            console.log('Could not fetch fresh image:', imageError.message);
+            // Cached image already displayed, no need to error
+          }
         }
       } catch (error) {
-        console.error('Error fetching lunch card:', error);
+        console.error('Error loading lunch card:', error);
+        // Cached image should already be displayed as fallback
+        Alert.alert('No Image', 'No lunch card available. Please upload one.');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchLunchCard();
-  }, []);
+    loadLunchCard();
+  }, [user?.userprofile?.lunch_card]);
 
   console.log(user.userprofile);
 
@@ -199,6 +272,12 @@ const LunchCardScreen = () => {
 
       {/* Image Display */}
       <View style={styles.imageContainer}>
+        {!isOnline && (
+          <View style={styles.offlineIndicator}>
+            <Ionicons name="cloud-offline-outline" size={16} color="#666" />
+            <Text style={styles.offlineText}>Offline {isLocalCache && '(cached)'}</Text>
+          </View>
+        )}
         {loading ? (
           <ActivityIndicator size="large" color="#0A84FF" />
         ) : image ? (
@@ -223,11 +302,12 @@ const LunchCardScreen = () => {
           <GlassView glassEffectStyle="clear" style={styles.glassButton} isInteractive>
             <TouchableOpacity
               onPress={handleRetakePhoto}
-              style={styles.button}
+              style={[styles.button, !isOnline && styles.disabledButton]}
               disabled={uploading}
             >
-              <Ionicons name="image-outline" size={24} color="#000" />
-              <Text style={styles.buttonText}>Change Photo</Text>
+              <Ionicons name="image-outline" size={24} color={!isOnline ? '#999' : '#000'} />
+              <Text style={[styles.buttonText, !isOnline && styles.disabledButtonText]}>Change Photo</Text>
+              {!isOnline && <Text style={styles.disabledButtonHint}>(Offline)</Text>}
             </TouchableOpacity>
           </GlassView>
         </View>
@@ -449,6 +529,36 @@ const styles = StyleSheet.create({
     top: Platform.OS === 'ios' ? 60 : 40,
     right: 20,
     zIndex: 1,
+  },
+  offlineIndicator: {
+    position: 'absolute',
+    top: STATUS_BAR_HEIGHT + HEADER_HEIGHT + 10,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF9E6',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: '#FFE8B6',
+  },
+  offlineText: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '500',
+  },
+  disabledButton: {
+    opacity: 0.6,
+  },
+  disabledButtonText: {
+    color: '#999',
+  },
+  disabledButtonHint: {
+    fontSize: 11,
+    color: '#999',
+    fontStyle: 'italic',
   },
 });
 
