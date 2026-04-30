@@ -110,6 +110,16 @@ const SettingsScreen = () => {
     try {
       setAllowScheduleComparison(value);
       await updatePrivacyPreferences({ [preferenceKey]: value });
+      
+      // Refresh profile and update user context
+      const refreshedProfile = await getCurrentProfile();
+      await updateUser({
+        first_name: refreshedProfile?.first_name,
+        last_name: refreshedProfile?.last_name,
+        username: refreshedProfile?.username,
+        email: refreshedProfile?.email,
+        userprofile: refreshedProfile?.userprofile || {},
+      });
     } catch (error) {
       console.error('Error updating preference:', error);
       setAllowScheduleComparison(!value);
@@ -289,7 +299,7 @@ const SettingsScreen = () => {
                 <GlassContainer style={styles.glassCard} spacing={0}>
                   <GlassView style={styles.glassCardContent}>
                     <View style={styles.preferenceItem}>
-                      <Text style={styles.preferenceTitle}>Schedule Visibility</Text>
+                      <Text style={styles.preferenceTitle}>Allow schedule comparison</Text>
                       <Switch
                         value={allowScheduleComparison}
                         onValueChange={(value) => handleUpdatePreference('allow_schedule_comparison', value)}
@@ -306,7 +316,7 @@ const SettingsScreen = () => {
               ) : (
                 <View style={styles.regularCard}>
                   <View style={styles.preferenceItem}>
-                    <Text style={styles.preferenceTitle}>Schedule Visibility</Text>
+                    <Text style={styles.preferenceTitle}>Allow schedule comparison</Text>
                     <Switch
                       value={allowScheduleComparison}
                       onValueChange={(value) => handleUpdatePreference('allow_schedule_comparison', value)}

@@ -16,6 +16,19 @@ const CourseComparisonCard = ({ viewedProfile, currentProfile, isCurrentUser }) 
     return null;
   }
 
+  // Check if current user has enabled schedule comparison
+  const allowScheduleComparison = user?.userprofile?.allow_schedule_comparison;
+  
+  if (!allowScheduleComparison) {
+    return (
+      <View style={styles.restrictedContainer}>
+        <Text style={styles.restrictedText}>
+          You have schedule comparison disabled in your settings. Enable it to compare schedules with other users.
+        </Text>
+      </View>
+    );
+  }
+
   const getCourseNameFromBlock = (courseData) => {
     if (!courseData) return null;
     if (typeof courseData === 'string') return courseData;
@@ -338,6 +351,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#86efac',
+  },
+  restrictedContainer: {
+    borderRadius: 38,
+    marginTop: -65,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+    zIndex: 5,
+    backgroundColor: 'rgba(3, 12, 29, 0.6)',
+    paddingTop: 70,
+    paddingBottom: 10,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  restrictedText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#f8fafc',
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });
 
