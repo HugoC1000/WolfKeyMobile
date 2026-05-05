@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
   },
   container: {
     paddingTop: HEADER_HEIGHT,
-    paddingHorizontal: 16,
+    paddingHorizontal: 7,
   },
   headerSpacer: {
     height: HEADER_HEIGHT,
