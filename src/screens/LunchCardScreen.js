@@ -97,7 +97,7 @@ const LunchCardScreen = () => {
         reader.readAsDataURL(blob);
       });
 
-      await AsyncStorage.setItem('lunchCardImage', base64);
+      await AsyncStorage.setItem(`lunchCardImage_${user?.id}`, base64);
       setExistingLunchCard(lunchCardUrl);
       setImage({ uri: base64 });
       setIsLocalCache(true);
@@ -233,7 +233,7 @@ const LunchCardScreen = () => {
         setLoading(true);
 
         try {
-          const cachedImage = await AsyncStorage.getItem('lunchCardImage');
+          const cachedImage = await AsyncStorage.getItem(`lunchCardImage_${user?.id}`);
           if (cachedImage) {
             console.log('LunchCardScreen: lunch_card found locally (cached)');
             setImage({ uri: cachedImage });
