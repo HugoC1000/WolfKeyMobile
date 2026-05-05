@@ -26,14 +26,14 @@ import { useUser } from '../context/userContext';
 import * as Device from 'expo-device';
 import { triggerPressHaptic, triggerSuccessHaptic } from '../utils/haptics';
 
-const STATUS_BAR_HEIGHT = Platform.OS === 'ios' 
+const STATUS_BAR_HEIGHT = Platform.OS === 'ios'
   ? (Device.modelName === 'iPhone SE' ? 0 : 44)
   : StatusBar.currentHeight || 0;
 const HEADER_HEIGHT = 45;
 
 const LunchCardScreen = () => {
   const navigation = useNavigation();
-  const { user } = useUser();
+  const { user, updateUser } = useUser();
   const [image, setImage] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -42,7 +42,6 @@ const LunchCardScreen = () => {
   const [isOnline, setIsOnline] = useState(true);
   const [isLocalCache, setIsLocalCache] = useState(false);
 
-  // Gesture values
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
   const rotation = useSharedValue(0);
@@ -61,6 +60,51 @@ const LunchCardScreen = () => {
     translateY.value = withSpring(0);
     savedTranslateX.value = 0;
     savedTranslateY.value = 0;
+  };
+
+  const getCacheBustedUrl = (url) => {
+    if (!url) return url;
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}t=${Date.now()}`;
+  };
+
+  const syncLunchCardFromServer = async () => {
+    try {
+      const freshProfile = await getCurrentProfile();
+      const lunchCardPath = freshProfile?.userprofile?.lunch_card;
+      console.log('LunchCardScreen: lunch_card found from server', lunchCardPath ? 'found' : 'not found');
+
+      if (freshProfile?.userprofile && typeof updateUser === 'function') {
+        await updateUser({ userprofile: freshProfile.userprofile });
+      }
+
+      if (!lunchCardPath) return;
+
+      const lunchCardUrl = getFullImageUrl(lunchCardPath);
+      if (!lunchCardUrl) return;
+
+      const imageResponse = await fetch(getCacheBustedUrl(lunchCardUrl));
+      if (!imageResponse.ok) {
+        setIsOnline(false);
+        return;
+      }
+
+      const blob = await imageResponse.blob();
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+
+      await AsyncStorage.setItem('lunchCardImage', base64);
+      setExistingLunchCard(lunchCardUrl);
+      setImage({ uri: base64 });
+      setIsLocalCache(true);
+      setIsOnline(true);
+    } catch (error) {
+      setIsOnline(false);
+    }
   };
 
   const pickImage = async () => {
@@ -141,24 +185,8 @@ const LunchCardScreen = () => {
       };
 
       await uploadLunchCard(imageToUpload);
-      // Cache the actual image data locally
-      try {
-        const imageResponse = await fetch(imageData.uri);
-        if (imageResponse.ok) {
-          const blob = await imageResponse.blob();
-          const reader = new FileReader();
-          reader.onloadend = async () => {
-            const base64 = reader.result;
-            await AsyncStorage.setItem('lunchCardImage', base64);
-            console.log('Cached lunch card image after upload');
-          };
-          reader.readAsDataURL(blob);
-        }
-      } catch (cacheError) {
-        console.log('Could not cache uploaded image:', cacheError.message);
-      }
-      setIsLocalCache(false);
-      setIsOnline(true);
+      await syncLunchCardFromServer();
+
       await triggerSuccessHaptic();
       Alert.alert('Success', 'Lunch card uploaded successfully!', [
         {
@@ -168,7 +196,7 @@ const LunchCardScreen = () => {
     } catch (error) {
       console.error('Error uploading lunch card:', error);
       const errorStr = (error?.message || '').toLowerCase();
-      const isNetworkError = errorStr.includes('network') || 
+      const isNetworkError = errorStr.includes('network') ||
                             errorStr.includes('timeout') ||
                             errorStr.includes('enotfound') ||
                             errorStr.includes('econnrefused') ||
@@ -199,55 +227,25 @@ const LunchCardScreen = () => {
     navigation.goBack();
   };
 
-  // Load lunch card from user context on mount
   React.useEffect(() => {
     const loadLunchCard = async () => {
       try {
         setLoading(true);
-        
-        // First, preload cached image if available (instant UX)
+
         try {
           const cachedImage = await AsyncStorage.getItem('lunchCardImage');
           if (cachedImage) {
-            console.log('Preloaded lunch card from local cache');
+            console.log('LunchCardScreen: lunch_card found locally (cached)');
             setImage({ uri: cachedImage });
             setIsLocalCache(true);
           }
         } catch (cacheError) {
-          console.log('Could not preload cached image:', cacheError.message);
+          // Ignore cache read failures
         }
-        
-        // Then fetch fresh image from network in the background
-        if (user?.userprofile?.lunch_card) {
-          const lunchCardUrl = getFullImageUrl(user.userprofile.lunch_card);
-          console.log('Fetching fresh lunch card URL from context:', lunchCardUrl);
-          setExistingLunchCard(lunchCardUrl);
-          setIsOnline(true);
-          
-          // Download and cache the actual image data
-          try {
-            const imageResponse = await fetch(lunchCardUrl);
-            if (imageResponse.ok) {
-              const blob = await imageResponse.blob();
-              const reader = new FileReader();
-              reader.onloadend = async () => {
-                const base64 = reader.result;
-                await AsyncStorage.setItem('lunchCardImage', base64);
-                console.log('Updated cached lunch card image');
-              };
-              reader.readAsDataURL(blob);
-              // Update with fresh image from network
-              setImage({ uri: lunchCardUrl });
-              setIsLocalCache(false);
-            }
-          } catch (imageError) {
-            console.log('Could not fetch fresh image:', imageError.message);
-            // Cached image already displayed, no need to error
-          }
-        }
+
+        await syncLunchCardFromServer();
       } catch (error) {
         console.error('Error loading lunch card:', error);
-        // Cached image should already be displayed as fallback
         Alert.alert('No Image', 'No lunch card available. Please upload one.');
       } finally {
         setLoading(false);
@@ -255,22 +253,19 @@ const LunchCardScreen = () => {
     };
 
     loadLunchCard();
-  }, [user?.userprofile?.lunch_card]);
-
-  console.log(user.userprofile);
+  }, []);
 
   return (
     <View style={styles.container}>
-      <StatusBar 
-        translucent 
-        backgroundColor="transparent" 
-        barStyle="dark-content" 
+      <StatusBar
+        translucent
+        backgroundColor="transparent"
+        barStyle="dark-content"
       />
-      <BackgroundSvg hue={user.userprofile.background_hue} />
-      
+      <BackgroundSvg hue={user?.userprofile?.background_hue} />
+
       <SharedHeader title="Lunch Card" isHome={false} />
 
-      {/* Image Display */}
       <View style={styles.imageContainer}>
         {!isOnline && (
           <View style={styles.offlineIndicator}>
@@ -278,16 +273,25 @@ const LunchCardScreen = () => {
             <Text style={styles.offlineText}>Offline {isLocalCache && '(cached)'}</Text>
           </View>
         )}
-        {loading ? (
-          <ActivityIndicator size="large" color="#0A84FF" />
-        ) : image ? (
-          <TouchableOpacity 
-            onPress={() => setIsExpanded(true)} 
+        {image ? (
+          <TouchableOpacity
+            onPress={() => setIsExpanded(true)}
             activeOpacity={0.9}
             style={styles.imageTouchable}
           >
-            <Image source={image} style={styles.image} resizeMode="contain" />
+            <Image
+              source={image}
+              style={styles.image}
+              resizeMode="contain"
+            />
+            {loading && (
+              <View style={styles.imageLoadingOverlay} pointerEvents="none">
+                <ActivityIndicator size="large" color="#0A84FF" />
+              </View>
+            )}
           </TouchableOpacity>
+        ) : loading ? (
+          <ActivityIndicator size="large" color="#0A84FF" />
         ) : (
           <View style={styles.placeholderContainer}>
             <Ionicons name="images-outline" size={80} color="#999" />
@@ -296,7 +300,6 @@ const LunchCardScreen = () => {
         )}
       </View>
 
-      {/* Action Buttons */}
       {!loading && (
         <View style={styles.buttonContainer}>
           <GlassView glassEffectStyle="clear" style={styles.glassButton} isInteractive>
@@ -313,7 +316,6 @@ const LunchCardScreen = () => {
         </View>
       )}
 
-      {/* Loading Indicator */}
       {uploading && (
         <View style={styles.loadingOverlay}>
           <GlassView glassEffectStyle="regular" style={styles.loadingContainer}>
@@ -323,7 +325,6 @@ const LunchCardScreen = () => {
         </View>
       )}
 
-      {/* Expanded Image Modal */}
       <Modal
         visible={isExpanded}
         transparent={true}
@@ -336,7 +337,7 @@ const LunchCardScreen = () => {
         <GestureHandlerRootView style={styles.expandedContainer}>
           <StatusBar barStyle="light-content" />
           <View style={styles.expandedBackdrop}>
-            <ExpandedImageViewer 
+            <ExpandedImageViewer
               image={image}
               scale={scale}
               savedScale={savedScale}
@@ -358,17 +359,17 @@ const LunchCardScreen = () => {
   );
 };
 
-const ExpandedImageViewer = ({ 
-  image, 
-  scale, 
-  savedScale, 
-  rotation, 
+const ExpandedImageViewer = ({
+  image,
+  scale,
+  savedScale,
+  rotation,
   savedRotation,
   translateX,
   translateY,
   savedTranslateX,
   savedTranslateY,
-  onClose 
+  onClose,
 }) => {
   const pinchGesture = Gesture.Pinch()
     .onUpdate((e) => {
@@ -411,17 +412,14 @@ const ExpandedImageViewer = ({
     <>
       <GestureDetector gesture={composed}>
         <Animated.View style={[styles.imageWrapper, animatedStyle]}>
-          <Image 
-            source={image} 
-            style={styles.expandedImage} 
-            resizeMode="contain" 
+          <Image
+            source={image}
+            style={styles.expandedImage}
+            resizeMode="contain"
           />
         </Animated.View>
       </GestureDetector>
-      <TouchableOpacity 
-        style={styles.closeButton}
-        onPress={onClose}
-      >
+      <TouchableOpacity style={styles.closeButton} onPress={onClose}>
         <Ionicons name="close-circle" size={40} color="#fff" />
       </TouchableOpacity>
     </>

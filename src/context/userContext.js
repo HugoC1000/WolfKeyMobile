@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { authService } from '../api/authService';
 import { getAuthToken } from '../api/config';
+import { getCurrentProfile } from '../api/profileService';
 
 const UserContext = createContext(null);
 
@@ -22,7 +22,23 @@ export const UserProvider = ({ children }) => {
 
       if (savedUser && authToken) {
         const parsedUser = JSON.parse(savedUser);
-        setUser(parsedUser);
+
+        try {
+          const currentProfile = await getCurrentProfile();
+          const lunchCard = currentProfile?.userprofile?.lunch_card;
+          console.log('userContext.loadUser: lunch_card from server', lunchCard ? 'found' : 'not found');
+
+          const mergedUser = {
+            ...parsedUser,
+            ...currentProfile,
+            userprofile: currentProfile?.userprofile ?? parsedUser?.userprofile,
+          };
+
+          setUser(mergedUser);
+          await AsyncStorage.setItem('user', JSON.stringify(mergedUser));
+        } catch (profileErr) {
+          setUser(parsedUser);
+        }
       } else if (savedUser && !authToken) {
         await AsyncStorage.removeItem('user');
         setUser(null);
@@ -30,6 +46,7 @@ export const UserProvider = ({ children }) => {
         setUser(null);
       }
     } catch (err) {
+      console.error('userContext.loadUser error:', err);
       setUser(null);
     } finally {
       setLoading(false);
@@ -60,13 +77,15 @@ export const UserProvider = ({ children }) => {
         // Separate updates into top-level and userprofile updates
         const topLevelUpdates = {};
         const userprofileUpdates = {};
+        let replaceEntireUserprofile = false;
         
         Object.keys(updates).forEach(key => {
           if (userprofileFields.includes(key)) {
             userprofileUpdates[key] = updates[key];
           } else if (key === 'userprofile') {
-            // If userprofile object is passed directly, merge it
-            Object.assign(userprofileUpdates, updates[key]);
+            // If full userprofile is provided, replace it entirely
+            replaceEntireUserprofile = true;
+            Object.assign(userprofileUpdates, updates[key] || {});
           } else {
             topLevelUpdates[key] = updates[key];
           }
@@ -75,11 +94,14 @@ export const UserProvider = ({ children }) => {
         const updatedUser = {
           ...user,
           ...topLevelUpdates,
-          userprofile: {
-            ...user.userprofile,
-            ...userprofileUpdates
-          }
+          userprofile: replaceEntireUserprofile
+            ? userprofileUpdates
+            : {
+                ...user.userprofile,
+                ...userprofileUpdates,
+              },
         };
+
         setUser(updatedUser);
         await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
       }

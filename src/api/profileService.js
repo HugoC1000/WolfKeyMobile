@@ -45,7 +45,7 @@ export const getCurrentProfile = async () => {
     const response = await api.get('profile/');
     return transformProfileCourses(response.data);
   } catch (error) {
-    console.error('Error fetching current profile:', error);
+    console.error('Error fetching current profile:', error?.message || error);
     throw error;
   }
 };
