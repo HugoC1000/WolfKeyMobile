@@ -268,7 +268,10 @@ const ProfileCard = ({
       end={{ x: 1, y: 1 }}
       style={styles.container}
     >
-      {containerContent}    </LinearGradient>
+      <View>
+        {containerContent}
+      </View>
+    </LinearGradient>
   );
 };
 
