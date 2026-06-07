@@ -1,21 +1,50 @@
 import React from 'react';
-import { StyleSheet, Text, View, Image } from 'react-native';
+import { StyleSheet, Text, View, Image, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
 import EditorJsRenderer from './EditorJsRenderer';
 import { globalStyles } from '../utils/styles';
 import BackgroundSvg from '../components/BackgroundSVG';
 import { formatDateTime } from '../utils/timeUtils';
 import { getFullImageUrl } from '../api/config';
+import PollCard from './PollCard';
 
 
 
-const PostDetailCard = ({ post, isReference }) => {
-  console.log(post.author.userprofile)
+const PostDetailCard = ({
+  post,
+  isReference,
+  showPollWhenReference = false,
+  pollIsVotable = true,
+}) => {
+  const router = useRouter();
+  const detailPollData = post?.poll_data || {
+    poll_options: post?.poll_options,
+    poll_info: post?.poll_info,
+    user_vote: post?.user_vote,
+  };
+  const hasPollData = Array.isArray(detailPollData?.poll_options) && detailPollData.poll_options.length > 0;
+
+  // Navigate to author's profile
+  const handleAuthorPress = () => {
+    if (post.author?.username && !post.is_anonymous) {
+      router.push({
+        pathname: '/profile-screen',
+        params: { username: post.author.username },
+      });
+    }
+  };
+
   return (
     <View style={[styles.postCard, isReference && styles.referenceCard]}>
       {!isReference && (
-        <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.header}
+          onPress={handleAuthorPress}
+          activeOpacity={0.7}
+          disabled={post.is_anonymous}
+        >
           <View style={styles.authorInfo}>
-            {post.author.userprofile.profile_picture ? (
+            {post?.author?.userprofile?.profile_picture ? (
               <Image 
                 source={{ uri: getFullImageUrl(post.author.userprofile.profile_picture) }}
                 style={styles.profilePic}
@@ -23,19 +52,24 @@ const PostDetailCard = ({ post, isReference }) => {
             ) : (
               <View style={styles.profilePicPlaceholder} />
             )}
-            <View>
-              <Text style={styles.authorName}> {post.is_anonymous ? 'Anonymous' : post.author.full_name}</Text>
-              <Text style={styles.timestamp}>
-                {formatDateTime(post.created_at)}
-              </Text>
-            </View>
+            <Text style={styles.authorName}>{post.is_anonymous ? 'Anonymous' : post.author.full_name}</Text>
+            <Text style={styles.timestamp}>
+              {formatDateTime(post.created_at)}
+            </Text>
           </View>
-        </View>
+        </TouchableOpacity>
       )}
       <Text style={[styles.title, isReference && styles.referenceTitle]}>
         {post.title}
       </Text>
       <EditorJsRenderer blocks={post.content?.blocks} />
+      {hasPollData && (!isReference || showPollWhenReference) && (
+        <PollCard
+          postId={post.id}
+          pollData={detailPollData}
+          isVotable={pollIsVotable}
+        />
+      )}
     </View>
   );
 };
@@ -61,9 +95,9 @@ const styles = StyleSheet.create({
     color: '#1a1a1b',
   },
   timestamp: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#787c82',
-    marginTop: 2,
+    marginLeft: 8,
   },
   referenceCard: {
     marginTop: 0,

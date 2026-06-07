@@ -3,7 +3,6 @@ import { Platform } from 'react-native';
 import { NativeTabs, Icon, Label, Badge, VectorIcon } from 'expo-router/unstable-native-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../src/utils/constants';
-import { getUnreadCount } from '../../src/api/notificationService';
 import badgeManager from '../../src/utils/badgeManager';
 
 export default function TabsLayout() {
@@ -12,31 +11,18 @@ export default function TabsLayout() {
   const isIOS = Platform.OS === 'ios';
 
   useEffect(() => {
-    // Subscribe to badge manager updates
+    // Initialize badge manager which handles the initial sync and polling
+    badgeManager.initialize();
+    
+    // Subscribe to badge manager updates for UI
     const unsubscribe = badgeManager.subscribe((count) => {
       setUnreadCount(count);
     });
 
-    // Initial fetch
-    fetchUnreadCount();
-
-    // Poll for updates every 30 seconds (backup)
-    const interval = setInterval(fetchUnreadCount, 30000);
-
     return () => {
       unsubscribe();
-      clearInterval(interval);
     };
   }, []);
-
-  const fetchUnreadCount = async () => {
-    try {
-      const count = await getUnreadCount();
-      setUnreadCount(count);
-    } catch (error) {
-      console.error('Error fetching unread count:', error);
-    }
-  };
   return (
     <NativeTabs
       tintColor={COLORS.primary}
@@ -59,24 +45,6 @@ export default function TabsLayout() {
           android: <Icon src={<VectorIcon family={Ionicons} name="compass" />} />,
         })}
       </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="create-post">
-        <Label>Ask</Label>
-        {Platform.select({
-          ios: <Icon sf={{ default: 'plus.circle', selected: 'plus.circle.fill' }} />,
-          android: <Icon src={<VectorIcon family={Ionicons} name="add-circle" />} />,
-        })}
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="notifications-screen">
-        <Label>Notifications</Label>
-        <Badge hidden={unreadCount === 0}>{unreadCount > 0 ? String(unreadCount) : ''}</Badge>
-        {Platform.select({
-          ios: <Icon sf={{ default: 'bell', selected: 'bell.fill' }} />,
-          android: <Icon src={<VectorIcon family={Ionicons} name="notifications" />} />,
-        })}
-      </NativeTabs.Trigger>
-
       <NativeTabs.Trigger name="profile-screen">
         <Label>Profile</Label>
         {Platform.select({
@@ -84,6 +52,24 @@ export default function TabsLayout() {
           android: <Icon src={<VectorIcon family={Ionicons} name="person" />} />,
         })}
       </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="notifications-screen">
+        <Label>Alerts</Label>
+        <Badge hidden={unreadCount === 0}>{unreadCount > 0 ? String(unreadCount) : ''}</Badge>
+        {Platform.select({
+          ios: <Icon sf={{ default: 'bell', selected: 'bell.fill' }} />,
+          android: <Icon src={<VectorIcon family={Ionicons} name="notifications" />} />,
+        })}
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="volunteer-screen">
+        <Label>Volunteer</Label>
+        {Platform.select({
+          ios: <Icon sf={{ default: 'heart', selected: 'heart.fill' }} />,
+          android: <Icon src={<VectorIcon family={Ionicons} name="heart" />} />,
+        })}
+      </NativeTabs.Trigger>
+
     </NativeTabs>
   );
 }

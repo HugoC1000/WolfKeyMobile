@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   courseCard: {
   backgroundColor: 'white',
   borderRadius: 8,
-  padding: 12,
+  padding: 8,
   shadowColor: '#000',
   shadowOpacity: 0.2,
   shadowRadius: 3,
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: 4,
     paddingVertical: 4,
     borderRadius: 4,
     flex: 0.48,
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     color: 'white',
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '600',
   },
   emptyText: {

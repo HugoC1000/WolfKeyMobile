@@ -14,39 +14,42 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { GlassView, GlassContainer } from 'expo-glass-effect';
+import { triggerPressHaptic, triggerSuccessHaptic } from '../utils/haptics';
 
 const HEADER_HEIGHT = 45;
 const STATUS_BAR_HEIGHT =
   Platform.OS === 'ios'
     ? Device.modelName === 'iPhone SE'
       ? 0
-      : 44
+      : 50
     : StatusBar.currentHeight || 0;
 
 const TOTAL_HEADER_HEIGHT = HEADER_HEIGHT + STATUS_BAR_HEIGHT;
 
-const SharedHeader = ({ scrollY, isScrollingUp, title, isHome }) => {
+const SharedHeader = ({ scrollY, isScrollingUp, title, isHome, onSettingsPress, isSetting }) => {
   const navigation = useNavigation();
   const router = useRouter();
 
   return (
     <>
       {/* Header Content */}
-      <Animated.View style={[styles.headerContent,  ]}>
+      <Animated.View style={[styles.headerContent]}>
         <GlassContainer style={styles.headerContentContainer}>
           <GlassView
             glassEffectStyle="regular"
             style={styles.leftContent}
             isInteractive
+              tintColor='FFFFFF10'
+
           >
             {isHome ? (
-              <Image
-                source={require('../../assets/icon.png')}
-                style={{ width: 40, height: 40, borderRadius: 12 }}
-              />
+                <Image
+                  source={require('../../assets/light-icon.png')}
+                  style={{ width: 40, height: 40, borderRadius: 12 }}
+                />
             ) : (
               <TouchableOpacity  style = {{borderRadius: 999}} onPress={() => navigation.goBack()}>
-                <Ionicons name="chevron-back" size={32} color="#000" style = {{borderRadius: 999}}/>
+                <Ionicons name="chevron-back" size={32} color="#000"/>
               </TouchableOpacity>
             )}
           </GlassView>
@@ -65,10 +68,26 @@ const SharedHeader = ({ scrollY, isScrollingUp, title, isHome }) => {
               isInteractive
             >
               <TouchableOpacity 
-                style={{borderRadius: 999}} 
-                onPress={() => router.push('/lunch-card')}
+                onPress = {() => {
+                  void triggerPressHaptic();
+                  router.push('/lunch-card')
+                }}
               >
                 <MaterialIcons name="credit-card" size={28} color="#000" />
+              </TouchableOpacity>
+            </GlassView>
+          )}
+          {isSetting && (
+            <GlassView
+              glassEffectStyle="regular"
+              style={styles.rightContent}
+              tintColor='FFFFFF15'
+              isInteractive
+            >
+              <TouchableOpacity 
+                onPress={onSettingsPress}
+              >
+                <MaterialIcons name="settings" size={28} color="#000" />
               </TouchableOpacity>
             </GlassView>
           )}
@@ -107,18 +126,18 @@ const styles = StyleSheet.create({
     height: HEADER_HEIGHT,
   },
   leftContent: {
+    width: 46,
+    height: 46,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 999,
-    padding: 6,
-    overflow: 'hidden',
+    borderRadius: 24,
   },
   rightContent: {
+    width: 46,
+    height: 46,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 999,
-    padding: 6,
-    overflow: 'hidden',
+    borderRadius: 24,
     marginLeft: 'auto',
   },
   titleWrapper: {
@@ -133,7 +152,7 @@ const styles = StyleSheet.create({
     alignContent: 'center',
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 99,
+    borderRadius: 20,
     paddingVertical:  5,
     paddingHorizontal: 20,
   },

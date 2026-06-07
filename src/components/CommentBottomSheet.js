@@ -5,6 +5,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import EditorComponent from './EditorComponent';
 import { globalStyles } from '../utils/styles';
 import { createComment, editComment } from '../api/commentService';
+import { triggerPressHaptic, triggerSuccessHaptic } from '../utils/haptics';
 
 const CommentBottomSheet = ({ 
   isVisible, 
@@ -34,6 +35,8 @@ const CommentBottomSheet = ({
   }, []);
 
   const handleSubmit = async () => {
+    await triggerPressHaptic();
+
     if (!isContentValid()) {
       Alert.alert('Error', 'Please enter some content for your comment.');
       return;
@@ -60,6 +63,7 @@ const CommentBottomSheet = ({
         result = await createComment(solutionId, contentToSubmit, parentComment?.id);
       }
       
+      await triggerSuccessHaptic();
       onCommentSubmitted?.(result);
       setContent('');
       onClose();
@@ -75,6 +79,7 @@ const CommentBottomSheet = ({
   };
 
   const handleCancel = () => {
+    void triggerPressHaptic();
     setContent(editingComment?.content || '');
     onClose();
   };
@@ -164,13 +169,13 @@ const CommentBottomSheet = ({
             <View style={styles.headerLeft}>
               <Text style={styles.title}>{getTitle()}</Text>
               {parentComment && (
-                <Text style={styles.replyTo} numberOfLines={2}>
+                <Text style={styles.replyTo} numberOfLines={2} selectable={true}>
                   "{getParentCommentText()}"
                 </Text>
               )}
               {/* Show tap to expand hint when minimized */}
               {currentSnapIndex === 0 && (
-                <Text style={styles.expandHint}>Tap to expand</Text>
+                <Text style={styles.expandHint} selectable={true}>Tap to expand</Text>
               )}
             </View>
             <TouchableOpacity style={styles.closeButton} onPress={handleCancel}>

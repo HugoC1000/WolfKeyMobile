@@ -91,7 +91,7 @@ const TabNavigator = () => (
         headerLeft: () => (
           <View style={styles.fallbackCard}>
             <Image
-              source={require('./assets/icon.png')}
+              source={require('./assets/light-icon.png')}
               style={{ width: 42, height: 42, borderRadius: 16, marginLeft: 10, marginBottom: 10 }}
             />
           </View>

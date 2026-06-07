@@ -6,27 +6,35 @@ import { useUser } from '../context/userContext';
 import { likePost, unlikePost, followPost, unfollowPost } from '../api/postService';
 import { getFullImageUrl } from '../api/config';
 import { formatDateTime } from '../utils/timeUtils';
-
+import PollCard from './PollCard';
+import { TextWithLinks } from '../utils/linkParser';
 
 const PostCard = ({ post }) => {
   const router = useRouter();
   const { user } = useUser();
 
-  const [isLiked, setIsLiked] = useState(post.is_liked_by_user || false);
-  const [likeCount, setLikeCount] = useState(post.like_count || 0);
-  const [isFollowing, setIsFollowing] = useState(post.is_following || false);
-  const [followerCount, setFollowerCount] = useState(post.followers_count || 0);
+  const [isLiked, setIsLiked] = useState(Boolean(post.is_liked));
+  const [likeCount, setLikeCount] = useState(Number(post.like_count) || 0);
+  const [isFollowing, setIsFollowing] = useState(Boolean(post.is_following));
+  const [followerCount, setFollowerCount] = useState(Number(post.followers_count) || 0);
+
+  useEffect(() => {
+    setIsLiked(Boolean(post.is_liked));
+    setLikeCount(Number(post.like_count) || 0);
+    setIsFollowing(Boolean(post.is_following));
+    setFollowerCount(Number(post.followers_count) || 0);
+  }, [post]);
   
   const handleLike = async () => {
     try {
       if (isLiked) {
         const response = await unlikePost(post.id);
         setIsLiked(false);
-        setLikeCount(response.like_count);
+        setLikeCount(Number(response?.like_count ?? response?.data?.like_count ?? likeCount - 1) || 0);
       } else {
         const response = await likePost(post.id);
         setIsLiked(true);
-        setLikeCount(response.like_count);
+        setLikeCount(Number(response?.like_count ?? response?.data?.like_count ?? likeCount + 1) || 0);
       }
     } catch (error) {
       console.error('Error toggling like:', error);
@@ -39,11 +47,11 @@ const PostCard = ({ post }) => {
       if (isFollowing) {
         const response = await unfollowPost(post.id);
         setIsFollowing(false);
-        setFollowerCount(response.followers_count);
+        setFollowerCount(Number(response?.followers_count ?? response?.data?.followers_count ?? followerCount - 1) || 0);
       } else {
         const response = await followPost(post.id);
         setIsFollowing(true);
-        setFollowerCount(response.followers_count);
+        setFollowerCount(Number(response?.followers_count ?? response?.data?.followers_count ?? followerCount + 1) || 0);
       }
     } catch (error) {
       console.error('Error toggling follow:', error);
@@ -77,6 +85,16 @@ const PostCard = ({ post }) => {
     router.push(`/post-detail/${post.id}`);
   };
 
+  // Navigate to author's profile
+  const handleAuthorPress = () => {
+    if (post.author?.username) {
+      router.push({
+        pathname: '/profile-screen',
+        params: { username: post.author.username },
+      });
+    }
+  };
+
   return (
     <TouchableOpacity 
       onPress={handleCardPress}
@@ -93,27 +111,54 @@ const PostCard = ({ post }) => {
         {/* Author and Date Section */}
         <View style={styles.header}>
           <View style={styles.authorInfo}>
-            {post.author.userprofile.profile_picture ? (
-              <Image 
-                source={{ uri: getFullImageUrl(post.author.userprofile.profile_picture) }}
-                style={styles.profilePic}
-              />
+            {post.author?.username ? (
+              <TouchableOpacity
+                onPress={handleAuthorPress}
+                activeOpacity={0.7}
+                style={styles.authorClickable}
+              >
+                {post?.author?.userprofile?.profile_picture ? (
+                  <Image
+                    source={{ uri: getFullImageUrl(post.author.userprofile.profile_picture) }}
+                    style={styles.profilePic}
+                  />
+                ) : (
+                  <View style={styles.profilePicPlaceholder} />
+                )}
+              </TouchableOpacity>
             ) : (
-              <View style={styles.profilePicPlaceholder} />
+              <View style={styles.authorClickable}>
+                {post?.author?.userprofile?.profile_picture ? (
+                  <Image
+                    source={{ uri: getFullImageUrl(post.author.userprofile.profile_picture) }}
+                    style={styles.profilePic}
+                  />
+                ) : (
+                  <View style={styles.profilePicPlaceholder} />
+                )}
+              </View>
             )}
+
             <View style={styles.authorDetails}>
-              <Text style={styles.authorName}>
-                {post.author.full_name || 'Anonymous'}
-              </Text>
-              <Text style={styles.timestamp}>
-                {formatDateTime(post.created_at)}
-              </Text>
+              <View style={styles.authorNameRow}>
+                {post.author?.username ? (
+                  <TouchableOpacity onPress={handleAuthorPress} activeOpacity={0.7}>
+                    <Text style={styles.authorName}>{post.author.full_name || 'Anonymous'}</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <Text style={styles.authorName}>{post.author.full_name || 'Anonymous'}</Text>
+                )}
+                <Text style={styles.timestamp}>{formatDateTime(post.created_at)}</Text>
+              </View>
+              <Text style={styles.title}>{post.title}</Text>
+              {post.preview_text ? <TextWithLinks text={post.preview_text} style={styles.text} /> : null}
+
+              {post.poll_data && (
+                <PollCard postId={post.id} pollData={post.poll_data} />
+              )}
             </View>
           </View>
         </View>
-        
-        <Text style={styles.title}>{post.title}</Text>
-        {post.preview_text ? <Text style={styles.text}>{post.preview_text}</Text> : <View></View>}
         
         {/* First Image */}
         {post.first_image_url && (
@@ -210,12 +255,8 @@ const styles = StyleSheet.create({
   postCard: {
     backgroundColor: 'white',
     padding: 16,
-    marginBottom: 12,
+    marginBottom: 8,
     borderRadius: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
     position: 'relative',
   },
   highlightedCard: {
@@ -249,8 +290,14 @@ const styles = StyleSheet.create({
   },
   authorInfo: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     flex: 1,
+  },
+  authorClickable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingRight: 2,
+    paddingBottom: 2,
   },
   profilePic: {
     width: 35,
@@ -268,11 +315,15 @@ const styles = StyleSheet.create({
   authorDetails: {
     flex: 1,
   },
+  authorNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   authorName: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
     color: '#374151',
-    marginBottom: 2,
   },
   timestamp: {
     fontSize: 12,
@@ -281,12 +332,12 @@ const styles = StyleSheet.create({
   title: {
     fontWeight: '600',
     marginBottom: 8,
-    fontSize: 16,
+    fontSize: 15,
     color: '#1F2937',
     marginTop: 4,
   },
   text: {
-    fontSize: 14,
+    fontSize: 12,
     marginBottom: 8,
     color: '#4B5563',
     fontWeight: 400,

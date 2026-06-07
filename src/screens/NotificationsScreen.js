@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -14,40 +14,78 @@ import { router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { GlassView } from 'expo-glass-effect';
 import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';
-import { getNotifications, markAsRead, markAllAsRead } from '../api/notificationService';
+import { getNotifications, markAsRead, markAllAsRead, handleDeepLink } from '../api/notificationService';
 import { COLORS } from '../utils/constants';
 import { formatTime } from '../utils/timeUtils';
 import badgeManager from '../utils/badgeManager';
 
 const HEADER_HEIGHT = 45;
+const PAGE_SIZE = 10;
 
 
 const NotificationsScreen = () => {
   const [notifications, setNotifications] = useState([]);
+  const [page, setPage] = useState(1);
+  const [hasNext, setHasNext] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
+  const onEndReachedCalledDuringMomentum = useRef(false);
+  const initialLoadComplete = useRef(false);
+  const lastFetchTime = useRef(0);
 
-  const fetchNotifications = async (showLoading = true) => {
+  const fetchNotifications = async (pageNum = 1, shouldRefresh = false) => {
+    if ((pageNum > 1 && !hasNext) || loadingMore) return;
+
     try {
-      if (showLoading) setLoading(true);
+      if (shouldRefresh) {
+        setRefreshing(true);
+      } else if (pageNum === 1) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
+
       setError(null);
-      
-      const notifications = await getNotifications();
-      setNotifications(notifications);
+
+      const data = await getNotifications(pageNum, PAGE_SIZE);
+      const nextNotifications = Array.isArray(data?.notifications) ? data.notifications : [];
+
+      setNotifications((prev) =>
+        shouldRefresh || pageNum === 1 ? nextNotifications : [...prev, ...nextNotifications]
+      );
+      setHasNext(Boolean(data?.hasNext));
+      setPage(pageNum);
     } catch (error) {
       console.error('Error fetching notifications:', error);
       setError('Failed to load notifications');
-      setNotifications([]);
+      if (pageNum === 1) {
+        setNotifications([]);
+      }
     } finally {
-      if (showLoading) setLoading(false);
+      setLoading(false);
+      setLoadingMore(false);
+      setRefreshing(false);
+      if (pageNum === 1) {
+        initialLoadComplete.current = true;
+      }
     }
   };
 
   const handleRefresh = async () => {
-    setRefreshing(true);
-    await fetchNotifications(false);
-    setRefreshing(false);
+    await fetchNotifications(1, true);
+  };
+
+  const handleLoadMore = () => {
+    if (!onEndReachedCalledDuringMomentum.current) {
+      const now = Date.now();
+      if (initialLoadComplete.current && now - lastFetchTime.current > 300) {
+        lastFetchTime.current = now;
+        fetchNotifications(page + 1);
+      }
+      onEndReachedCalledDuringMomentum.current = true;
+    }
   };
 
   const handleMarkAsRead = async (notificationId) => {
@@ -92,38 +130,7 @@ const NotificationsScreen = () => {
 
     const deepLink = notification.deep_link;
     if (deepLink && deepLink.screen) {
-      try {
-        switch (deepLink.type) {
-          case 'post_detail':
-          case 'comment':
-          case 'solution_detail':
-            if (deepLink.params?.postId) {
-              router.push({
-                pathname: '/post-detail/[id]',
-                params: {
-                  id: deepLink.params.postId,
-                  commentId: deepLink.params.commentId || undefined,
-                  solutionId: deepLink.params.solutionId || undefined,
-                }
-              });
-            }
-            break;
-            
-          case 'profile':
-            if (deepLink.params?.username) {
-              router.push({
-                pathname: '/(tabs)/profile-screen',
-                params: { username: deepLink.params.username }
-              });
-            }
-            break;
-            
-          default:
-            console.log('Unhandled notification deep link:', deepLink);
-        }
-      } catch (error) {
-        console.error('Error navigating from notification:', error);
-      }
+      handleDeepLink(deepLink, router);
     }
   };
 
@@ -248,7 +255,7 @@ const NotificationsScreen = () => {
 
   useFocusEffect(
     useCallback(() => {
-      fetchNotifications();
+      fetchNotifications(1);
       badgeManager.syncWithServer();
     }, [])
   );
@@ -276,7 +283,7 @@ const NotificationsScreen = () => {
           <View style={styles.errorContainer}>
             <MaterialIcons name="error" size={48} color="#EF4444" />
             <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity style={styles.retryButton} onPress={fetchNotifications}>
+            <TouchableOpacity style={styles.retryButton} onPress={() => fetchNotifications(1)}>
               <Text style={styles.retryButtonText}>Try Again</Text>
             </TouchableOpacity>
           </View>
@@ -294,6 +301,18 @@ const NotificationsScreen = () => {
                 colors={[COLORS.primary]}
                 progressViewOffset={HEADER_HEIGHT + 70}
               />
+            }
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.1}
+            onMomentumScrollBegin={() => {
+              onEndReachedCalledDuringMomentum.current = false;
+            }}
+            ListFooterComponent={
+              loadingMore && hasNext ? (
+                <ActivityIndicator style={styles.loader} color={COLORS.primary} />
+              ) : (
+                <View style={{ height: 20 }} />
+              )
             }
             showsVerticalScrollIndicator={false}
             contentContainerStyle={safeNotifications.length === 0 ? styles.emptyList : styles.listContent}
@@ -314,6 +333,9 @@ const styles = StyleSheet.create({
   listContent: {
     paddingTop: HEADER_HEIGHT,
     paddingHorizontal: 0,
+  },
+  loader: {
+    marginVertical: 16,
   },
   loadingContainer: {
     flex: 1,

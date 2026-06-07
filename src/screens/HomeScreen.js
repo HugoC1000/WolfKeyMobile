@@ -1,27 +1,26 @@
-// HomeScreen.js
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   Animated,
-  FlatList,
   StyleSheet,
-  Image,
-  StatusBar,
   ActivityIndicator,
-  Platform,
   RefreshControl,
   AppState,
+  TouchableOpacity,
 } from 'react-native';
+import { router } from 'expo-router';
+import { MaterialIcons } from '@expo/vector-icons';
 import Schedule from '../components/ScheduleCard';
 import PostCard from '../components/PostCard';
 import api from '../api/config';
 import { getAuthToken, removeAuthToken } from '../api/config';
-import BackgroundSvg from '../components/BackgroundSVG';
 import { useUser } from '../context/userContext';
 import { useAuth } from '../context/authContext';
 import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';
-import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
+import { transformPostsArray } from '../api/postService';
+import { GlassContainer, GlassView } from 'expo-glass-effect';
+import { triggerPressHaptic } from '../utils/haptics';
 
 
 const HEADER_HEIGHT = 45; // Height of the header
@@ -36,10 +35,49 @@ const HomeScreen = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [authError, setAuthError] = useState(false);
+  const [fabState, setFabState] = useState({ open: false });
   const { user } = useUser();
   const { logout } = useAuth();
   const onEndReachedCalledDuringMomentum = useRef(false);
   const appStateRef = useRef(AppState.currentState);
+  const initialLoadComplete = useRef(false);
+  const lastFetchTime = useRef(0);
+  const fabRotation = useRef(new Animated.Value(0)).current;
+
+  const setFabOpen = useCallback((open) => {
+    setFabState({ open });
+    Animated.timing(fabRotation, {
+      toValue: open ? 1 : 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  }, [fabRotation]);
+
+  const fabIconRotate = fabRotation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '45deg'],
+  });
+
+  const fabActions = [
+    {
+      icon: 'help',
+      label: 'Create Post',
+      onPress: () => {
+        void triggerPressHaptic();
+        setFabOpen(false);
+        router.push('/create-post?type=standard');
+      },
+    },
+    {
+      icon: 'poll',
+      label: 'Create Poll',
+      onPress: () => {
+        void triggerPressHaptic();
+        setFabOpen(false);
+        router.push('/create-post?type=poll');
+      },
+    },
+  ];
 
   // Handle token expiration and authentication errors
   const handleAuthError = useCallback(async () => {
@@ -66,9 +104,6 @@ const HomeScreen = () => {
     try {
       // Check if user is authenticated before making request
       const token = await getAuthToken();
-      // console.log('HOME SCREEN: Fetching posts for page:', pageNum);
-      // console.log('HOME SCREEN: Auth token present:', !!token);
-      // console.log('HOME SCREEN: User ID:', user?.id);
       
       if (!token) {
         console.error('HOME SCREEN: No auth token found, cannot fetch posts');
@@ -79,8 +114,11 @@ const HomeScreen = () => {
       const res = await api.get(`all-posts/?page=${pageNum}&limit=${PAGE_SIZE}`);
       const data = res.data;
 
+      // Transform course data to Course instances
+      const transformedPosts = transformPostsArray(data.posts);
+
       setPosts(prev =>
-        shouldRefresh || pageNum === 1 ? data.posts : [...prev, ...data.posts]
+        shouldRefresh || pageNum === 1 ? transformedPosts : [...prev, ...transformedPosts]
       );
       setHasNext(data.has_next);
       setPage(pageNum);
@@ -96,6 +134,9 @@ const HomeScreen = () => {
       setLoading(false);
       setLoadingMore(false);
       setRefreshing(false);
+      if (pageNum === 1) {
+        initialLoadComplete.current = true;
+      }
     }
   }, [hasNext, loadingMore, authError, handleAuthError]);
 
@@ -115,27 +156,7 @@ const HomeScreen = () => {
     fetchPosts(1);
   }, [user?.id]);
 
-  useEffect(() => {
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
-    
-    return () => {
-      subscription?.remove();
-    };
-  }, [handleAppStateChange]);
-
-  const handleLoadMore = () => {
-    if (!onEndReachedCalledDuringMomentum.current) {
-      fetchPosts(page + 1);
-      onEndReachedCalledDuringMomentum.current = true;
-    }
-  };
-
-  const handleRefresh = () => {
-    fetchPosts(1, true);
-  };
-
   const handleAppStateChange = useCallback((nextAppState) => {
-    
     if (
       nextAppState === 'active' &&
       appStateRef.current !== 'active' &&
@@ -150,69 +171,134 @@ const HomeScreen = () => {
     appStateRef.current = nextAppState;
   }, [user, fetchPosts, loading, loadingMore, refreshing, authError]);
 
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+
+    return () => {
+      subscription?.remove();
+    };
+  }, [handleAppStateChange]);
+
+  const handleLoadMore = () => {
+    if (!onEndReachedCalledDuringMomentum.current) {
+      // Only load more if initial load is complete and debounce time has passed
+      const now = Date.now();
+      if (initialLoadComplete.current && now - lastFetchTime.current > 300) {
+        lastFetchTime.current = now;
+        fetchPosts(page + 1);
+      }
+      onEndReachedCalledDuringMomentum.current = true;
+    }
+  };
+
+  const handleRefresh = () => {
+    fetchPosts(1, true);
+  };
+
   const ListHeader = useCallback(() => {
-    const glassAvailable = isLiquidGlassAvailable();
-    
-    console.log('Glass Effect - Available:', glassAvailable);
-    
     return (
       <View>
         <View style={styles.headerSpacer} />
-        <View style={styles.greetingContainer}>
-          
-        </View>
         <View style={styles.scheduleContainer}>
           <Schedule key={user?.id} />
         </View>
       </View>
     );
-  }, [user?.first_name, user?.id]);
+  }, [user?.id]);
 
   return (
-    <View style={styles.rootContainer}>
-      <ScrollableScreenWrapper title="Home" isHome={true}>
-          <Animated.FlatList
-            data={posts}
-            renderItem={({ item }) => <PostCard post={item} />}
-            keyExtractor={(item) => item.id.toString()}
-            ListHeaderComponent={ListHeader}
-            contentContainerStyle={{ ...styles.container, flexGrow: 1 }}
-            onEndReached={handleLoadMore}
-            onEndReachedThreshold={0.5}
-            onMomentumScrollBegin={() => {
-              onEndReachedCalledDuringMomentum.current = false;
-            }}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={handleRefresh}
-                colors={['#4A90E2']}
-                tintColor="#4A90E2"
-                progressBackgroundColor="#ffffff"
-                progressViewOffset={HEADER_HEIGHT +70}
-              />
-            }
+    <>
+      <View style={styles.rootContainer}>
+        <ScrollableScreenWrapper title="Home" isHome={true}>
+            <Animated.FlatList
+              data={posts}
+              renderItem={({ item }) => <PostCard post={item} />}
+              keyExtractor={(item) => item.id.toString()}
+              ListHeaderComponent={ListHeader}
+              contentContainerStyle={{ ...styles.container, flexGrow: 1 }}
+              onEndReached={handleLoadMore}
+              onEndReachedThreshold={0.1}
+              onMomentumScrollBegin={() => {
+                onEndReachedCalledDuringMomentum.current = false;
+              }}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={handleRefresh}
+                  colors={['#4A90E2']}
+                  tintColor="#4A90E2"
+                  progressBackgroundColor="#ffffff"
+                  progressViewOffset={HEADER_HEIGHT +70}
+                />
+              }
 
-          ListFooterComponent={
-            loadingMore && hasNext ? (
-              <ActivityIndicator style={styles.loader} />
-            ) : (
-              <View style={{ height: 40 }} />
-            )
-          }
-          ListEmptyComponent={
-            !loading && posts.length === 0 ? (
-              <Text style={styles.emptyText}>
-                {authError 
-                  ? 'Session expired. Please login again.' 
-                  : 'No posts available'
-                }
-              </Text>
-            ) : null
-          }
+            ListFooterComponent={
+              loadingMore && hasNext ? (
+                <ActivityIndicator style={styles.loader} />
+              ) : (
+                <View style={{ height: 40 }} />
+              )
+            }
+            ListEmptyComponent={
+              !loading && posts.length === 0 ? (
+                <Text style={styles.emptyText}>
+                  {authError 
+                    ? 'Session expired. Please login again.' 
+                    : 'No posts available'
+                  }
+                </Text>
+              ) : null
+            }
+          />
+        </ScrollableScreenWrapper>
+      </View>
+      
+      {/* FAB Group with Glass Effect Container */}
+      {fabState.open && (
+        <TouchableOpacity
+          style={styles.fabBackdrop}
+          onPress={() => setFabOpen(false)}
         />
-      </ScrollableScreenWrapper>
-    </View>
+      )}
+
+      {fabState.open && (
+        <View style={styles.fabActionsStack}>
+          {fabActions.map((action, index) => (
+            <GlassContainer key={index} spacing={32} style={styles.fabActionPill}>
+              <GlassView style={styles.fabActionPillGlass} glassEffectStyle="regular" isInteractive>
+                <TouchableOpacity
+                  style={styles.fabAction}
+                  onPress={action.onPress}
+                >
+                  <MaterialIcons name={action.icon} size={20} />
+                  <Text style={styles.fabActionLabel}>{action.label}</Text>
+                </TouchableOpacity>
+              </GlassView>
+            </GlassContainer>
+          ))}
+        </View>
+      )}
+
+      <GlassContainer spacing={32} style={styles.fabButtonContainer}>
+        <GlassView style={styles.fabButtonGlass} glassEffectStyle="regular" isInteractive>
+          <TouchableOpacity
+            style={styles.fabButton}
+            onPress={() => {
+              void triggerPressHaptic();
+              setFabOpen(!fabState.open);
+            }}
+          >
+            <Animated.View style={{ transform: [{ rotate: fabIconRotate }] }}>
+              <MaterialIcons
+                name="add"
+                size={28}
+                color="#000000"
+              />
+            </Animated.View>
+          </TouchableOpacity>
+        </GlassView>
+      </GlassContainer>
+    </>
   );
 };
 
@@ -223,69 +309,10 @@ const styles = StyleSheet.create({
   },
   container: {
     paddingTop: HEADER_HEIGHT,
-    paddingHorizontal: 16,
-  },
-  header: {
-    height: HEADER_HEIGHT,
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    elevation: 5,
-    backgroundColor: "transparent"
-  },
-  headerWrapper: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    zIndex: 1000, 
+    paddingHorizontal: 9,
   },
   headerSpacer: {
     height: HEADER_HEIGHT,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    marginLeft: 10,
-  },
-  greetingContainer: {
-    marginBottom: 12,
-  },
-  greeting: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-  glassCard: {
-    padding: 16,
-    borderRadius: 24,
-    margin: 16,
-    minHeight: 80,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  glassText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
-  },
-  fallbackCard: {
-    padding: 16,
-    borderRadius: 24,
-    margin: 16,
-    backgroundColor: 'rgba(10, 132, 255, 0.1)',
-    minHeight: 80,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(10, 132, 255, 0.2)',
-  },
-  fallbackText: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-  },
-    marginTop: 10,
   },
   scheduleContainer: {
     marginBottom: 16,
@@ -297,6 +324,74 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 24,
     color: '#666',
+  },
+  fabBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 9998,
+  },
+  fabButtonContainer: {
+    position: 'absolute',
+    right: 20,
+    bottom: 100,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    zIndex: 9999,
+  },
+  fabActionsStack: {
+    position: 'absolute',
+    right: 20,
+    bottom: 170,
+    alignItems: 'flex-end',
+    zIndex: 9999,
+  },
+  fabActionPill: {
+    borderRadius: 999,
+    marginBottom: 8,
+    alignSelf: 'flex-end',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    zIndex: 9999,
+  },
+  fabActionPillGlass: {
+    borderRadius: 999,
+    alignSelf: 'flex-end',
+  },
+  fabAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    gap: 8,
+  },
+  fabButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 999,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fabButtonGlass: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+  },
+  fabActionLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1F2937',
   },
 });
 
