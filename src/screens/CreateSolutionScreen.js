@@ -5,6 +5,7 @@ import PostDetailCard from '../components/PostDetailCard';
 import EditorComponent from '../components/EditorComponent';
 import api from '../api/config';
 import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';
+import { triggerPressHaptic, triggerSuccessHaptic } from '../utils/haptics';
 
 const CreateSolutionScreen = () => {
   const params = useLocalSearchParams();
@@ -41,6 +42,8 @@ const CreateSolutionScreen = () => {
   };
 
   const handleSubmit = async () => {
+    await triggerPressHaptic();
+
     if (!solution) return;
     
     const hasContent = solution.blocks && solution.blocks.some(block => {
@@ -56,6 +59,7 @@ const CreateSolutionScreen = () => {
       await api.post(`/posts/${postId}/solutions/create/`, {
         content: solution
       });
+      await triggerSuccessHaptic();
       
       setSolution(null);
       if (clearEditor) {

@@ -9,6 +9,7 @@ import CourseSelector from '../components/CourseSelector';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import Course from '../models/Course';
+import { triggerPressHaptic, triggerSuccessHaptic } from '../utils/haptics';
 
 const CreatePostScreen = () => {
   const params = useLocalSearchParams();
@@ -68,6 +69,8 @@ const CreatePostScreen = () => {
   };
 
   const handleSubmit = async () => {
+    await triggerPressHaptic();
+
     if (!content || !title) return;
     const isPoll = postType === 'poll';
     let nonEmptyOptions = [];
@@ -116,6 +119,8 @@ const CreatePostScreen = () => {
       }
 
       if (response.status === 201) {
+        await triggerSuccessHaptic();
+
         // Clear all form fields
         setTitle('');
         setContent(null);
@@ -204,8 +209,6 @@ const CreatePostScreen = () => {
                   <Switch
                     value={allowMultiple}
                     onValueChange={setAllowMultiple}
-                    trackColor={{ false: '#6B7280', true: '#9ba0e2ff' }}
-                    thumbColor={allowMultiple ? '#2563EB' : '#f4f3f4'}
                     style={styles.switch}
                   />
                   <Text style={styles.anonLabel}>Allow Multiple Options</Text>
@@ -215,8 +218,6 @@ const CreatePostScreen = () => {
                   <Switch
                     value={isPublicVoting}
                     onValueChange={setIsPublicVoting}
-                    trackColor={{ false: '#6B7280', true: '#9ba0e2ff' }}
-                    thumbColor={isPublicVoting ? '#2563EB' : '#f4f3f4'}
                     style={styles.switch}
                   />
                   <Text style={styles.anonLabel}>Public Voting (show voter profiles)</Text>
@@ -254,8 +255,6 @@ const CreatePostScreen = () => {
           <Switch
             value={allowTeacher}
             onValueChange={setAllowTeacher}
-            trackColor={{ false: '#6B7280', true: '#9ba0e2ff' }}
-            thumbColor={allowTeacher ? '#2563EB' : '#f4f3f4'}
             style={styles.switch}
           />
           <Text style={styles.anonLabel}>Teacher visible</Text>
@@ -265,8 +264,6 @@ const CreatePostScreen = () => {
           <Switch
             value={isAnonymous}
             onValueChange={setIsAnonymous}
-            trackColor={{ false: '#6B7280', true: '#9ba0e2ff' }}
-            thumbColor={isAnonymous ? '#2563EB' : '#f4f3f4'}
             style={styles.switch}
           />
           <Text style={styles.anonLabel}>Post as anonymous</Text>

@@ -14,18 +14,19 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { GlassView, GlassContainer } from 'expo-glass-effect';
+import { triggerPressHaptic, triggerSuccessHaptic } from '../utils/haptics';
 
 const HEADER_HEIGHT = 45;
 const STATUS_BAR_HEIGHT =
   Platform.OS === 'ios'
     ? Device.modelName === 'iPhone SE'
       ? 0
-      : 44
+      : 50
     : StatusBar.currentHeight || 0;
 
 const TOTAL_HEADER_HEIGHT = HEADER_HEIGHT + STATUS_BAR_HEIGHT;
 
-const SharedHeader = ({ scrollY, isScrollingUp, title, isHome }) => {
+const SharedHeader = ({ scrollY, isScrollingUp, title, isHome, onSettingsPress, isSetting }) => {
   const navigation = useNavigation();
   const router = useRouter();
 
@@ -38,6 +39,8 @@ const SharedHeader = ({ scrollY, isScrollingUp, title, isHome }) => {
             glassEffectStyle="regular"
             style={styles.leftContent}
             isInteractive
+              tintColor='FFFFFF10'
+
           >
             {isHome ? (
                 <Image
@@ -65,9 +68,26 @@ const SharedHeader = ({ scrollY, isScrollingUp, title, isHome }) => {
               isInteractive
             >
               <TouchableOpacity 
-                onPress={() => router.push('/lunch-card')}
+                onPress = {() => {
+                  void triggerPressHaptic();
+                  router.push('/lunch-card')
+                }}
               >
                 <MaterialIcons name="credit-card" size={28} color="#000" />
+              </TouchableOpacity>
+            </GlassView>
+          )}
+          {isSetting && (
+            <GlassView
+              glassEffectStyle="regular"
+              style={styles.rightContent}
+              tintColor='FFFFFF15'
+              isInteractive
+            >
+              <TouchableOpacity 
+                onPress={onSettingsPress}
+              >
+                <MaterialIcons name="settings" size={28} color="#000" />
               </TouchableOpacity>
             </GlassView>
           )}

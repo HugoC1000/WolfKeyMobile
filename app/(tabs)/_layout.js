@@ -54,7 +54,7 @@ export default function TabsLayout() {
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="notifications-screen">
-        <Label>Notifications</Label>
+        <Label>Alerts</Label>
         <Badge hidden={unreadCount === 0}>{unreadCount > 0 ? String(unreadCount) : ''}</Badge>
         {Platform.select({
           ios: <Icon sf={{ default: 'bell', selected: 'bell.fill' }} />,

@@ -20,6 +20,7 @@ import { useAuth } from '../context/authContext';
 import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';
 import { transformPostsArray } from '../api/postService';
 import { GlassContainer, GlassView } from 'expo-glass-effect';
+import { triggerPressHaptic } from '../utils/haptics';
 
 
 const HEADER_HEIGHT = 45; // Height of the header
@@ -39,6 +40,8 @@ const HomeScreen = () => {
   const { logout } = useAuth();
   const onEndReachedCalledDuringMomentum = useRef(false);
   const appStateRef = useRef(AppState.currentState);
+  const initialLoadComplete = useRef(false);
+  const lastFetchTime = useRef(0);
   const fabRotation = useRef(new Animated.Value(0)).current;
 
   const setFabOpen = useCallback((open) => {
@@ -60,6 +63,7 @@ const HomeScreen = () => {
       icon: 'help',
       label: 'Create Post',
       onPress: () => {
+        void triggerPressHaptic();
         setFabOpen(false);
         router.push('/create-post?type=standard');
       },
@@ -68,6 +72,7 @@ const HomeScreen = () => {
       icon: 'poll',
       label: 'Create Poll',
       onPress: () => {
+        void triggerPressHaptic();
         setFabOpen(false);
         router.push('/create-post?type=poll');
       },
@@ -129,6 +134,9 @@ const HomeScreen = () => {
       setLoading(false);
       setLoadingMore(false);
       setRefreshing(false);
+      if (pageNum === 1) {
+        initialLoadComplete.current = true;
+      }
     }
   }, [hasNext, loadingMore, authError, handleAuthError]);
 
@@ -173,7 +181,12 @@ const HomeScreen = () => {
 
   const handleLoadMore = () => {
     if (!onEndReachedCalledDuringMomentum.current) {
-      fetchPosts(page + 1);
+      // Only load more if initial load is complete and debounce time has passed
+      const now = Date.now();
+      if (initialLoadComplete.current && now - lastFetchTime.current > 300) {
+        lastFetchTime.current = now;
+        fetchPosts(page + 1);
+      }
       onEndReachedCalledDuringMomentum.current = true;
     }
   };
@@ -270,7 +283,10 @@ const HomeScreen = () => {
         <GlassView style={styles.fabButtonGlass} glassEffectStyle="regular" isInteractive>
           <TouchableOpacity
             style={styles.fabButton}
-            onPress={() => setFabOpen(!fabState.open)}
+            onPress={() => {
+              void triggerPressHaptic();
+              setFabOpen(!fabState.open);
+            }}
           >
             <Animated.View style={{ transform: [{ rotate: fabIconRotate }] }}>
               <MaterialIcons
@@ -293,7 +309,7 @@ const styles = StyleSheet.create({
   },
   container: {
     paddingTop: HEADER_HEIGHT,
-    paddingHorizontal: 16,
+    paddingHorizontal: 9,
   },
   headerSpacer: {
     height: HEADER_HEIGHT,

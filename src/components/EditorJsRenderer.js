@@ -2,22 +2,10 @@ import React from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
 import { globalStyles } from '../utils/styles';
 import { getFullImageUrl } from '../api/config';
+import { TextWithLinks } from '../utils/linkParser';
 
 const EditorJsRenderer = ({ blocks }) => {
   if (!blocks) return null;
-
-  // Helper function to strip HTML tags and decode entities
-  const stripHtmlAndDecode = (text) => {
-    if (!text) return '';
-    return text
-      .replace(/<[^>]*>/g, '') // Remove HTML tags
-      .replace(/&nbsp;/g, ' ') // Replace &nbsp; with regular space
-      .replace(/&amp;/g, '&') // Replace &amp; with &
-      .replace(/&lt;/g, '<') // Replace &lt; with <
-      .replace(/&gt;/g, '>') // Replace &gt; with >
-      .replace(/&quot;/g, '"') // Replace &quot; with "
-      .replace(/&#39;/g, "'"); // Replace &#39; with '
-  };
 
   const renderBlock = (block, index) => {
     const key = block.id || `block-${index}`;
@@ -25,23 +13,24 @@ const EditorJsRenderer = ({ blocks }) => {
     switch (block.type) {
       case 'paragraph':
         return (
-          <Text key={key} style={styles.paragraph}>
-            {stripHtmlAndDecode(block.data.text)}
-          </Text>
+          <TextWithLinks 
+            key={key} 
+            text={block.data.text}
+            style={styles.paragraph}
+          />
         );
 
       case 'header':
         return (
-          <Text 
+          <TextWithLinks 
             key={key} 
+            text={block.data.text}
             style={[
               styles.header,
               block.data.level === 2 && styles.headerTwo,
               block.data.level === 3 && styles.headerThree
             ]}
-          >
-            {stripHtmlAndDecode(block.data.text)}
-          </Text>
+          />
         );
 
       case 'list':
@@ -49,12 +38,13 @@ const EditorJsRenderer = ({ blocks }) => {
           <View key={key} style={styles.list}>
             {block.data.items.map((item, index) => (
               <View key={index} style={styles.listItem}>
-                <Text style={styles.bullet}>
+                <Text style={styles.bullet} selectable={true}>
                   {block.data.style === 'ordered' ? `${index + 1}.` : '•'}
                 </Text>
-                <Text style={styles.listItemText}>
-                  {typeof item === 'string' ? item : item.content}
-                </Text>
+                <TextWithLinks 
+                  text={typeof item === 'string' ? item : item.content}
+                  style={styles.listItemText}
+                />
               </View>
             ))}
           </View>
@@ -71,7 +61,7 @@ const EditorJsRenderer = ({ blocks }) => {
               resizeMode="contain"
             />
             {block.data.caption && (
-              <Text style={styles.imageCaption}>{block.data.caption}</Text>
+              <Text style={styles.imageCaption} selectable={true}>{block.data.caption}</Text>
             )}
           </View>
         );
@@ -79,9 +69,9 @@ const EditorJsRenderer = ({ blocks }) => {
       case 'code':
         return (
           <View key={key} style={styles.codeContainer}>
-            <Text style={styles.codeText}>{block.data.code}</Text>
+            <Text style={styles.codeText} selectable={true}>{block.data.code}</Text>
             {block.data.language && (
-              <Text style={styles.codeLanguage}>{block.data.language}</Text>
+              <Text style={styles.codeLanguage} selectable={true}>{block.data.language}</Text>
             )}
           </View>
         );
@@ -89,7 +79,7 @@ const EditorJsRenderer = ({ blocks }) => {
       case 'math':
         return (
           <View key={key} style={styles.mathContainer}>
-            <Text style={styles.mathText}>{block.data.content}</Text>
+            <Text style={styles.mathText} selectable={true}>{block.data.content}</Text>
           </View>
         );
 

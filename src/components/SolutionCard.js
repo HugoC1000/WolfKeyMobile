@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, Alert } from 'react-native';
+import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import EditorJsRenderer from './EditorJsRenderer';
 import { globalStyles } from '../utils/styles';
@@ -18,6 +19,7 @@ const SolutionCard = ({
   onRefresh,
   onCommentAction
 }) => {
+  const router = useRouter();
   const { user } = useUser();
   const [votes, setVotes] = useState(solution.upvotes - solution.downvotes);
   const [userVote, setUserVote] = useState(solution.user_vote || 0);
@@ -27,6 +29,16 @@ const SolutionCard = ({
   useEffect(() => {
     setIsAccepted(solution.is_accepted || initialIsAccepted || false);
   }, [solution.is_accepted, initialIsAccepted]);
+
+  // Navigate to author's profile
+  const handleAuthorPress = () => {
+    if (solution.author?.username) {
+      router.push({
+        pathname: '/profile-screen',
+        params: { username: solution.author.username },
+      });
+    }
+  };
 
   const handleVote = async (voteType) => {
     try {
@@ -135,25 +147,50 @@ const SolutionCard = ({
       styles.container,
       isAccepted && styles.acceptedContainer
     ]}>
-      <View style={styles.header}>
-        <View style={styles.authorInfo}>
-          {solution.author.userprofile.profile_picture ? (
-            <Image 
-              source={{ uri:  getFullImageUrl(solution.author.userprofile.profile_picture) }}
-              style={styles.profilePic}
-            />
-          ) : (
-            <View style={styles.profilePicPlaceholder} />
-          )}
-          <View style={styles.authorMeta}>
-            <Text style={styles.author}>{solution.author.full_name}</Text>
-            <Text style={styles.date}>
-              {formatDateTime(solution.created_at)}
-            </Text>
+        <View style={styles.header}>
+          <View style={styles.authorInfo}>
+            {solution.author?.username ? (
+              <TouchableOpacity
+                onPress={handleAuthorPress}
+                activeOpacity={0.7}
+                style={styles.authorClickable}
+              >
+                {solution.author.userprofile.profile_picture ? (
+                  <Image
+                    source={{ uri: getFullImageUrl(solution.author.userprofile.profile_picture) }}
+                    style={styles.profilePic}
+                  />
+                ) : (
+                  <View style={styles.profilePicPlaceholder} />
+                )}
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.authorClickable}>
+                {solution.author.userprofile.profile_picture ? (
+                  <Image
+                    source={{ uri: getFullImageUrl(solution.author.userprofile.profile_picture) }}
+                    style={styles.profilePic}
+                  />
+                ) : (
+                  <View style={styles.profilePicPlaceholder} />
+                )}
+              </View>
+            )}
+
+            <View style={styles.authorMeta}>
+              {solution.author?.username ? (
+                <TouchableOpacity onPress={handleAuthorPress} activeOpacity={0.7}>
+                  <Text style={styles.author}>{solution.author.full_name}</Text>
+                </TouchableOpacity>
+              ) : (
+                <Text style={styles.author}>{solution.author.full_name}</Text>
+              )}
+              <Text style={styles.date}>{formatDateTime(solution.created_at)}</Text>
+            </View>
           </View>
         </View>
-      </View>
 
+      {/* Solution content */}
       <View style={styles.content}>
         <EditorJsRenderer blocks={solution.content?.blocks} />
       </View>
@@ -234,14 +271,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   profilePic: {
-    width: 24,
-    height: 24,
+    width: 26,
+    height: 26,
     borderRadius: 12,
     marginRight: 6,
   },
   profilePicPlaceholder: {
-    width: 24,
-    height: 24,
+    width: 26,
+    height: 26,
     borderRadius: 12,
     marginRight: 6,
     backgroundColor: '#DDD6FE',
@@ -249,6 +286,12 @@ const styles = StyleSheet.create({
   authorMeta: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  authorClickable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingRight: 2,
+    paddingBottom: 2,
   },
   author: {
     fontSize: 13,

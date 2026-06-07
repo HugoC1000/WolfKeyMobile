@@ -106,12 +106,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   input: {
-    backgroundColor: 'white',
-    padding: 15,
-    borderRadius: 10,
+    backgroundColor: '#F2F2F2',
+    padding: 14,
+    borderRadius: 14,
     marginBottom: 15,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderWidth: 0,
   },
   inputDisabled: {
     opacity: 0.7,
@@ -146,7 +145,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   registerLink: {
-    color: '#4648abff',
+    color: 'rgb(255, 255, 255)',
     fontSize: 16,
     fontWeight: 'bold',
   },

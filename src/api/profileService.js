@@ -45,7 +45,7 @@ export const getCurrentProfile = async () => {
     const response = await api.get('profile/');
     return transformProfileCourses(response.data);
   } catch (error) {
-    console.error('Error fetching current profile:', error);
+    console.error('Error fetching current profile:', error?.message || error);
     throw error;
   }
 };
@@ -179,5 +179,18 @@ export const uploadLunchCard = async (imageData) => {
   } catch (error) {
     console.error('Error uploading lunch card:', error);
     throw error;
+  }
+};
+
+// Search users by username or full name
+export const searchUsers = async (query) => {
+  try {
+    const response = await api.get('search-users/', {
+      params: { query }
+    });
+    return response.data.users || [];
+  } catch (error) {
+    console.error('Error searching users:', error);
+    return [];
   }
 };
