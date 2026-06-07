@@ -1,16 +1,22 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { View, TextInput, StyleSheet, TouchableOpacity, Image, Text, Alert } from 'react-native';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { View, TextInput, StyleSheet, TouchableOpacity, Image, Text, Alert, FlatList, Pressable } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { MaterialIcons } from '@expo/vector-icons';
 import { globalStyles } from '../utils/styles';
 import api from '../api/config';
 import { getFullImageUrl } from '../api/config';
+import { flattenMentionSuggestions, searchMentionSuggestions } from '../api/mentionService';
 
 
 const EditorComponent = ({ onSave, initialContent = '', placeholder = 'Write your content here...' }) => {
   const [content, setContent] = useState('');
   const [blocks, setBlocks] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [selection, setSelection] = useState({ start: 0, end: 0 });
+  const [activeMention, setActiveMention] = useState(null);
+  const [mentionResults, setMentionResults] = useState([]);
+  const [isSearchingMentions, setIsSearchingMentions] = useState(false);
+  const mentionRequestId = useRef(0);
 
   // Parse initialContent when component mounts or initialContent changes
   useEffect(() => {
@@ -18,6 +24,7 @@ const EditorComponent = ({ onSave, initialContent = '', placeholder = 'Write you
       if (typeof initialContent === 'string') {
         // If it's a string, use it directly
         setContent(initialContent);
+        setSelection({ start: initialContent.length, end: initialContent.length });
       } else if (initialContent.blocks && Array.isArray(initialContent.blocks)) {
         // If it's EditorJS format, parse it
         const textBlocks = [];
@@ -38,6 +45,8 @@ const EditorComponent = ({ onSave, initialContent = '', placeholder = 'Write you
         
         setContent(textBlocks.join('\n'));
         setBlocks(imageBlocks);
+                const initialText = textBlocks.join('\n');
+                setSelection({ start: initialText.length, end: initialText.length });
       }
     }
   }, [initialContent]);
@@ -46,6 +55,156 @@ const EditorComponent = ({ onSave, initialContent = '', placeholder = 'Write you
   useEffect(() => {
     updateContent(blocks, false);
   }, [content, blocks]);
+
+  const mentionLabel = useCallback((item) => {
+    if (!item) return '';
+
+    if (item.type === 'everyone') {
+      return '@everyone';
+    }
+
+    if (item.type === 'course') {
+      return `@${item.name || ''}`.trim();
+    }
+
+    return `@${item.username || ''}`.trim();
+  }, []);
+
+  const mentionSubtitle = useCallback((item) => {
+    if (!item) return '';
+
+    if (item.type === 'everyone') {
+      return 'Notify everyone';
+    }
+
+    if (item.type === 'course') {
+      return item.category || 'Course';
+    }
+
+    return item.full_name || item.username || 'User';
+  }, []);
+
+  const resolveMentionContext = useCallback((text, cursorPosition) => {
+    if (typeof text !== 'string' || !text.length) {
+      return null;
+    }
+
+    const cursor = Math.max(0, Math.min(cursorPosition ?? text.length, text.length));
+    const textBeforeCursor = text.slice(0, cursor);
+    const match = textBeforeCursor.match(/(^|\s)@([^\s@]*)$/);
+
+    if (!match) {
+      return null;
+    }
+
+    const fullMatch = match[0] || '';
+    const query = match[2] || '';
+    const triggerStart = cursor - fullMatch.length + (match[1] ? match[1].length : 0);
+
+    return {
+      query,
+      start: Math.max(0, triggerStart),
+      end: cursor,
+    };
+  }, []);
+
+  useEffect(() => {
+    const context = resolveMentionContext(content, selection.end);
+    setActiveMention(context);
+  }, [content, selection, resolveMentionContext]);
+
+  useEffect(() => {
+    if (!activeMention || !activeMention.query.trim()) {
+      setMentionResults([]);
+      setIsSearchingMentions(false);
+      return undefined;
+    }
+
+    let isActive = true;
+    const query = activeMention.query.trim();
+
+    const timeoutId = setTimeout(async () => {
+      const requestId = mentionRequestId.current + 1;
+      mentionRequestId.current = requestId;
+      setIsSearchingMentions(true);
+
+      try {
+        const response = await searchMentionSuggestions(query, 5);
+        if (isActive && requestId === mentionRequestId.current) {
+          setMentionResults(flattenMentionSuggestions(response));
+        }
+      } catch (error) {
+        if (isActive && requestId === mentionRequestId.current) {
+          setMentionResults([]);
+        }
+        console.error('Mention autocomplete error:', error);
+      } finally {
+        if (isActive && requestId === mentionRequestId.current) {
+          setIsSearchingMentions(false);
+        }
+      }
+    }, 250);
+
+    return () => {
+      isActive = false;
+      clearTimeout(timeoutId);
+    };
+  }, [activeMention]);
+
+  const handleSelectMention = useCallback((item) => {
+    if (!activeMention) return;
+
+    const replacementText = mentionLabel(item);
+
+    if (!replacementText) return;
+
+    const nextText = `${content.slice(0, activeMention.start)}${replacementText} ${content.slice(activeMention.end)}`;
+    const nextCursor = activeMention.start + replacementText.length + 1;
+
+    setContent(nextText);
+    setSelection({ start: nextCursor, end: nextCursor });
+    setMentionResults([]);
+    setIsSearchingMentions(false);
+  }, [activeMention, content, mentionLabel]);
+
+  const renderMentionItem = useCallback(({ item }) => {
+    const iconName = item.type === 'course' ? 'school' : item.type === 'everyone' ? 'campaign' : 'person';
+    const displayName = (() => {
+      if (item.type === 'course') return item.name || item.full_name || item.username || '';
+      if (item.type === 'everyone') return '@everyone';
+      const first = item.first_name || '';
+      const last = item.last_name || '';
+      const combined = `${first} ${last}`.trim();
+      if (combined) return combined;
+      return item.full_name || item.username || '';
+    })();
+
+    return (
+      <Pressable
+        style={({ pressed }) => [
+          styles.mentionItem,
+          pressed && styles.mentionItemPressed,
+        ]}
+        onPress={() => handleSelectMention(item)}
+      >
+        <View style={styles.mentionIconWrap}>
+          <MaterialIcons name={iconName} size={18} color="#2563EB" />
+        </View>
+        <View style={styles.mentionTextWrap}>
+          <Text style={styles.mentionLabel}>{displayName}</Text>
+        </View>
+        <Text style={styles.mentionType}>{item.group}</Text>
+      </Pressable>
+    );
+  }, [handleSelectMention, mentionLabel, mentionSubtitle]);
+
+  const mentionResultsEmptyLabel = useMemo(() => {
+    if (!activeMention?.query?.trim()) {
+      return 'Start typing to search mentions';
+    }
+
+    return `No matches for "${activeMention.query.trim()}"`;
+  }, [activeMention]);
 
   const uploadImage = async (imageUri) => {
     try {
@@ -239,6 +398,11 @@ const EditorComponent = ({ onSave, initialContent = '', placeholder = 'Write you
   
   const handleContentChange = (text) => {
     setContent(text);
+    const nextSelection = selection.end > text.length
+      ? { start: text.length, end: text.length }
+      : selection;
+    const context = resolveMentionContext(text, nextSelection.end);
+    setActiveMention(context);
   };
 
   const handleSubmit = () => {
@@ -263,10 +427,32 @@ const EditorComponent = ({ onSave, initialContent = '', placeholder = 'Write you
         multiline
         value={content}
         onChangeText={handleContentChange}
+        onSelectionChange={(event) => setSelection(event.nativeEvent.selection)}
+        selection={selection}
         onBlur={handleSubmit} 
         placeholder={placeholder}
         textAlignVertical="top"
       />
+
+      {activeMention && (mentionResults.length > 0 || isSearchingMentions) && (
+        <View style={styles.mentionSuggestionsContainer}>
+            {isSearchingMentions ? (
+              <Text style={styles.mentionLoadingText}>Searching suggestions...</Text>
+            ) : (
+              <View>
+                {mentionResults.length > 0 ? (
+                  mentionResults.map((item) => (
+                    <React.Fragment key={`${item.type}-${item.id ?? item.username ?? item.name ?? item.full_name}`}>
+                      {renderMentionItem({ item })}
+                    </React.Fragment>
+                  ))
+                ) : (
+                  <Text style={styles.mentionEmptyText}>{mentionResultsEmptyLabel}</Text>
+                )}
+              </View>
+            )}
+          </View>
+      )}
       
       {blocks.map((block, index) => (
         block.type === 'image' && (
@@ -301,10 +487,98 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 6,
+    position: 'relative',
   },
   editor: {
     ...globalStyles.regularText,
     minHeight: 40,
+  },
+  mentionSuggestionsContainer: {
+    position: 'absolute',
+    top: 44,
+    left: 12,
+    width: 320,
+    maxHeight: 200,
+    zIndex: 999,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 8,
+    overflow: 'hidden',
+  },
+  mentionSuggestionsHeader: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  mentionSuggestionsTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  mentionSuggestionsHint: {
+    fontSize: 11,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  mentionLoadingText: {
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+    color: '#6B7280',
+    fontSize: 13,
+  },
+  mentionEmptyText: {
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+    color: '#6B7280',
+    fontSize: 13,
+  },
+  mentionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEF2F7',
+    backgroundColor: '#FFFFFF',
+  },
+  mentionItemPressed: {
+    backgroundColor: '#F3F4F6',
+  },
+  mentionIconWrap: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#EFF6FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  mentionTextWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
+  mentionLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  mentionSubtitle: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  mentionType: {
+    fontSize: 11,
+    color: '#2563EB',
+    fontWeight: '600',
+    marginLeft: 8,
   },
   imageContainer: {
     marginVertical: 8,
