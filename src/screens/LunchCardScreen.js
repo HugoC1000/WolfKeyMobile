@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -12,10 +12,11 @@ import {
   Modal,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Brightness from 'expo-brightness';
 import * as ImagePicker from 'expo-image-picker';
 import { GlassView } from 'expo-glass-effect';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { GestureHandlerRootView, GestureDetector, Gesture } from 'react-native-gesture-handler';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import BackgroundSvg from '../components/BackgroundSVG';
@@ -41,6 +42,8 @@ const LunchCardScreen = () => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
   const [isLocalCache, setIsLocalCache] = useState(false);
+  const previousBrightnessRef = useRef(null);
+  const brightnessAppliedRef = useRef(false);
 
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
@@ -226,6 +229,48 @@ const LunchCardScreen = () => {
   const handleGoBack = () => {
     navigation.goBack();
   };
+
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+
+      const boostBrightness = async () => {
+        if (Platform.OS === 'web') {
+          return;
+        }
+
+        try {
+          const currentBrightness = await Brightness.getBrightnessAsync();
+          if (!isActive) {
+            return;
+          }
+
+          previousBrightnessRef.current = currentBrightness;
+          await Brightness.setBrightnessAsync(1);
+          brightnessAppliedRef.current = true;
+        } catch (error) {
+          console.warn('LunchCardScreen: failed to adjust brightness', error);
+        }
+      };
+
+      void boostBrightness();
+
+      return () => {
+        isActive = false;
+
+        if (
+          brightnessAppliedRef.current &&
+          previousBrightnessRef.current !== null &&
+          Platform.OS !== 'web'
+        ) {
+          void Brightness.setBrightnessAsync(previousBrightnessRef.current);
+        }
+
+        brightnessAppliedRef.current = false;
+        previousBrightnessRef.current = null;
+      };
+    }, [])
+  );
 
   React.useEffect(() => {
     const loadLunchCard = async () => {
@@ -434,7 +479,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 5,
     paddingTop: STATUS_BAR_HEIGHT + HEADER_HEIGHT + 20,
     paddingBottom: 20,
   },
