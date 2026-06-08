@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { Text, Linking, Alert } from 'react-native';
+import { useRouter } from 'expo-router';
 
 /**
  * Decodes HTML entities in text
@@ -14,6 +15,53 @@ const decodeHtmlEntities = (text) => {
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
     .replace(/&apos;/g, "'");
+};
+
+const pushTextParts = (parts, text) => {
+  if (!text) return;
+
+  const mentionRegex = /(^|[^\w@])(@[A-Za-z0-9_.-]+)/g;
+  let lastIndex = 0;
+  let match;
+
+  while ((match = mentionRegex.exec(text)) !== null) {
+    const prefix = match[1] || '';
+    const mention = match[2];
+
+    if (match.index > lastIndex) {
+      const plainText = text.substring(lastIndex, match.index);
+      if (plainText.length > 0) {
+        parts.push({
+          type: 'text',
+          content: plainText,
+        });
+      }
+    }
+
+    if (prefix) {
+      parts.push({
+        type: 'text',
+        content: prefix,
+      });
+    }
+
+    parts.push({
+      type: 'mention',
+      content: mention,
+    });
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < text.length) {
+    const remainingText = text.substring(lastIndex);
+    if (remainingText.length > 0) {
+      parts.push({
+        type: 'text',
+        content: remainingText,
+      });
+    }
+  }
 };
 
 /**
@@ -71,13 +119,7 @@ export const parseHtmlWithLinks = (htmlText) => {
     if (match.index > lastIndex) {
       const textBefore = htmlText.substring(lastIndex, match.index);
       const decodedText = decodeHtmlEntities(textBefore);
-      // Keep text if it has any non-whitespace content
-      if (decodedText.trim().length > 0) {
-        parts.push({
-          type: 'text',
-          content: decodedText,
-        });
-      }
+      pushTextParts(parts, decodedText);
     }
 
     // Add the link
@@ -94,13 +136,7 @@ export const parseHtmlWithLinks = (htmlText) => {
   if (lastIndex < htmlText.length) {
     const remainingText = htmlText.substring(lastIndex);
     const decodedText = decodeHtmlEntities(remainingText);
-    // Keep text if it has any non-whitespace content
-    if (decodedText.trim().length > 0) {
-      parts.push({
-        type: 'text',
-        content: decodedText,
-      });
-    }
+    pushTextParts(parts, decodedText);
   }
 
   return parts.length > 0 ? parts : null;
@@ -113,6 +149,17 @@ export const parseHtmlWithLinks = (htmlText) => {
 export const TextWithLinks = React.memo(({ text, style, linkStyle, ...props }) => {
   // Memoize parsing to avoid recalculation on every render
   const parts = useMemo(() => parseHtmlWithLinks(text), [text]);
+  const router = useRouter();
+
+  const handleMentionPress = (mention) => {
+    const username = (mention || '').replace(/^@/, '').trim();
+
+    if (!username || username.toLowerCase() === 'everyone') {
+      return;
+    }
+
+    router.push({ pathname: '/profile-screen', params: { username } });
+  };
 
   // If no links found, return plain text with HTML entities decoded
   if (!parts) {
@@ -123,6 +170,14 @@ export const TextWithLinks = React.memo(({ text, style, linkStyle, ...props }) =
   const defaultLinkStyle = {
     color: '#007AFF',
     textDecorationLine: 'underline',
+  };
+
+  const getMentionStyle = (mention) => {
+    if ((mention || '').toLowerCase() === '@everyone') {
+      return styles.everyoneMentionText;
+    }
+
+    return styles.mentionText;
   };
 
   return (
@@ -141,6 +196,19 @@ export const TextWithLinks = React.memo(({ text, style, linkStyle, ...props }) =
             </Text>
           );
         }
+        if (part.type === 'mention') {
+          return (
+            <Text
+              key={index}
+              style={[defaultLinkStyle, linkStyle, getMentionStyle(part.content)]}
+              onPress={() => handleMentionPress(part.content)}
+              suppressHighlighting={false}
+              selectable={true}
+            >
+              {part.content}
+            </Text>
+          );
+        }
         return (
           <Text key={index} selectable={true}>
             {part.content}
@@ -152,5 +220,15 @@ export const TextWithLinks = React.memo(({ text, style, linkStyle, ...props }) =
 });
 
 TextWithLinks.displayName = 'TextWithLinks';
+
+const styles = {
+  mentionText: {
+    fontWeight: '600',
+  },
+  everyoneMentionText: {
+    fontWeight: '600',
+    textDecorationLine: 'none',
+  },
+};
 
 export default TextWithLinks;
