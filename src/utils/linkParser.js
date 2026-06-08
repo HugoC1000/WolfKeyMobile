@@ -20,7 +20,7 @@ const decodeHtmlEntities = (text) => {
 const pushTextParts = (parts, text) => {
   if (!text) return;
 
-  const mentionRegex = /(^|[^\w@])(@[A-Za-z0-9_.-]+)/g;
+  const mentionRegex = /(^|[^\w@#])([@#][A-Za-z0-9_.-]+)/g;
   let lastIndex = 0;
   let match;
 
@@ -152,13 +152,23 @@ export const TextWithLinks = React.memo(({ text, style, linkStyle, ...props }) =
   const router = useRouter();
 
   const handleMentionPress = (mention) => {
-    const username = (mention || '').replace(/^@/, '').trim();
+    const token = (mention || '').trim();
+    const value = token.replace(/^[@#]/, '').trim();
 
-    if (!username || username.toLowerCase() === 'everyone') {
+    if (!value) {
       return;
     }
 
-    router.push({ pathname: '/profile-screen', params: { username } });
+    if (token.startsWith('#')) {
+      router.push({ pathname: '/subjects', params: { course: value } });
+      return;
+    }
+
+    if (value.toLowerCase() === 'everyone') {
+      return;
+    }
+
+    router.push({ pathname: '/profile-screen', params: { username: value } });
   };
 
   // If no links found, return plain text with HTML entities decoded

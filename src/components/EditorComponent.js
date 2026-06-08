@@ -64,7 +64,7 @@ const EditorComponent = ({ onSave, initialContent = '', placeholder = 'Write you
     }
 
     if (item.type === 'course') {
-      return `@${item.name || ''}`.trim();
+      return `#${item.name || ''}`.trim();
     }
 
     return `@${item.username || ''}`.trim();
@@ -91,17 +91,19 @@ const EditorComponent = ({ onSave, initialContent = '', placeholder = 'Write you
 
     const cursor = Math.max(0, Math.min(cursorPosition ?? text.length, text.length));
     const textBeforeCursor = text.slice(0, cursor);
-    const match = textBeforeCursor.match(/(^|\s)@([^\s@]*)$/);
+    const match = textBeforeCursor.match(/(^|\s)([@#])([^\s@#]*)$/);
 
     if (!match) {
       return null;
     }
 
     const fullMatch = match[0] || '';
-    const query = match[2] || '';
+    const trigger = match[2] || '@';
+    const query = match[3] || '';
     const triggerStart = cursor - fullMatch.length + (match[1] ? match[1].length : 0);
 
     return {
+      trigger,
       query,
       start: Math.max(0, triggerStart),
       end: cursor,
@@ -131,7 +133,12 @@ const EditorComponent = ({ onSave, initialContent = '', placeholder = 'Write you
       try {
         const response = await searchMentionSuggestions(query, 5);
         if (isActive && requestId === mentionRequestId.current) {
-          setMentionResults(flattenMentionSuggestions(response));
+          const flattenedResults = flattenMentionSuggestions(response);
+          const filteredResults = activeMention?.trigger === '#'
+            ? flattenedResults.filter((item) => item.type === 'course')
+            : flattenedResults.filter((item) => item.type !== 'course');
+
+          setMentionResults(filteredResults);
         }
       } catch (error) {
         if (isActive && requestId === mentionRequestId.current) {
