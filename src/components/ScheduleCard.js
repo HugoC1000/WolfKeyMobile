@@ -10,6 +10,7 @@ import {
   Modal,
   AppState,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Calendar } from 'react-native-calendars';
 import { MaterialIcons } from '@expo/vector-icons';
 import { scheduleService } from '../api/scheduleService';
@@ -17,6 +18,7 @@ import { useUser } from '../context/userContext';
 import { useFocusEffect } from '@react-navigation/native';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
+const getScheduleCacheKey = (userId) => `scheduleCache_${userId || 'guest'}`;
 
 const Schedule = () => {
   const { user } = useUser();
@@ -38,6 +40,32 @@ const Schedule = () => {
   const lastFetchDate = useRef(new Date().toDateString());
   const isFetching = useRef({});
   const initialLoadDone = useRef(false);
+
+  const persistScheduleCache = useCallback(async (nextCache) => {
+    try {
+      await AsyncStorage.setItem(getScheduleCacheKey(user?.id), JSON.stringify(nextCache));
+    } catch (error) {
+      console.error('Failed to persist schedule cache:', error);
+    }
+  }, [user?.id]);
+
+  const hydrateScheduleCache = useCallback(async () => {
+    try {
+      const savedCache = await AsyncStorage.getItem(getScheduleCacheKey(user?.id));
+      if (!savedCache) return;
+
+      const parsedCache = JSON.parse(savedCache);
+      if (parsedCache && typeof parsedCache === 'object') {
+        setScheduleCache(parsedCache);
+      }
+    } catch (error) {
+      console.error('Failed to load schedule cache:', error);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    hydrateScheduleCache();
+  }, [hydrateScheduleCache]);
 
   const recenterScroll = useCallback(() => {
     scrollViewRef.current?.scrollTo({ x: SCREEN_WIDTH, animated: false });
@@ -83,10 +111,7 @@ const Schedule = () => {
       return;
     }
 
-    // Check if already cached
-    if (scheduleCache[offset]) {
-      return;
-    }
+    const cachedSchedule = scheduleCache[offset];
 
     isFetching.current[offset] = true;
 
@@ -96,7 +121,11 @@ const Schedule = () => {
           blocks: [{ block: 'Please log in to view schedule', time: null }],
           uniformRequired: false,
         };
-        setScheduleCache(prev => ({ ...prev, [offset]: schedule }));
+        setScheduleCache(prev => {
+          const nextCache = { ...prev, [offset]: schedule };
+          void persistScheduleCache(nextCache);
+          return nextCache;
+        });
         isFetching.current[offset] = false;
         return;
       }
@@ -119,14 +148,24 @@ const Schedule = () => {
         lateStart: combinedData.late_start || false,
       };
 
-      setScheduleCache(prev => ({ ...prev, [offset]: schedule }));
+      setScheduleCache(prev => {
+        const nextCache = { ...prev, [offset]: schedule };
+        void persistScheduleCache(nextCache);
+        return nextCache;
+      });
     } catch (error) {
       console.error('Schedule fetch failed:', error);
-      const schedule = {
-        blocks: [{ block: 'Error loading schedule', time: null }],
-        uniformRequired: false,
-      };
-      setScheduleCache(prev => ({ ...prev, [offset]: schedule }));
+      if (!cachedSchedule) {
+        const schedule = {
+          blocks: [{ block: 'Error loading schedule', time: null }],
+          uniformRequired: false,
+        };
+        setScheduleCache(prev => {
+          const nextCache = { ...prev, [offset]: schedule };
+          void persistScheduleCache(nextCache);
+          return nextCache;
+        });
+      }
     } finally {
       isFetching.current[offset] = false;
     }
@@ -187,6 +226,7 @@ const Schedule = () => {
           setCurrentDayOffset(0);
           setScheduleCache({});
           isFetching.current = {};
+          void AsyncStorage.removeItem(getScheduleCacheKey(user?.id));
         }
       }
     };
@@ -228,10 +268,6 @@ const Schedule = () => {
 
     setTimeout(recenterScroll, 50);
   };
-
-  if (loading) {
-    return <ActivityIndicator size="large" color="#6366F1" style={{ marginTop: 32 }} />;
-  }
 
   const renderSchedulePage = (offset) => {
     const schedule = scheduleCache[offset] || {
