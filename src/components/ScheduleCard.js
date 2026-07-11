@@ -15,7 +15,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { scheduleService } from '../api/scheduleService';
 import { useUser } from '../context/userContext';
 import { useFocusEffect } from '@react-navigation/native';
-import { triggerSelectionHaptic } from '../utils/haptics';
+import { triggerPressHaptic, triggerSelectionHaptic } from '../utils/haptics';
 
 const getScheduleCacheKey = (userId) => `scheduleCache_${userId || 'guest'}`;
 const MAX_PERSISTED_DAY_OFFSET = 7;
@@ -410,7 +410,10 @@ const Schedule = () => {
               </TouchableOpacity>
             )}
             <TouchableOpacity
-              onPress={() => fetchScheduleForOffset(offset, true)}
+              onPress={() => {
+                void triggerPressHaptic();
+                void fetchScheduleForOffset(offset, true);
+              }}
               style={styles.calendarButton}
               accessibilityRole="button"
               accessibilityLabel="Refresh schedule"
