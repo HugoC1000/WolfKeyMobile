@@ -13,6 +13,16 @@ export const triggerPressHaptic = async () => {
   }
 };
 
+export const triggerSelectionHaptic = async () => {
+  if (!supportsHaptics) return;
+
+  try {
+    await Haptics.selectionAsync();
+  } catch (error) {
+    // Ignore haptics errors so gestures are never interrupted.
+  }
+};
+
 export const triggerSuccessHaptic = async () => {
   if (!supportsHaptics) return;
 

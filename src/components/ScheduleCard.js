@@ -15,6 +15,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { scheduleService } from '../api/scheduleService';
 import { useUser } from '../context/userContext';
 import { useFocusEffect } from '@react-navigation/native';
+import { triggerSelectionHaptic } from '../utils/haptics';
 
 const getScheduleCacheKey = (userId) => `scheduleCache_${userId || 'guest'}`;
 const MAX_PERSISTED_DAY_OFFSET = 7;
@@ -330,8 +331,10 @@ const Schedule = () => {
     const threshold = pageWidth / 3;
 
     if (deltaFromCenter <= -threshold) {
+      void triggerSelectionHaptic();
       navigateBy(-1);
     } else if (deltaFromCenter >= threshold) {
+      void triggerSelectionHaptic();
       navigateBy(1);
     } else if (Math.abs(deltaFromCenter) > 1) {
       // Minor movement; snap back to center if user didn't cross the threshold
