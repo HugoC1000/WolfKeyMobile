@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import PostCard from '../components/PostCard';
 import SearchBarCard from '../components/SearchBarCard';
 import api from '../api/config';
@@ -20,15 +20,15 @@ import { transformPostsArray } from '../api/postService';
 const PAGE_SIZE = 10;
 
 const ExploreScreen = () => {
+  const { focusSearch } = useLocalSearchParams();
   const [posts, setPosts] = useState([]);
   const [page, setPage] = useState(1);
   const [hasNext, setHasNext] = useState(true);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
-  const [searchTimeout, setSearchTimeout] = useState(null);
+  const searchTimeout = useRef(null);
   const onEndReachedCalledDuringMomentum = useRef(false);
   const initialLoadComplete = useRef(false);
   const lastFetchTime = useRef(0);
@@ -81,27 +81,24 @@ const ExploreScreen = () => {
   };
 
   const handleSearchUsers = (query) => {
-    setSearchQuery(query);
-    
-    // Clear previous timeout
-    if (searchTimeout) {
-      clearTimeout(searchTimeout);
+    clearTimeout(searchTimeout.current);
+
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
     }
 
-    // Set new timeout for debounced search
-    if (query.trim()) {
-      const timeout = setTimeout(async () => {
-        const results = await searchUsers(query);
-        setSearchResults(results);
-      }, 300);
-      setSearchTimeout(timeout);
-    } else {
-      setSearchResults([]);
-    }
+    searchTimeout.current = setTimeout(async () => {
+      try {
+        setSearchResults(await searchUsers(query));
+      } catch (error) {
+        console.error('Error searching users:', error);
+        setSearchResults([]);
+      }
+    }, 300);
   };
 
   const handleUserResultPress = (username) => {
-    setSearchQuery('');
     setSearchResults([]);
     router.push({ pathname: '/users/[username]', params: { username } });
   };
@@ -109,6 +106,8 @@ const ExploreScreen = () => {
   // Fetch posts when component mounts
   useEffect(() => {
     fetchPosts(1);
+
+    return () => clearTimeout(searchTimeout.current);
   }, []);
 
   return (
@@ -127,6 +126,7 @@ const ExploreScreen = () => {
                   searchResults={searchResults}
                   onSearch={handleSearchUsers}
                   onResultPress={handleUserResultPress}
+                  focusRequestKey={focusSearch}
                 />
               </View>
             </>

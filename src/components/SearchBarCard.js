@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useCallback, useState, useRef } from 'react';
 import {
   View,
   TextInput,
@@ -10,11 +10,20 @@ import {
   Pressable,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { getFullImageUrl } from '../api/config';
 
-const SearchBarCard = ({ profileHue, searchResults, onSearch, onResultPress }) => {
+const SearchBarCard = ({ profileHue, searchResults, onSearch, onResultPress, focusRequestKey }) => {
   const [isFocused, setIsFocused] = useState(false);
   const textInputRef = useRef(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (focusRequestKey) {
+        textInputRef.current?.focus();
+      }
+    }, [focusRequestKey])
+  );
 
   const handleResultPress = (username) => {
     // Call the parent handler

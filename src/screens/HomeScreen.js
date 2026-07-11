@@ -297,6 +297,26 @@ const HomeScreen = () => {
           </TouchableOpacity>
         </GlassView>
       </GlassContainer>
+
+      <GlassContainer spacing={32} style={styles.searchButtonContainer}>
+        <GlassView style={styles.fabButtonGlass} glassEffectStyle="regular" isInteractive>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Search"
+            style={styles.fabButton}
+            onPress={() => {
+              void triggerPressHaptic();
+              setFabOpen(false);
+              router.push({
+                pathname: '/(tabs)/explore',
+                params: { focusSearch: Date.now().toString() },
+              });
+            }}
+          >
+            <MaterialIcons name="search" size={28} color="#000000" />
+          </TouchableOpacity>
+        </GlassView>
+      </GlassContainer>
     </>
   );
 };
@@ -347,6 +367,20 @@ const styles = StyleSheet.create({
     right: 20,
     bottom: 170,
     alignItems: 'flex-end',
+    zIndex: 9999,
+  },
+  searchButtonContainer: {
+    position: 'absolute',
+    left: 20,
+    bottom: 100,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
     zIndex: 9999,
   },
   fabActionPill: {
