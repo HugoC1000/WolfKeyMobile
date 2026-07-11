@@ -16,6 +16,7 @@ import SolutionCard from '../components/SolutionCard';
 import CommentBottomSheet from '../components/CommentBottomSheet';
 import api from '../api/config';
 import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';
+import ScreenHeaderSpacer from '../components/ScreenHeaderSpacer';
 import BackgroundSvg from '../components/BackgroundSVG';
 import { useUser } from '../context/userContext';
 import { markNotificationsByPost } from '../api/notificationService';
@@ -166,6 +167,7 @@ const PostDetailScreen = () => {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
+          <ScreenHeaderSpacer includeSafeArea={false} />
           {post && (
             <>
               <PostDetailCard post={post} />
@@ -193,7 +195,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingVertical: 16,
+    paddingBottom: 16,
     paddingHorizontal: 16,
   },
   loadingContainer: {

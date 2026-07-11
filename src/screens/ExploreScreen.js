@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   container: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 9,
     flexGrow: 1,
   },
   exploreTitle: {

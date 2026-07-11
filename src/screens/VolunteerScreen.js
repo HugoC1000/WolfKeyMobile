@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   Alert,
 } from 'react-native';
 import { router } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, SHADOWS } from '../utils/constants';
 import volunteerService from '../api/volunteerService';
@@ -28,14 +29,11 @@ const VolunteerScreen = () => {
   const [resources, setResources] = useState([]);
   const [currentPin, setCurrentPin] = useState(null);
   const [nextPin, setNextPin] = useState(null);
+  const hasLoadedVolunteerData = useRef(false);
   const { user } = useUser();
   
 
-  useEffect(() => {
-    fetchVolunteerData();
-  }, []);
-
-  const fetchVolunteerData = async () => {
+  const fetchVolunteerData = useCallback(async () => {
     try {
       const [hoursData, milestonesData, resourcesData] = await Promise.all([
         volunteerService.getVolunteerHours(),
@@ -62,6 +60,7 @@ const VolunteerScreen = () => {
       // Use current and next pin from API response
       setCurrentPin(hoursData.current_pin || null);
       setNextPin(hoursData.next_pin || null);
+      hasLoadedVolunteerData.current = true;
     } catch (error) {
       console.error('Error fetching volunteer data:', error);
       Alert.alert('Error', 'Failed to load volunteer data. Please try again.');
@@ -69,7 +68,15 @@ const VolunteerScreen = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!hasLoadedVolunteerData.current) {
+        fetchVolunteerData();
+      }
+    }, [fetchVolunteerData])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -339,7 +346,7 @@ const styles = StyleSheet.create({
   },
   topCardsRow: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
+    paddingHorizontal: 9,
     paddingTop: 8,
     gap: 12,
   },
@@ -378,7 +385,7 @@ const styles = StyleSheet.create({
   },
   quickActionsContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
+    paddingHorizontal: 9,
     paddingVertical: 12,
     gap: 12,
   },
@@ -406,7 +413,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     borderRadius: 16,
     padding: 16,
-    marginHorizontal: 16,
+    marginHorizontal: 9,
     marginTop: 16,
     ...SHADOWS.small,
   },
@@ -453,7 +460,7 @@ const styles = StyleSheet.create({
   },
   section: {
     marginTop: 12,
-    marginHorizontal: 16,
+    marginHorizontal: 9,
   },
   sectionHeader: {
     flexDirection: 'row',

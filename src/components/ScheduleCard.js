@@ -1,14 +1,13 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useLayoutEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ActivityIndicator,
-  Dimensions,
   ScrollView,
   TouchableOpacity,
   Modal,
   AppState,
+  Animated,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Calendar } from 'react-native-calendars';
@@ -17,12 +16,22 @@ import { scheduleService } from '../api/scheduleService';
 import { useUser } from '../context/userContext';
 import { useFocusEffect } from '@react-navigation/native';
 
-const SCREEN_WIDTH = Dimensions.get('window').width;
 const getScheduleCacheKey = (userId) => `scheduleCache_${userId || 'guest'}`;
+const MAX_PERSISTED_DAY_OFFSET = 7;
+const getPersistableSchedules = (cache) => Object.fromEntries(
+  Object.entries(cache).filter(([offset]) => Math.abs(Number(offset)) <= MAX_PERSISTED_DAY_OFFSET)
+);
+const formatLocalISODate = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 const Schedule = () => {
   const { user } = useUser();
   const scrollViewRef = useRef(null);
+  const [pageWidth, setPageWidth] = useState(0);
   const [currentDayOffset, setCurrentDayOffset] = useState(() => {
     // If today is Saturday (6) or Sunday (0), offset to next Monday
     const today = new Date();
@@ -40,14 +49,56 @@ const Schedule = () => {
   const lastFetchDate = useRef(new Date().toDateString());
   const isFetching = useRef({});
   const initialLoadDone = useRef(false);
+  const persistenceTimer = useRef(null);
+  const pendingRecenter = useRef(false);
+  const pageHeights = useRef({});
+  const animatedPageHeight = useRef(new Animated.Value(0)).current;
+  const targetPageHeight = useRef(0);
+  const [hasMeasuredCurrentPage, setHasMeasuredCurrentPage] = useState(false);
 
-  const persistScheduleCache = useCallback(async (nextCache) => {
-    try {
-      await AsyncStorage.setItem(getScheduleCacheKey(user?.id), JSON.stringify(nextCache));
-    } catch (error) {
-      console.error('Failed to persist schedule cache:', error);
+  const animateToPageHeight = useCallback((height, animated = true) => {
+    if (!height) return;
+    if (Math.abs(targetPageHeight.current - height) < 1) return;
+    targetPageHeight.current = height;
+
+    if (!hasMeasuredCurrentPage || !animated) {
+      animatedPageHeight.setValue(height);
+      setHasMeasuredCurrentPage(true);
+      return;
     }
+
+    Animated.timing(animatedPageHeight, {
+      toValue: height,
+      duration: 180,
+      useNativeDriver: false,
+    }).start();
+  }, [animatedPageHeight, hasMeasuredCurrentPage]);
+
+  const handlePageLayout = useCallback((offset, height) => {
+    pageHeights.current[offset] = height;
+    if (offset === currentDayOffset) {
+      animateToPageHeight(height);
+    }
+  }, [animateToPageHeight, currentDayOffset]);
+
+  const persistScheduleCache = useCallback((nextCache) => {
+    // Serializing and writing three prefetched days during a gesture can block the JS
+    // thread. Coalesce those writes and let the swipe finish first.
+    clearTimeout(persistenceTimer.current);
+    persistenceTimer.current = setTimeout(async () => {
+      try {
+        const persistableCache = getPersistableSchedules(nextCache);
+        await AsyncStorage.setItem(
+          getScheduleCacheKey(user?.id),
+          JSON.stringify(persistableCache)
+        );
+      } catch (error) {
+        console.error('Failed to persist schedule cache:', error);
+      }
+    }, 250);
   }, [user?.id]);
+
+  useEffect(() => () => clearTimeout(persistenceTimer.current), []);
 
   const hydrateScheduleCache = useCallback(async () => {
     try {
@@ -56,7 +107,16 @@ const Schedule = () => {
 
       const parsedCache = JSON.parse(savedCache);
       if (parsedCache && typeof parsedCache === 'object') {
-        setScheduleCache(parsedCache);
+        const persistableCache = getPersistableSchedules(parsedCache);
+        setScheduleCache(persistableCache);
+
+        // Clean up entries written by older versions of the app.
+        if (Object.keys(persistableCache).length !== Object.keys(parsedCache).length) {
+          await AsyncStorage.setItem(
+            getScheduleCacheKey(user?.id),
+            JSON.stringify(persistableCache)
+          );
+        }
       }
     } catch (error) {
       console.error('Failed to load schedule cache:', error);
@@ -68,7 +128,38 @@ const Schedule = () => {
   }, [hydrateScheduleCache]);
 
   const recenterScroll = useCallback(() => {
-    scrollViewRef.current?.scrollTo({ x: SCREEN_WIDTH, animated: false });
+    if (pageWidth > 0) {
+      scrollViewRef.current?.scrollTo({ x: pageWidth, animated: false });
+    }
+  }, [pageWidth]);
+
+  useLayoutEffect(() => {
+    if (pageWidth > 0) recenterScroll();
+  }, [pageWidth, recenterScroll]);
+
+  useLayoutEffect(() => {
+    if (!pendingRecenter.current) return;
+    pendingRecenter.current = false;
+    recenterScroll();
+  }, [currentDayOffset, recenterScroll]);
+
+  useEffect(() => {
+    const measuredHeight = pageHeights.current[currentDayOffset];
+    if (measuredHeight) {
+      // Allow a previously visited page to animate back to its recorded height.
+      targetPageHeight.current = 0;
+      animateToPageHeight(measuredHeight);
+    }
+  }, [animateToPageHeight, currentDayOffset]);
+
+  const navigateToOffset = useCallback((nextOffset) => {
+    pendingRecenter.current = true;
+    setCurrentDayOffset(nextOffset);
+  }, []);
+
+  const navigateBy = useCallback((delta) => {
+    pendingRecenter.current = true;
+    setCurrentDayOffset(previous => previous + delta);
   }, []);
 
   const closeCalendar = useCallback((shouldRecenter = true) => {
@@ -105,13 +196,14 @@ const Schedule = () => {
     return scheduleArray;
   };
 
-  const fetchScheduleForOffset = async (offset) => {
+  const fetchScheduleForOffset = async (offset, force = false) => {
     // Prevent duplicate fetches
     if (isFetching.current[offset]) {
       return;
     }
 
     const cachedSchedule = scheduleCache[offset];
+    if (cachedSchedule && !force) return;
 
     isFetching.current[offset] = true;
 
@@ -123,7 +215,7 @@ const Schedule = () => {
         };
         setScheduleCache(prev => {
           const nextCache = { ...prev, [offset]: schedule };
-          void persistScheduleCache(nextCache);
+          persistScheduleCache(nextCache);
           return nextCache;
         });
         isFetching.current[offset] = false;
@@ -132,11 +224,7 @@ const Schedule = () => {
 
       const date = getDateForOffset(offset);
       const dateString = formatDate(date);
-      // Create ISO date string in local timezone
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      const isoDate = `${year}-${month}-${day}`;
+      const isoDate = formatLocalISODate(date);
 
       // Use new combined endpoint (single call instead of two)
       const combinedData = await scheduleService.getCombinedSchedule(user.id, isoDate);
@@ -150,7 +238,7 @@ const Schedule = () => {
 
       setScheduleCache(prev => {
         const nextCache = { ...prev, [offset]: schedule };
-        void persistScheduleCache(nextCache);
+        persistScheduleCache(nextCache);
         return nextCache;
       });
     } catch (error) {
@@ -162,7 +250,7 @@ const Schedule = () => {
         };
         setScheduleCache(prev => {
           const nextCache = { ...prev, [offset]: schedule };
-          void persistScheduleCache(nextCache);
+          persistScheduleCache(nextCache);
           return nextCache;
         });
       }
@@ -236,22 +324,41 @@ const Schedule = () => {
   }, []);
 
   const handleScrollEnd = (event) => {
+    if (!pageWidth) return;
     const offsetX = event.nativeEvent.contentOffset.x;
-    const deltaFromCenter = offsetX - SCREEN_WIDTH;
-    const threshold = SCREEN_WIDTH / 3;
+    const deltaFromCenter = offsetX - pageWidth;
+    const threshold = pageWidth / 3;
 
     if (deltaFromCenter <= -threshold) {
-      // Swiped left to previous day
-      setCurrentDayOffset(prev => prev - 1);
-      recenterScroll();
+      navigateBy(-1);
     } else if (deltaFromCenter >= threshold) {
-      // Swiped right to next day
-      setCurrentDayOffset(prev => prev + 1);
-      recenterScroll();
+      navigateBy(1);
     } else if (Math.abs(deltaFromCenter) > 1) {
       // Minor movement; snap back to center if user didn't cross the threshold
       recenterScroll();
     }
+  };
+
+  const handleScroll = (event) => {
+    if (!pageWidth || !hasMeasuredCurrentPage) return;
+
+    const position = Math.max(0, Math.min(2, event.nativeEvent.contentOffset.x / pageWidth));
+    const lowerPage = Math.floor(position);
+    const upperPage = Math.ceil(position);
+    const pageOffsets = [currentDayOffset - 1, currentDayOffset, currentDayOffset + 1];
+    const lowerHeight = pageHeights.current[pageOffsets[lowerPage]];
+    const upperHeight = pageHeights.current[pageOffsets[upperPage]];
+
+    if (!lowerHeight && !upperHeight) return;
+
+    const startHeight = lowerHeight || upperHeight;
+    const endHeight = upperHeight || lowerHeight;
+    const progress = position - lowerPage;
+    const interpolatedHeight = startHeight + ((endHeight - startHeight) * progress);
+
+    animatedPageHeight.stopAnimation();
+    targetPageHeight.current = interpolatedHeight;
+    animatedPageHeight.setValue(interpolatedHeight);
   };
 
   const handleDateSelect = (day) => {
@@ -263,7 +370,7 @@ const Schedule = () => {
     closeCalendar(false);
 
     if (daysDiff !== currentDayOffset) {
-      setCurrentDayOffset(daysDiff);
+      navigateToOffset(daysDiff);
     }
 
     setTimeout(recenterScroll, 50);
@@ -282,12 +389,35 @@ const Schedule = () => {
     const dateLabel = isToday ? 'Today' : formatDate(date);
 
     return (
-      <View style={styles.schedulePage}>
+      <View
+        style={styles.schedulePage}
+        onLayout={({ nativeEvent }) => handlePageLayout(offset, nativeEvent.layout.height)}
+      >
         <View style={styles.headerContainer}>
           <Text style={styles.dateLabel}>{dateLabel}</Text>
-          <TouchableOpacity onPress={openCalendar} style={styles.calendarButton}>
+          <View style={styles.headerActions}>
+            {offset !== 0 && (
+              <TouchableOpacity
+                onPress={() => navigateToOffset(0)}
+                style={styles.todayButton}
+                accessibilityRole="button"
+                accessibilityLabel="Go to today's schedule"
+              >
+                <Text style={styles.todayButtonText}>Today</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              onPress={() => fetchScheduleForOffset(offset, true)}
+              style={styles.calendarButton}
+              accessibilityRole="button"
+              accessibilityLabel="Refresh schedule"
+            >
+              <MaterialIcons name="refresh" size={18} color="#6366F1" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={openCalendar} style={styles.calendarButton} accessibilityRole="button" accessibilityLabel="Choose a date">
             <MaterialIcons name="calendar-today" size={18} color="#6366F1" />
-          </TouchableOpacity>
+            </TouchableOpacity>
+          </View>
         </View>
         {(schedule.uniformRequired || schedule.lateStart || schedule.earlyDismissal) && (
           <View style={styles.pillsContainer}>
@@ -319,15 +449,20 @@ const Schedule = () => {
   };
 
   const currentDate = getDateForOffset(currentDayOffset);
+  const currentDateKey = formatLocalISODate(currentDate);
 
   return (
     <View style={styles.container}>
-      <View style={styles.cardContainer}>
+      <View
+        style={styles.cardContainer}
+        onLayout={({ nativeEvent }) => setPageWidth(nativeEvent.layout.width)}
+      >
         <TouchableOpacity 
           style={styles.leftArrow} 
+          accessibilityRole="button"
+          accessibilityLabel="Previous day"
           onPress={() => {
-            setCurrentDayOffset(prev => prev - 1);
-            recenterScroll();
+            navigateBy(-1);
           }}
         >
           <MaterialIcons name="chevron-left" size={28} color="#6366F1" />
@@ -335,21 +470,28 @@ const Schedule = () => {
         
         <TouchableOpacity 
           style={styles.rightArrow} 
+          accessibilityRole="button"
+          accessibilityLabel="Next day"
           onPress={() => {
-            setCurrentDayOffset(prev => prev + 1);
-            recenterScroll();
+            navigateBy(1);
           }}
         >
           <MaterialIcons name="chevron-right" size={28} color="#6366F1" />
         </TouchableOpacity>
         
-        <ScrollView
+        <Animated.ScrollView
           ref={scrollViewRef}
+          style={hasMeasuredCurrentPage ? { height: animatedPageHeight } : undefined}
           horizontal
           pagingEnabled
+          decelerationRate="fast"
+          directionalLockEnabled
+          bounces={false}
           showsHorizontalScrollIndicator={false}
+          onScroll={handleScroll}
           onMomentumScrollEnd={handleScrollEnd}
           scrollEventThrottle={16}
+          contentOffset={{ x: pageWidth, y: 0 }}
           onLayout={() => {
             if (!initialScrollSet.current) {
               initialScrollSet.current = true;
@@ -357,18 +499,18 @@ const Schedule = () => {
             }
           }}
         >
-          <View style={[{ width: SCREEN_WIDTH - 40, marginLeft: 20 }]}>
+          <View style={{ width: pageWidth }}>
             {renderSchedulePage(currentDayOffset - 1)}
           </View>
           
-          <View style={[{ width: SCREEN_WIDTH - 40, marginLeft: 20 }]}>
+          <View style={{ width: pageWidth }}>
             {renderSchedulePage(currentDayOffset)}
           </View>
           
-          <View style={[{ width: SCREEN_WIDTH - 40, marginLeft: 20 }]}>
+          <View style={{ width: pageWidth }}>
             {renderSchedulePage(currentDayOffset + 1)}
           </View>
-        </ScrollView>
+        </Animated.ScrollView>
       </View>
 
       <Modal
@@ -391,10 +533,10 @@ const Schedule = () => {
                 </TouchableOpacity>
               </View>
               <Calendar
-                current={currentDate.toISOString().split('T')[0]}
+                current={currentDateKey}
                 onDayPress={handleDateSelect}
                 markedDates={{
-                  [currentDate.toISOString().split('T')[0]]: {
+                  [currentDateKey]: {
                     selected: true,
                     selectedColor: '#6366F1',
                   },
@@ -476,7 +618,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   schedulePage: {
-    width: SCREEN_WIDTH - 40,
+    width: '100%',
     padding: 16,
     backgroundColor: 'white',
     borderRadius: 16,
@@ -493,7 +635,23 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   calendarButton: {
-    padding: 2,
+    padding: 5,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  todayButton: {
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 10,
+    backgroundColor: '#EEF2FF',
+  },
+  todayButtonText: {
+    color: '#4F46E5',
+    fontSize: 11,
+    fontWeight: '700',
   },
   pillsContainer: {
     flexDirection: 'row',

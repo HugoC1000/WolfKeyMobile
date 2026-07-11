@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const HEADER_HEIGHT = 45;
 
-export default function ScreenHeaderSpacer() {
+export default function ScreenHeaderSpacer({ includeSafeArea = true }) {
   const insets = useSafeAreaInsets();
-  return <View style={{ height: insets.top + HEADER_HEIGHT }} />;
+  return <View style={{ height: HEADER_HEIGHT + (includeSafeArea ? insets.top : 0) }} />;
 }

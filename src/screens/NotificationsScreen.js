@@ -372,7 +372,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   markAllReadButton: {
-    marginHorizontal: 16,
+    marginHorizontal: 9,
     marginBottom: 12,
     borderRadius: 12,
     overflow: 'hidden',
@@ -393,7 +393,7 @@ const styles = StyleSheet.create({
   },
   notificationItem: {
     backgroundColor: 'white',
-    marginHorizontal: 16,
+    marginHorizontal: 9,
     marginVertical: 4,
     borderRadius: 12,
     padding: 16,
