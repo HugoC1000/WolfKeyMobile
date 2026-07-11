@@ -269,7 +269,7 @@ const PollCard = ({ postId, pollData, style, isVotable = true }) => {
                             event?.stopPropagation?.();
                             const username = voter?.username || voter?.user?.username;
                             if (username) {
-                              router.push({ pathname: '/profile-screen', params: { username } });
+                              router.push({ pathname: '/users/[username]', params: { username } });
                             }
                           };
 
@@ -418,7 +418,7 @@ const PollCard = ({ postId, pollData, style, isVotable = true }) => {
                           const username = voter?.username || voter?.user?.username;
                           console.log(voter);
                           if (username) {
-                            router.push({ pathname: '/profile-screen', params: { username } });
+                            router.push({ pathname: '/users/[username]', params: { username } });
                             setIsResultsModalVisible(false);
                           }
                         };

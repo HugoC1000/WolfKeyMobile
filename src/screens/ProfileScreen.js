@@ -16,10 +16,10 @@ import ProfileCard from '../components/ProfileCard';
 import CourseComparisonCard from '../components/CourseComparisonCard';
 import PostCard from '../components/PostCard';
 import * as ImagePicker from 'expo-image-picker';
-import api from '../api/config';
 import {
   getCurrentProfile,
   getProfileByUsername,
+  getProfilePosts,
   uploadProfilePicture,
 } from '../api/profileService';
 
@@ -43,8 +43,8 @@ const ProfileScreen = () => {
 
     try {
       setPostsLoading(true);
-      const response = await api.get(`profile/${profileUsername}/posts/`);
-      setPosts(response?.data?.posts || []);
+      const result = await getProfilePosts(profileUsername, 1, 3);
+      setPosts(result.posts);
     } catch (error) {
       console.error('Error fetching profile posts:', error);
       setPosts([]);

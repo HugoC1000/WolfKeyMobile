@@ -4,36 +4,23 @@ import {
   StyleSheet,
   Text,
   Image,
-  Platform,
-  StatusBar,
   TouchableOpacity,
 } from 'react-native';
-import { BlurView } from 'expo-blur';
-import * as Device from 'expo-device';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { GlassView, GlassContainer } from 'expo-glass-effect';
-import { triggerPressHaptic, triggerSuccessHaptic } from '../utils/haptics';
+import { triggerPressHaptic } from '../utils/haptics';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const HEADER_HEIGHT = 45;
-const STATUS_BAR_HEIGHT =
-  Platform.OS === 'ios'
-    ? Device.modelName === 'iPhone SE'
-      ? 0
-      : 50
-    : StatusBar.currentHeight || 0;
-
-const TOTAL_HEADER_HEIGHT = HEADER_HEIGHT + STATUS_BAR_HEIGHT;
-
-const SharedHeader = ({ scrollY, isScrollingUp, title, isHome, onSettingsPress, isSetting }) => {
-  const navigation = useNavigation();
+const SharedHeader = ({ title, isHome, onSettingsPress, isSetting }) => {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   return (
     <>
       {/* Header Content */}
-      <Animated.View style={[styles.headerContent]}>
+      <Animated.View style={[styles.headerContent, { top: insets.top }]}>
         <GlassContainer style={styles.headerContentContainer}>
           <GlassView
             glassEffectStyle="regular"
@@ -48,7 +35,7 @@ const SharedHeader = ({ scrollY, isScrollingUp, title, isHome, onSettingsPress, 
                   style={{ width: 40, height: 40, borderRadius: 12 }}
                 />
             ) : (
-              <TouchableOpacity  style = {{borderRadius: 999}} onPress={() => navigation.goBack()}>
+              <TouchableOpacity  style = {{borderRadius: 999}} onPress={() => router.back()}>
                 <Ionicons name="chevron-back" size={32} color="#000"/>
               </TouchableOpacity>
             )}
@@ -98,21 +85,8 @@ const SharedHeader = ({ scrollY, isScrollingUp, title, isHome, onSettingsPress, 
 };
 
 const styles = StyleSheet.create({
-  unifiedBlur: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 1000,
-  },
-  glassBlur: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-  },
   headerContent: {
     position: 'absolute',
-    top: STATUS_BAR_HEIGHT,
     left: 0,
     right: 0,
     height: HEADER_HEIGHT,

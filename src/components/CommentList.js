@@ -45,7 +45,7 @@ const CommentList = ({ comments = [], onReply, onEdit, onDelete }) => {
             <View style={styles.authorInfo}>
                 {comment.author?.username ? (
                   <TouchableOpacity
-                    onPress={() => router.push({ pathname: '/profile-screen', params: { username: comment.author.username } })}
+                    onPress={() => router.push({ pathname: '/users/[username]', params: { username: comment.author.username } })}
                     activeOpacity={0.7}
                     style={styles.authorClickable}
                   >
@@ -81,7 +81,7 @@ const CommentList = ({ comments = [], onReply, onEdit, onDelete }) => {
 
                 <View style={styles.authorDetails}>
                   {comment.author?.username ? (
-                    <TouchableOpacity onPress={() => router.push({ pathname: '/profile-screen', params: { username: comment.author.username } })} activeOpacity={0.7}>
+                    <TouchableOpacity onPress={() => router.push({ pathname: '/users/[username]', params: { username: comment.author.username } })} activeOpacity={0.7}>
                       <Text style={styles.commentAuthor}>{comment.author.full_name}</Text>
                     </TouchableOpacity>
                   ) : (

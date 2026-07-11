@@ -1,5 +1,6 @@
 import api from './config';
 import Course from '../models/Course';
+import { transformPostsArray } from './postService';
 
 // Helper function to transform profile course data to Course instances
 const transformProfileCourses = (profileData) => {
@@ -53,10 +54,31 @@ export const getCurrentProfile = async () => {
 // Get profile by username
 export const getProfileByUsername = async (username) => {
   try {
-    const response = await api.get(`profile/${username}/`);
+    const response = await api.get(`profiles/${encodeURIComponent(username)}/`);
     return transformProfileCourses(response.data);
   } catch (error) {
     console.error('Error fetching profile:', error);
+    throw error;
+  }
+};
+
+// Get a user's public posts
+export const getProfilePosts = async (username, page = 1, limit = 3) => {
+  try {
+    const response = await api.get(`profiles/${encodeURIComponent(username)}/posts/`, {
+      params: { page, limit },
+    });
+    const data = response.data || {};
+
+    return {
+      ...data,
+      posts: transformPostsArray(Array.isArray(data.posts) ? data.posts : []),
+      has_next: Boolean(data.has_next),
+      page: Number(data.page) || page,
+      total_pages: Number(data.total_pages) || 1,
+    };
+  } catch (error) {
+    console.error('Error fetching profile posts:', error);
     throw error;
   }
 };

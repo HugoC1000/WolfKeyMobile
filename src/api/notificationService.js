@@ -149,7 +149,7 @@ export function handleDeepLink(data, router) {
       case 'profile':
         if (params.username) {
           router.push({
-            pathname: '/(tabs)/profile-screen',
+            pathname: '/users/[username]',
             params: { username: params.username }
           });
           return true;

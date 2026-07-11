@@ -28,7 +28,7 @@ const PostDetailCard = ({
   const handleAuthorPress = () => {
     if (post.author?.username && !post.is_anonymous) {
       router.push({
-        pathname: '/profile-screen',
+        pathname: '/users/[username]',
         params: { username: post.author.username },
       });
     }

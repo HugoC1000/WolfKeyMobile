@@ -89,7 +89,7 @@ const PostCard = ({ post }) => {
   const handleAuthorPress = () => {
     if (post.author?.username) {
       router.push({
-        pathname: '/profile-screen',
+        pathname: '/users/[username]',
         params: { username: post.author.username },
       });
     }

@@ -18,12 +18,12 @@ import { getAuthToken, removeAuthToken } from '../api/config';
 import { useUser } from '../context/userContext';
 import { useAuth } from '../context/authContext';
 import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';
+import ScreenHeaderSpacer from '../components/ScreenHeaderSpacer';
 import { transformPostsArray } from '../api/postService';
 import { GlassContainer, GlassView } from 'expo-glass-effect';
 import { triggerPressHaptic } from '../utils/haptics';
 
 
-const HEADER_HEIGHT = 45; // Height of the header
 const PAGE_SIZE = 10;
 
 
@@ -198,7 +198,7 @@ const HomeScreen = () => {
   const ListHeader = useCallback(() => {
     return (
       <View>
-        <View style={styles.headerSpacer} />
+        <ScreenHeaderSpacer />
         <View style={styles.scheduleContainer}>
           <Schedule key={user?.id} />
         </View>
@@ -228,7 +228,6 @@ const HomeScreen = () => {
                   colors={['#4A90E2']}
                   tintColor="#4A90E2"
                   progressBackgroundColor="#ffffff"
-                  progressViewOffset={HEADER_HEIGHT +70}
                 />
               }
 
@@ -308,11 +307,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   container: {
-    paddingTop: HEADER_HEIGHT,
     paddingHorizontal: 9,
-  },
-  headerSpacer: {
-    height: HEADER_HEIGHT,
   },
   scheduleContainer: {
     marginBottom: 16,

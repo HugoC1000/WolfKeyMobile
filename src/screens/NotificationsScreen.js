@@ -14,12 +14,12 @@ import { router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { GlassView } from 'expo-glass-effect';
 import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';
+import ScreenHeaderSpacer from '../components/ScreenHeaderSpacer';
 import { getNotifications, markAsRead, markAllAsRead, handleDeepLink } from '../api/notificationService';
 import { COLORS } from '../utils/constants';
 import { formatTime } from '../utils/timeUtils';
 import badgeManager from '../utils/badgeManager';
 
-const HEADER_HEIGHT = 45;
 const PAGE_SIZE = 10;
 
 
@@ -231,7 +231,7 @@ const NotificationsScreen = () => {
 
   const ListHeader = useCallback(() => (
     <>
-      <View style={styles.headerSpacer} />
+      <ScreenHeaderSpacer />
       {unreadCount > 0 && (
         <TouchableOpacity 
           style={styles.markAllReadButton} 
@@ -299,7 +299,6 @@ const NotificationsScreen = () => {
                 refreshing={refreshing}
                 onRefresh={handleRefresh}
                 colors={[COLORS.primary]}
-                progressViewOffset={HEADER_HEIGHT + 70}
               />
             }
             onEndReached={handleLoadMore}
@@ -327,11 +326,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  headerSpacer: {
-    height: HEADER_HEIGHT + 5,
-  },
   listContent: {
-    paddingTop: HEADER_HEIGHT,
     paddingHorizontal: 0,
   },
   loader: {

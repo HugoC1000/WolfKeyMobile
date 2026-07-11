@@ -1,9 +1,3 @@
-import { Stack } from 'expo-router';
+import ExploreScreen from '../../src/screens/ExploreScreen';
 
-export default function ExploreLayout() {
-  return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="explore-screen" />
-    </Stack>
-  );
-}
+export default ExploreScreen;

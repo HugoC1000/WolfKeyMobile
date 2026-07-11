@@ -7,14 +7,7 @@ import badgeManager from '../../src/utils/badgeManager';
 
 export default function TabsLayout() {
   const [unreadCount, setUnreadCount] = useState(0);
-  // blurEffect is only supported on iOS
-  const isIOS = Platform.OS === 'ios';
-
   useEffect(() => {
-    // Initialize badge manager which handles the initial sync and polling
-    badgeManager.initialize();
-    
-    // Subscribe to badge manager updates for UI
     const unsubscribe = badgeManager.subscribe((count) => {
       setUnreadCount(count);
     });
@@ -38,14 +31,14 @@ export default function TabsLayout() {
         })}
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="explore-screen">
+      <NativeTabs.Trigger name="explore">
         <Label>Explore</Label>
         {Platform.select({
           ios: <Icon sf={{ default: 'safari', selected: 'safari' }} />,
           android: <Icon src={<VectorIcon family={Ionicons} name="compass" />} />,
         })}
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="profile-screen">
+      <NativeTabs.Trigger name="profile">
         <Label>Profile</Label>
         {Platform.select({
           ios: <Icon sf={{ default: 'person', selected: 'person.fill' }} />,
@@ -53,7 +46,7 @@ export default function TabsLayout() {
         })}
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="notifications-screen">
+      <NativeTabs.Trigger name="notifications">
         <Label>Alerts</Label>
         <Badge hidden={unreadCount === 0}>{unreadCount > 0 ? String(unreadCount) : ''}</Badge>
         {Platform.select({
@@ -62,7 +55,7 @@ export default function TabsLayout() {
         })}
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="volunteer-screen">
+      <NativeTabs.Trigger name="volunteer">
         <Label>Volunteer</Label>
         {Platform.select({
           ios: <Icon sf={{ default: 'heart', selected: 'heart.fill' }} />,

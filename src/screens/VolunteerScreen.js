@@ -16,10 +16,9 @@ import { COLORS, FONTS, SHADOWS } from '../utils/constants';
 import volunteerService from '../api/volunteerService';
 import BackgroundSvg from '../components/BackgroundSVG';
 import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';
+import ScreenHeaderSpacer from '../components/ScreenHeaderSpacer';
 import { useUser } from '../context/userContext';
 
-
-const HEADER_HEIGHT = 45;
 
 const VolunteerScreen = () => {
   const [loading, setLoading] = useState(true);
@@ -224,6 +223,7 @@ const VolunteerScreen = () => {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
+          <ScreenHeaderSpacer />
           {/* Top Cards Row */}
           <View style={styles.topCardsRow}>
             {/* Total Hours Card */}
@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    marginTop: HEADER_HEIGHT,
+    paddingTop: 0,
   },
   centerContainer: {
     flex: 1,

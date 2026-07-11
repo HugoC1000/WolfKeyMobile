@@ -34,7 +34,7 @@ const SolutionCard = ({
   const handleAuthorPress = () => {
     if (solution.author?.username) {
       router.push({
-        pathname: '/profile-screen',
+        pathname: '/users/[username]',
         params: { username: solution.author.username },
       });
     }

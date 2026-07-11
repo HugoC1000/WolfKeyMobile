@@ -1,9 +1,3 @@
-import { Stack } from 'expo-router';
+import ProfileScreen from '../../src/screens/ProfileScreen';
 
-export default function ProfileLayout() {
-  return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="profile-screen" />
-    </Stack>
-  );
-}
+export default ProfileScreen;

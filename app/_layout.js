@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { UserProvider } from '../src/context/userContext';
@@ -7,11 +7,13 @@ import badgeManager from '../src/utils/badgeManager';
 import { attachBasicNotificationListeners } from '../src/utils/notifications';
 import { handleDeepLink } from '../src/api/notificationService';
 import { StyleSheet } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 function RootLayoutContent() {
   const { user, loading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  const pendingNotificationData = useRef(null);
 
   useEffect(() => {
     if (loading) return;
@@ -34,6 +36,14 @@ function RootLayoutContent() {
     }
   }, [user, loading]);
 
+  useEffect(() => {
+    if (!loading && user && segments[0] !== '(auth)' && pendingNotificationData.current) {
+      const data = pendingNotificationData.current;
+      pendingNotificationData.current = null;
+      handleDeepLink(data, router);
+    }
+  }, [user, loading, segments, router]);
+
   // Handle notification responses (when user taps a notification)
   useEffect(() => {
     const handleNotificationResponse = (response) => {
@@ -42,11 +52,12 @@ function RootLayoutContent() {
       // Update badge count
       badgeManager.updateBadge();
       
-      // Handle deep linking
-      if (data && user) {
-        setTimeout(() => {
+      if (data) {
+        if (user) {
           handleDeepLink(data, router);
-        }, 500);
+        } else {
+          pendingNotificationData.current = data;
+        }
       }
     };
 
@@ -79,11 +90,13 @@ function RootLayoutContent() {
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={styles.container}>
-      <AuthProvider>
-        <UserProvider>
-          <RootLayoutContent />
-        </UserProvider>
-      </AuthProvider>
+      <SafeAreaProvider>
+        <AuthProvider>
+          <UserProvider>
+            <RootLayoutContent />
+          </UserProvider>
+        </AuthProvider>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }

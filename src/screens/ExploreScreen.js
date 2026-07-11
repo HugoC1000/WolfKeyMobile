@@ -14,9 +14,9 @@ import SearchBarCard from '../components/SearchBarCard';
 import api from '../api/config';
 import { searchUsers } from '../api/profileService';
 import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';
+import ScreenHeaderSpacer from '../components/ScreenHeaderSpacer';
 import { transformPostsArray } from '../api/postService';
 
-const HEADER_HEIGHT = 45;
 const PAGE_SIZE = 10;
 
 const ExploreScreen = () => {
@@ -103,7 +103,7 @@ const ExploreScreen = () => {
   const handleUserResultPress = (username) => {
     setSearchQuery('');
     setSearchResults([]);
-    router.push({ pathname: '/profile-screen', params: { username } });
+    router.push({ pathname: '/users/[username]', params: { username } });
   };
 
   // Fetch posts when component mounts
@@ -119,14 +119,17 @@ const ExploreScreen = () => {
           renderItem={({ item }) => <PostCard post={item} />}
           keyExtractor={(item) => item.id.toString()}
           ListHeaderComponent={
-            <View style={styles.searchBarContainer}>
-              <SearchBarCard
-                profileHue={220}
-                searchResults={searchResults}
-                onSearch={handleSearchUsers}
-                onResultPress={handleUserResultPress}
-              />
-            </View>
+            <>
+              <ScreenHeaderSpacer />
+              <View style={styles.searchBarContainer}>
+                <SearchBarCard
+                  profileHue={220}
+                  searchResults={searchResults}
+                  onSearch={handleSearchUsers}
+                  onResultPress={handleUserResultPress}
+                />
+              </View>
+            </>
           }
           contentContainerStyle={styles.container}
           onEndReached={handleLoadMore}
@@ -141,7 +144,6 @@ const ExploreScreen = () => {
               colors={['#4A90E2']}
               tintColor="#4A90E2"
               progressBackgroundColor="#ffffff"
-              progressViewOffset={HEADER_HEIGHT + 70}
             />
           }
           ListFooterComponent={
@@ -168,12 +170,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   searchBarContainer: {
-    marginTop: 50,
     marginBottom: 16,
   },
   container: {
     paddingHorizontal: 16,
-    paddingTop: HEADER_HEIGHT,
     flexGrow: 1,
   },
   exploreTitle: {

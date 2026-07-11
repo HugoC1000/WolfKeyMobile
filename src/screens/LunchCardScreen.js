@@ -16,7 +16,7 @@ import * as Brightness from 'expo-brightness';
 import * as ImagePicker from 'expo-image-picker';
 import { GlassView } from 'expo-glass-effect';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 import { GestureHandlerRootView, GestureDetector, Gesture } from 'react-native-gesture-handler';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import BackgroundSvg from '../components/BackgroundSVG';
@@ -24,16 +24,13 @@ import SharedHeader from '../components/SharedHeader';
 import { uploadLunchCard, getCurrentProfile } from '../api/profileService';
 import { getFullImageUrl } from '../api/config';
 import { useUser } from '../context/userContext';
-import * as Device from 'expo-device';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { triggerPressHaptic, triggerSuccessHaptic } from '../utils/haptics';
 
-const STATUS_BAR_HEIGHT = Platform.OS === 'ios'
-  ? (Device.modelName === 'iPhone SE' ? 0 : 44)
-  : StatusBar.currentHeight || 0;
 const HEADER_HEIGHT = 45;
 
 const LunchCardScreen = () => {
-  const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const { user, updateUser } = useUser();
   const [image, setImage] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -226,10 +223,6 @@ const LunchCardScreen = () => {
     showImagePickerOptions();
   };
 
-  const handleGoBack = () => {
-    navigation.goBack();
-  };
-
   useFocusEffect(
     useCallback(() => {
       let isActive = true;
@@ -311,9 +304,9 @@ const LunchCardScreen = () => {
 
       <SharedHeader title="Lunch Card" isHome={false} />
 
-      <View style={styles.imageContainer}>
+      <View style={[styles.imageContainer, { paddingTop: insets.top + HEADER_HEIGHT + 20 }]}>
         {!isOnline && (
-          <View style={styles.offlineIndicator}>
+          <View style={[styles.offlineIndicator, { top: insets.top + HEADER_HEIGHT + 10 }]}>
             <Ionicons name="cloud-offline-outline" size={16} color="#666" />
             <Text style={styles.offlineText}>Offline {isLocalCache && '(cached)'}</Text>
           </View>
@@ -480,7 +473,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 5,
-    paddingTop: STATUS_BAR_HEIGHT + HEADER_HEIGHT + 20,
     paddingBottom: 20,
   },
   imageTouchable: {
@@ -575,7 +567,6 @@ const styles = StyleSheet.create({
   },
   offlineIndicator: {
     position: 'absolute',
-    top: STATUS_BAR_HEIGHT + HEADER_HEIGHT + 10,
     right: 16,
     flexDirection: 'row',
     alignItems: 'center',

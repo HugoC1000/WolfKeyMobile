@@ -151,6 +151,21 @@ export const TextWithLinks = React.memo(({ text, style, linkStyle, ...props }) =
   const parts = useMemo(() => parseHtmlWithLinks(text), [text]);
   const router = useRouter();
 
+  const handleLinkPress = (url) => {
+    const formattedUrl = formatUrl(url);
+    const profileMatch = formattedUrl.match(/^\/?profile\/([^/?#]+)\/?(?:[?#].*)?$/i);
+
+    if (profileMatch) {
+      router.push({
+        pathname: '/users/[username]',
+        params: { username: decodeURIComponent(profileMatch[1]) },
+      });
+      return;
+    }
+
+    void openUrl(formattedUrl);
+  };
+
   const handleMentionPress = (mention) => {
     const token = (mention || '').trim();
     const value = token.replace(/^[@#]/, '').trim();
@@ -168,7 +183,7 @@ export const TextWithLinks = React.memo(({ text, style, linkStyle, ...props }) =
       return;
     }
 
-    router.push({ pathname: '/profile-screen', params: { username: value } });
+    router.push({ pathname: '/users/[username]', params: { username: value } });
   };
 
   // If no links found, return plain text with HTML entities decoded
@@ -198,7 +213,7 @@ export const TextWithLinks = React.memo(({ text, style, linkStyle, ...props }) =
             <Text
               key={index}
               style={[defaultLinkStyle, linkStyle]}
-              onPress={() => openUrl(part.url)}
+              onPress={() => handleLinkPress(part.url)}
               suppressHighlighting={false}
               selectable={true}
             >
