@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   authorName: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     color: '#374151',
   },
