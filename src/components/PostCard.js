@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, Image, TouchableOpacity, Alert, Share, Clipboard } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { Animated, StyleSheet, Text, View, Image, TouchableOpacity, Alert, Share, Clipboard } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useUser } from '../context/userContext';
@@ -17,6 +17,7 @@ const PostCard = ({ post }) => {
   const [likeCount, setLikeCount] = useState(Number(post.like_count) || 0);
   const [isFollowing, setIsFollowing] = useState(Boolean(post.is_following));
   const [followerCount, setFollowerCount] = useState(Number(post.followers_count) || 0);
+  const likeScale = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     setIsLiked(Boolean(post.is_liked));
@@ -26,6 +27,20 @@ const PostCard = ({ post }) => {
   }, [post]);
   
   const handleLike = async () => {
+    Animated.sequence([
+      Animated.timing(likeScale, {
+        toValue: 1.3,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.spring(likeScale, {
+        toValue: 1,
+        friction: 4,
+        tension: 180,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
     try {
       if (isLiked) {
         const response = await unlikePost(post.id);
@@ -203,23 +218,8 @@ const PostCard = ({ post }) => {
         {/* Interactions Row */}
         {user && (
           <View style={styles.interactions}>
-            {/* Like Button */}
-            <TouchableOpacity 
-              style={[styles.interactionButton, isLiked && styles.activeButton]}
-              onPress={handleLike}
-            >
-              <MaterialIcons 
-                name={isLiked ? "favorite" : "favorite-border"} 
-                size={20} 
-                color={isLiked ? "#e91e63" : "#666"}
-              />
-              <Text style={[styles.interactionText, isLiked && styles.activeText]}>
-                {likeCount}
-              </Text>
-            </TouchableOpacity>
-            
             {/* Follow Button */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.interactionButton, isFollowing && styles.activeButton]}
               onPress={handleFollow}
             >
@@ -230,6 +230,23 @@ const PostCard = ({ post }) => {
               />
               <Text style={[styles.interactionText, isFollowing && styles.activeText]}>
                 {followerCount}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Like Button */}
+            <TouchableOpacity
+              style={[styles.interactionButton, isLiked && styles.activeButton]}
+              onPress={handleLike}
+            >
+              <Animated.View style={{ transform: [{ scale: likeScale }] }}>
+                <MaterialIcons
+                  name={isLiked ? "favorite" : "favorite-border"}
+                  size={20}
+                  color={isLiked ? "#e91e63" : "#666"}
+                />
+              </Animated.View>
+              <Text style={[styles.interactionText, isLiked && styles.activeText]}>
+                {likeCount}
               </Text>
             </TouchableOpacity>
             
@@ -254,7 +271,10 @@ const PostCard = ({ post }) => {
 const styles = StyleSheet.create({
   postCard: {
     backgroundColor: 'white',
-    padding: 16,
+    paddingTop: 12,
+    paddingRight: 16,
+    paddingBottom: 10,
+    paddingLeft: 10,
     marginBottom: 8,
     borderRadius: 12,
     position: 'relative',
@@ -302,14 +322,14 @@ const styles = StyleSheet.create({
   profilePic: {
     width: 35,
     height: 35,
-    borderRadius: 17.5,
-    marginRight: 8,
+    borderRadius: 15,
+    marginRight: 4,
   },
   profilePicPlaceholder: {
     width: 35,
     height: 35,
-    borderRadius: 17.5,
-    marginRight: 8,
+    borderRadius: 15,
+    marginRight: 4,
     backgroundColor: '#F3F4F6',
   },
   authorDetails: {
@@ -366,7 +386,7 @@ const styles = StyleSheet.create({
   nonInteractions: {
     flexDirection: 'row',
     justifyContent: 'flex-start',
-    marginBottom: 12,
+    marginBottom: 2,
     paddingVertical: 4,
   },
   statText: {
@@ -382,9 +402,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-evenly',
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
   },
   interactionButton: {
     flexDirection: 'row',
