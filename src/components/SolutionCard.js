@@ -147,90 +147,88 @@ const SolutionCard = ({
       styles.container,
       isAccepted && styles.acceptedContainer
     ]}>
-        <View style={styles.header}>
-          <View style={styles.authorInfo}>
-            {solution.author?.username ? (
-              <TouchableOpacity
-                onPress={handleAuthorPress}
-                activeOpacity={0.7}
-                style={styles.authorClickable}
-              >
-                {solution.author.userprofile.profile_picture ? (
-                  <Image
-                    source={{ uri: getFullImageUrl(solution.author.userprofile.profile_picture) }}
-                    style={styles.profilePic}
-                  />
-                ) : (
-                  <View style={styles.profilePicPlaceholder} />
-                )}
-              </TouchableOpacity>
-            ) : (
-              <View style={styles.authorClickable}>
-                {solution.author.userprofile.profile_picture ? (
-                  <Image
-                    source={{ uri: getFullImageUrl(solution.author.userprofile.profile_picture) }}
-                    style={styles.profilePic}
-                  />
-                ) : (
-                  <View style={styles.profilePicPlaceholder} />
-                )}
-              </View>
-            )}
-
-            <View style={styles.authorMeta}>
+      <View style={styles.header}>
+        <View style={styles.authorInfo}>
               {solution.author?.username ? (
-                <TouchableOpacity onPress={handleAuthorPress} activeOpacity={0.7}>
-                  <Text style={styles.author}>{solution.author.full_name}</Text>
+                <TouchableOpacity
+                  onPress={handleAuthorPress}
+                  activeOpacity={0.7}
+                  style={styles.authorClickable}
+                >
+                  {solution.author.userprofile.profile_picture ? (
+                    <Image
+                      source={{ uri: getFullImageUrl(solution.author.userprofile.profile_picture) }}
+                      style={styles.profilePic}
+                    />
+                  ) : (
+                    <View style={styles.profilePicPlaceholder} />
+                  )}
                 </TouchableOpacity>
               ) : (
-                <Text style={styles.author}>{solution.author.full_name}</Text>
+                <View style={styles.authorClickable}>
+                  {solution.author.userprofile.profile_picture ? (
+                    <Image
+                      source={{ uri: getFullImageUrl(solution.author.userprofile.profile_picture) }}
+                      style={styles.profilePic}
+                    />
+                  ) : (
+                    <View style={styles.profilePicPlaceholder} />
+                  )}
+                </View>
               )}
-              <Text style={styles.date}>{formatDateTime(solution.created_at)}</Text>
-            </View>
-          </View>
-        </View>
 
-      {/* Solution content */}
+              <View style={styles.authorMeta}>
+                {solution.author?.username ? (
+                  <TouchableOpacity onPress={handleAuthorPress} activeOpacity={0.7}>
+                    <Text style={styles.author}>{solution.author.full_name}</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <Text style={styles.author}>{solution.author.full_name}</Text>
+                )}
+                <Text style={styles.date}>{formatDateTime(solution.created_at)}</Text>
+              </View>
+        </View>
+      </View>
+
       <View style={styles.content}>
         <EditorJsRenderer blocks={solution.content?.blocks} />
       </View>
 
       <View style={styles.footer}>
-        {renderVoteButtons()}
-        
-        <View style={styles.actionsContainer}>
+        <View style={styles.footerActions}>
           <TouchableOpacity
             style={styles.commentButton}
             onPress={handleAddComment}
           >
-            <MaterialIcons name="comment" size={16} color="#666" />
-            <Text style={styles.commentButtonText}>Comment</Text>
+            <MaterialIcons name="reply" size={15} color="#666" />
+            <Text style={styles.commentButtonText}>Reply</Text>
           </TouchableOpacity>
-          
+
           {user?.id === postAuthorId && (
-            <TouchableOpacity
-              style={[
-                styles.acceptButton,
-                isAccepted && styles.acceptedButton
-              ]}
-              onPress={handleToggleAcceptSolution}
-            >
-              <MaterialIcons 
-                name={isAccepted ? "check-circle" : "check"} 
-                size={16} 
-                color={isAccepted ? "white" : "#4CAF50"} 
-              />
-              <Text style={[
-                styles.acceptButtonText,
-                isAccepted && styles.acceptedButtonText
-              ]}>
-                {isAccepted ? "Accepted" : "Accept"}
-              </Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.acceptButton,
+                  isAccepted && styles.acceptedButton
+                ]}
+                onPress={handleToggleAcceptSolution}
+              >
+                <MaterialIcons
+                  name={isAccepted ? "check-circle" : "check"}
+                  size={16}
+                  color={isAccepted ? "white" : "#4CAF50"}
+                />
+                <Text style={[
+                  styles.acceptButtonText,
+                  isAccepted && styles.acceptedButtonText
+                ]}>
+                  {isAccepted ? "Accepted" : "Accept"}
+                </Text>
+              </TouchableOpacity>
           )}
         </View>
+        {renderVoteButtons()}
       </View>
-      
+
       <CommentList 
         comments={solution.comments || []} 
         onReply={handleReplyToComment}
@@ -273,13 +271,13 @@ const styles = StyleSheet.create({
   profilePic: {
     width: 26,
     height: 26,
-    borderRadius: 12,
+    borderRadius: 13,
     marginRight: 6,
   },
   profilePicPlaceholder: {
     width: 26,
     height: 26,
-    borderRadius: 12,
+    borderRadius: 13,
     marginRight: 6,
     backgroundColor: '#DDD6FE',
   },
@@ -303,16 +301,15 @@ const styles = StyleSheet.create({
     color: '#787c82',
     marginLeft: 8,
   },
-  content: {
-    marginBottom: 4,
-  },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
+  },
+  footerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 20,
   },
   votingContainer: {
     flexDirection: 'row',
@@ -334,20 +331,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     marginHorizontal: 8,
-    color: '#1a1a1b',
-    minWidth: 20,
+    color: '#2929d9',
+    minWidth: 8,
     textAlign: 'center',
-  },
-  actionsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
   },
   commentButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    paddingHorizontal: 8,
+    paddingHorizontal: 0,
     paddingVertical: 4,
     borderRadius: 4,
   },

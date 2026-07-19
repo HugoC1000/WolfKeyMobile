@@ -6,11 +6,10 @@ import {
   ActivityIndicator,
   RefreshControl,
   Text,
-  TouchableOpacity,
   Alert,
 } from 'react-native';
 import Animated from 'react-native-reanimated';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import PostDetailCard from '../components/PostDetailCard';
 import SolutionCard from '../components/SolutionCard';
 import CommentBottomSheet from '../components/CommentBottomSheet';
@@ -22,10 +21,10 @@ import { useUser } from '../context/userContext';
 import { markNotificationsByPost } from '../api/notificationService';
 import badgeManager from '../utils/badgeManager';
 import { transformPostCourses } from '../api/postService';
+import KeyboardResizingScreen from '../components/KeyboardResizingScreen';
 
 const PostDetailScreen = () => {
   const { id } = useLocalSearchParams();
-  const router = useRouter();
   const { user } = useUser();
   const postId = id;
   const [post, setPost] = useState(null);
@@ -33,7 +32,7 @@ const PostDetailScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [userHasSolution, setUserHasSolution] = useState(false);
   
-  const [isCommentSheetVisible, setIsCommentSheetVisible] = useState(false);
+  const [composerMode, setComposerMode] = useState('solution');
   const [currentSolutionId, setCurrentSolutionId] = useState(null);
   const [replyingToComment, setReplyingToComment] = useState(null);
   const [editingComment, setEditingComment] = useState(null);
@@ -80,34 +79,38 @@ const PostDetailScreen = () => {
       case 'add':
         setReplyingToComment(null);
         setEditingComment(null);
-        setIsCommentSheetVisible(true);
+        setComposerMode('comment');
         break;
       case 'reply':
         setReplyingToComment(action.parentComment);
         setEditingComment(null);
-        setIsCommentSheetVisible(true);
+        setComposerMode('comment');
         break;
       case 'edit':
         setEditingComment(action.editingComment);
         setReplyingToComment(null);
-        setIsCommentSheetVisible(true);
+        setComposerMode('comment');
         break;
     }
   };
 
-  const handleCommentSubmitted = (newComment) => {
+  const handleResponseSubmitted = (_response, submittedMode) => {
     fetchPostDetail();
-    setIsCommentSheetVisible(false);
+    setComposerMode('solution');
     setReplyingToComment(null);
     setEditingComment(null);
     setCurrentSolutionId(null);
     
-    const action = editingComment ? 'updated' : 'posted';
-    Alert.alert('Success', `Comment ${action} successfully!`);
+    if (submittedMode === 'solution') {
+      Alert.alert('Success', 'Solution posted successfully!');
+    } else {
+      const action = editingComment ? 'updated' : 'posted';
+      Alert.alert('Success', `Comment ${action} successfully!`);
+    }
   };
 
   const handleCloseCommentSheet = () => {
-    setIsCommentSheetVisible(false);
+    setComposerMode('solution');
     setReplyingToComment(null);
     setEditingComment(null);
     setCurrentSolutionId(null);
@@ -136,19 +139,6 @@ const PostDetailScreen = () => {
     ));
   };
 
-  const renderAddSolutionButton = () => {
-    if (userHasSolution) return null;
-
-    return (
-      <TouchableOpacity
-        style={styles.addSolutionButton}
-        onPress={() => router.push({ pathname: '/create-solution', params: { postId, post: JSON.stringify(post) } })}
-      >
-        <Text style={styles.addSolutionButtonText}>Add Solution</Text>
-      </TouchableOpacity>
-    );
-  };
-
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -158,7 +148,7 @@ const PostDetailScreen = () => {
   }
 
   return (
-    <View style={styles.container}>
+    <KeyboardResizingScreen>
       <BackgroundSvg hue={user?.userprofile?.background_hue} />
       <ScrollableScreenWrapper title="Post Detail">
         <Animated.ScrollView
@@ -172,21 +162,23 @@ const PostDetailScreen = () => {
             <>
               <PostDetailCard post={post} />
               {renderSolutions()}
-              {renderAddSolutionButton()}
             </>
           )}
         </Animated.ScrollView>
       </ScrollableScreenWrapper>
       
       <CommentBottomSheet
-        isVisible={isCommentSheetVisible}
+        isVisible
+        mode={composerMode}
+        postId={postId}
+        canSubmitSolution={!userHasSolution}
         onClose={handleCloseCommentSheet}
         solutionId={currentSolutionId}
         parentComment={replyingToComment}
         editingComment={editingComment}
-        onCommentSubmitted={handleCommentSubmitted}
+        onSubmitted={handleResponseSubmitted}
       />
-    </View>
+    </KeyboardResizingScreen>
   );
 };
 
@@ -195,7 +187,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 16,
+    paddingBottom: 170,
     paddingHorizontal: 16,
   },
   loadingContainer: {
@@ -218,19 +210,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     textAlign: 'center',
-  },
-  addSolutionButton: {
-    backgroundColor: '#2563EB',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginVertical: 16,
-    marginBottom: 75,
-  },
-  addSolutionButtonText: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 16,
   },
 });
 

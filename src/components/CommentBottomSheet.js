@@ -1,22 +1,29 @@
 import React, { useState, useRef, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, Alert } from 'react-native';
-import BottomSheet, { BottomSheetView, BottomSheetTextInput } from '@gorhom/bottom-sheet';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import BottomSheet, { BottomSheetView, INITIAL_CONTAINER_LAYOUT } from '@gorhom/bottom-sheet';
+import { useSharedValue } from 'react-native-reanimated';
 import { MaterialIcons } from '@expo/vector-icons';
-import EditorComponent from './EditorComponent';
+import ReplyEditor from './ReplyEditor';
 import { globalStyles } from '../utils/styles';
 import { createComment, editComment } from '../api/commentService';
+import api from '../api/config';
 import { triggerPressHaptic, triggerSuccessHaptic } from '../utils/haptics';
 
 const CommentBottomSheet = ({ 
   isVisible, 
+  mode = 'solution',
+  postId,
+  canSubmitSolution = true,
   onClose, 
   solutionId, 
   parentComment = null, 
   editingComment = null,
-  onCommentSubmitted 
+  onSubmitted,
 }) => {
   const [content, setContent] = useState(editingComment?.content || '');
-  const [currentSnapIndex, setCurrentSnapIndex] = useState(2); // Track current snap point
+  const [currentSnapIndex, setCurrentSnapIndex] = useState(0);
+  const [editorKey, setEditorKey] = useState(0);
+  const containerLayoutState = useSharedValue(INITIAL_CONTAINER_LAYOUT);
 
   React.useEffect(() => {
     if (editingComment) {
@@ -24,21 +31,28 @@ const CommentBottomSheet = ({
     } else {
       setContent('');
     }
-  }, [editingComment]);
+  }, [editingComment, mode]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const bottomSheetRef = useRef(null);
 
   const snapPoints = useMemo(() => ['20%', '50%', '75%', '85%'], []);
 
   const handleSheetChanges = useCallback((index) => {
-    setCurrentSnapIndex(index);
-  }, []);
+    if (index >= -1 && index < snapPoints.length) {
+      setCurrentSnapIndex(index);
+    }
+  }, [snapPoints.length]);
 
   const handleSubmit = async () => {
     await triggerPressHaptic();
 
     if (!isContentValid()) {
-      Alert.alert('Error', 'Please enter some content for your comment.');
+      Alert.alert('Error', `Please enter some content for your ${mode === 'solution' ? 'solution' : 'comment'}.`);
+      return;
+    }
+
+    if (mode === 'solution' && !canSubmitSolution) {
+      Alert.alert('Solution already submitted', 'You can only submit one solution per post.');
       return;
     }
 
@@ -57,21 +71,31 @@ const CommentBottomSheet = ({
           }
         : content;
       
-      if (editingComment) {
+      if (mode === 'solution') {
+        const response = await api.post(`/posts/${postId}/solutions/create/`, {
+          content: contentToSubmit,
+        });
+        result = response.data;
+      } else if (editingComment) {
         result = await editComment(editingComment.id, contentToSubmit);
       } else {
         result = await createComment(solutionId, contentToSubmit, parentComment?.id);
       }
       
       await triggerSuccessHaptic();
-      onCommentSubmitted?.(result);
+      onSubmitted?.(result, mode);
       setContent('');
+      setEditorKey((key) => key + 1);
+      if (mode === 'solution') {
+        setCurrentSnapIndex(0);
+        bottomSheetRef.current?.snapToIndex(0);
+      }
       onClose();
     } catch (error) {
-      console.error('Error submitting comment:', error);
+      console.error(`Error submitting ${mode}:`, error);
       Alert.alert(
         'Error', 
-        `Failed to ${editingComment ? 'update' : 'create'} comment. Please try again.`
+        `Failed to ${mode === 'solution' ? 'create solution' : editingComment ? 'update comment' : 'create comment'}. Please try again.`
       );
     } finally {
       setIsSubmitting(false);
@@ -81,7 +105,13 @@ const CommentBottomSheet = ({
   const handleCancel = () => {
     void triggerPressHaptic();
     setContent(editingComment?.content || '');
-    onClose();
+    setEditorKey((key) => key + 1);
+    if (mode === 'solution') {
+      setCurrentSnapIndex(0);
+      bottomSheetRef.current?.snapToIndex(0);
+    } else {
+      onClose();
+    }
   };
 
   const handleHeaderTap = () => {
@@ -114,6 +144,7 @@ const CommentBottomSheet = ({
   };
 
   const getTitle = () => {
+    if (mode === 'solution') return canSubmitSolution ? 'Add Solution' : 'Solution submitted';
     if (editingComment) return 'Edit Comment';
     if (parentComment) return `Reply to ${parentComment.author.first_name || parentComment.author.username}`;
     return 'Add Comment';
@@ -131,34 +162,34 @@ const CommentBottomSheet = ({
 
   React.useEffect(() => {
     if (isVisible) {
-      setCurrentSnapIndex(2);
+      const nextIndex = mode === 'solution' ? 0 : 1;
+      setCurrentSnapIndex(nextIndex);
       const frameId = requestAnimationFrame(() => {
-        bottomSheetRef.current?.snapToIndex(2);
+        bottomSheetRef.current?.snapToIndex(nextIndex);
       });
       return () => cancelAnimationFrame(frameId);
     }
 
     bottomSheetRef.current?.close();
     return undefined;
-  }, [isVisible]);
+  }, [isVisible, mode]);
 
   if (!isVisible) return null;
 
   return (
-    <BottomSheet
-      ref={bottomSheetRef}
-      index={currentSnapIndex}
-      snapPoints={snapPoints}
-      onChange={handleSheetChanges}
-      enablePanDownToClose={false}
-      backgroundStyle={styles.bottomSheetBackground}
-      handleIndicatorStyle={styles.handleIndicator}
-    >
-      <BottomSheetView style={styles.container}>
-        <KeyboardAvoidingView 
-          style={styles.keyboardView}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
+    <View style={styles.sheetHost} pointerEvents="box-none">
+      <BottomSheet
+        ref={bottomSheetRef}
+        index={currentSnapIndex}
+        snapPoints={snapPoints}
+        containerLayoutState={containerLayoutState}
+        enableDynamicSizing={false}
+        onChange={handleSheetChanges}
+        enablePanDownToClose={false}
+        backgroundStyle={styles.bottomSheetBackground}
+        handleIndicatorStyle={styles.handleIndicator}
+      >
+        <BottomSheetView style={styles.container}>
           {/* Header */}
           <TouchableOpacity 
             style={styles.header} 
@@ -178,17 +209,24 @@ const CommentBottomSheet = ({
                 <Text style={styles.expandHint} selectable={true}>Tap to expand</Text>
               )}
             </View>
-            <TouchableOpacity style={styles.closeButton} onPress={handleCancel}>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={(event) => {
+                event.stopPropagation?.();
+                handleCancel();
+              }}
+            >
               <MaterialIcons name="close" size={24} color="#666" />
             </TouchableOpacity>
           </TouchableOpacity>
 
           {/* Content Editor - always mounted but conditionally visible */}
           <View style={[styles.editorContainer, currentSnapIndex === 0 && styles.hiddenEditor]}>
-            <EditorComponent
+            <ReplyEditor
+              key={`${mode}-${editingComment?.id || parentComment?.id || 'new'}-${editorKey}`}
               onSave={setContent}
               initialContent={editingComment?.content || ''}
-              placeholder={parentComment ? 'Write your reply...' : 'Write your comment...'}
+              placeholder={mode === 'solution' ? 'Write your solution...' : parentComment ? 'Write your reply...' : 'Write your comment...'}
             />
           </View>
 
@@ -206,27 +244,30 @@ const CommentBottomSheet = ({
               <TouchableOpacity 
                 style={[
                   styles.submitButton, 
-                  (!isContentValid() || isSubmitting) && styles.submitButtonDisabled
+                  (!isContentValid() || isSubmitting || (mode === 'solution' && !canSubmitSolution)) && styles.submitButtonDisabled
                 ]} 
                 onPress={handleSubmit}
-                disabled={!isContentValid() || isSubmitting}
+                disabled={!isContentValid() || isSubmitting || (mode === 'solution' && !canSubmitSolution)}
               >
                 <Text style={[
                   styles.submitButtonText,
-                  (!isContentValid() || isSubmitting) && styles.submitButtonTextDisabled
+                  (!isContentValid() || isSubmitting || (mode === 'solution' && !canSubmitSolution)) && styles.submitButtonTextDisabled
                 ]}>
-                  {isSubmitting ? 'Submitting...' : editingComment ? 'Update' : 'Post'}
+                  {isSubmitting ? 'Submitting...' : mode === 'solution' ? 'Submit Solution' : editingComment ? 'Update' : 'Post'}
                 </Text>
               </TouchableOpacity>
             </View>
           )}
-        </KeyboardAvoidingView>
-      </BottomSheetView>
-    </BottomSheet>
+        </BottomSheetView>
+      </BottomSheet>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  sheetHost: {
+    ...StyleSheet.absoluteFillObject,
+  },
   bottomSheetBackground: {
     backgroundColor: 'white',
     borderTopLeftRadius: 20,
@@ -249,9 +290,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
     paddingBottom: 70,
-  },
-  keyboardView: {
-    flex: 1,
   },
   header: {
     flexDirection: 'row',

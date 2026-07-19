@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { useUser } from '../context/userContext';
 import BackgroundSvg from '../components/BackgroundSVG';
 import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';
@@ -28,9 +29,10 @@ const ProfileScreen = () => {
   const params = useLocalSearchParams();
   const username = params?.username;
   const isCurrentUser = !username || username === user?.username;
+  const cachedProfile = isCurrentUser ? user : null;
 
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState(cachedProfile);
+  const [loading, setLoading] = useState(!cachedProfile);
   const [refreshing, setRefreshing] = useState(false);
   const [posts, setPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(false);
@@ -53,7 +55,7 @@ const ProfileScreen = () => {
     }
   };
 
-  const fetchProfile = async () => {
+  const fetchProfile = async (postsAlreadyLoading = false) => {
     try {
       let profileData;
       if (isCurrentUser) {
@@ -63,8 +65,14 @@ const ProfileScreen = () => {
       }
 
       setProfile(profileData);
+      // The profile itself is ready; posts can continue loading independently.
+      setLoading(false);
       const profileUsername = profileData?.username || profileData?.user?.username || user?.username || username;
-      await fetchProfilePosts(profileUsername);
+      // A current-user profile can open before its cached username is available.
+      // In that case, start the posts request as soon as the profile resolves.
+      if (!postsAlreadyLoading && profileUsername) {
+        void fetchProfilePosts(profileUsername);
+      }
     } catch (error) {
       console.error('Error fetching profile:', error);
       Alert.alert('Error', 'Failed to load profile');
@@ -74,13 +82,31 @@ const ProfileScreen = () => {
     }
   };
 
-  useEffect(() => {
-    fetchProfile();
-  }, [username]);
+  useFocusEffect(
+    React.useCallback(() => {
+      const locallyAvailableProfile = isCurrentUser ? user : null;
+      const profileUsername = username || user?.username;
+
+      setProfile(locallyAvailableProfile);
+      setLoading(!locallyAvailableProfile);
+
+      // Start loading posts from the route username immediately, in parallel with
+      // the profile-detail request. This avoids making the posts request wait for
+      // the detail endpoint to return.
+      if (profileUsername) {
+        void fetchProfilePosts(profileUsername);
+      }
+      void fetchProfile(Boolean(profileUsername));
+    }, [username, user?.username])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchProfile();
+    const profileUsername = username || user?.username;
+    if (profileUsername) {
+      void fetchProfilePosts(profileUsername);
+    }
+    void fetchProfile(Boolean(profileUsername));
   };
 
   const handleImagePress = async () => {

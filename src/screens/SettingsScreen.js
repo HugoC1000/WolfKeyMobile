@@ -29,6 +29,7 @@ import { GlassView, GlassContainer, isLiquidGlassAvailable } from 'expo-glass-ef
 import ScheduleTab from '../components/ScheduleTab';
 import ExperienceTab from '../components/ExperienceTab';
 import CourseSelector from '../components/CourseSelector';
+import ScreenHeaderSpacer from '../components/ScreenHeaderSpacer';
 
 const SettingsScreen = () => {
   const { logout } = useAuth();
@@ -276,6 +277,7 @@ const SettingsScreen = () => {
       <BackgroundSvg hue={user?.userprofile?.background_hue} />
       <ScrollableScreenWrapper title="Settings">
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <ScreenHeaderSpacer />
           <View style={styles.tabBar}>
             {[
               { key: 'privacy', label: 'Privacy' },
@@ -378,7 +380,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    marginTop: 65,
   },
   loadingContainer: {
     flex: 1,

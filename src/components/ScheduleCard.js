@@ -389,7 +389,10 @@ const Schedule = () => {
 
     const date = getDateForOffset(offset);
     const isToday = date.toDateString() === new Date().toDateString();
-    const dateLabel = isToday ? 'Today' : formatDate(date);
+    const dateLabel = isToday ? `Today, ${new Date().toLocaleDateString('en-US', { 
+      month: 'long', 
+      day: 'numeric'})}` 
+    : formatDate(date);
 
     return (
       <View

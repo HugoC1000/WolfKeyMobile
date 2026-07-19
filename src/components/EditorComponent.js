@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
 import { View, TextInput, StyleSheet, TouchableOpacity, Image, Text, Alert, FlatList, Pressable } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -6,9 +6,16 @@ import { globalStyles } from '../utils/styles';
 import api from '../api/config';
 import { getFullImageUrl } from '../api/config';
 import { flattenMentionSuggestions, searchMentionSuggestions } from '../api/mentionService';
+import EditorToolbar from './EditorToolbar';
 
 
-const EditorComponent = ({ onSave, initialContent = '', placeholder = 'Write your content here...' }) => {
+const EditorComponent = React.forwardRef(({
+  onSave,
+  initialContent = '',
+  placeholder = 'Write your content here...',
+  composer = false,
+  autoGrow = false,
+}, ref) => {
   const [content, setContent] = useState('');
   const [blocks, setBlocks] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -256,6 +263,10 @@ const EditorComponent = ({ onSave, initialContent = '', placeholder = 'Write you
     }
   };
 
+  useImperativeHandle(ref, () => ({
+    pickImage,
+  }));
+
   const selectFromGallery = async () => {
     try {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -412,9 +423,11 @@ const EditorComponent = ({ onSave, initialContent = '', placeholder = 'Write you
     setActiveMention(context);
   };
 
-  const handleSubmit = () => {
-    updateContent(blocks, true);
+  const handleBlur = () => {
+    updateContent(blocks, false);
   };
+
+  const imageBlocks = blocks.filter((block) => block.type === 'image');
 
   const getMimeType = (uri) => {
     const ext = uri.split('.').pop().toLowerCase();
@@ -428,15 +441,16 @@ const EditorComponent = ({ onSave, initialContent = '', placeholder = 'Write you
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, composer && styles.composerContainer, autoGrow && styles.autoGrowContainer]}>
       <TextInput
-        style={styles.editor}
+        style={[styles.editor, composer && styles.composerEditor, autoGrow && styles.autoGrowEditor]}
         multiline
+        scrollEnabled={!autoGrow}
         value={content}
         onChangeText={handleContentChange}
         onSelectionChange={(event) => setSelection(event.nativeEvent.selection)}
         selection={selection}
-        onBlur={handleSubmit} 
+        onBlur={handleBlur}
         placeholder={placeholder}
         textAlignVertical="top"
       />
@@ -461,33 +475,31 @@ const EditorComponent = ({ onSave, initialContent = '', placeholder = 'Write you
           </View>
       )}
       
-      {blocks.map((block, index) => (
-        block.type === 'image' && (
-          <View key={block.id || index} style={styles.imageContainer}>
-            <Image source={{ uri: getFullImageUrl(block.data.file?.url) || getFullImageUrl(block.data.url) }} style={styles.image} />
-            <TouchableOpacity 
-              style={styles.removeImageButton}
-              onPress={() => removeImage(block.id || index)}
+      {imageBlocks.length > 0 && (
+        <View style={styles.imageGrid}>
+          {imageBlocks.map((block, index) => (
+            <View
+              key={block.id || index}
+              style={styles.imageContainer}
             >
-              <MaterialIcons name="close" size={20} color="#fff" />
-            </TouchableOpacity>
-          </View>
-        )
-      ))}
+              <Image source={{ uri: getFullImageUrl(block.data.file?.url) || getFullImageUrl(block.data.url) }} style={styles.image} />
+              <TouchableOpacity
+                style={styles.removeImageButton}
+                onPress={() => removeImage(block.id || index)}
+              >
+                <MaterialIcons name="close" size={20} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+      )}
 
-      <TouchableOpacity 
-        style={[styles.addImageButton, isUploading && styles.addImageButtonDisabled]} 
-        onPress={pickImage}
-        disabled={isUploading}
-      >
-        <MaterialIcons name="add-photo-alternate" size={20} color={isUploading ? "#9CA3AF" : "#2563EB"} />
-        <Text style={[styles.addImageText, isUploading && styles.addImageTextDisabled]}>
-          {isUploading ? 'Uploading...' : 'Add Image'}
-        </Text>
-      </TouchableOpacity>
+      <EditorToolbar onAddImage={pickImage} disabled={isUploading} />
     </View>
   );
-};
+});
+
+EditorComponent.displayName = 'EditorComponent';
 
 const styles = StyleSheet.create({
   container: {
@@ -499,6 +511,25 @@ const styles = StyleSheet.create({
   editor: {
     ...globalStyles.regularText,
     minHeight: 40,
+  },
+  composerContainer: {
+    flex: 1,
+    padding: 0,
+    borderRadius: 0,
+  },
+  composerEditor: {
+    flex: 1,
+    minHeight: 180,
+    fontSize: 17,
+    lineHeight: 22,
+    color: '#111827',
+  },
+  autoGrowContainer: {
+    flex: 0,
+  },
+  autoGrowEditor: {
+    flex: 0,
+    minHeight: 44,
   },
   mentionSuggestionsContainer: {
     position: 'absolute',
@@ -587,16 +618,24 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 8,
   },
-  imageContainer: {
+  imageGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
     marginVertical: 8,
+  },
+  imageContainer: {
+    flexBasis: '30%',
+    flexGrow: 1,
+    height: 110,
     borderRadius: 8,
     overflow: 'hidden',
     position: 'relative',
   },
   image: {
     width: '100%',
-    height: 200,
-    resizeMode: 'contain',
+    height: '100%',
+    resizeMode: 'cover',
     backgroundColor: '#f5f5f5',
   },
   removeImageButton: {
@@ -610,28 +649,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  addImageButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 4,
-    marginTop: 0,
-    borderWidth: 1,
-    borderColor: '#2563EB',
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-  },
-  addImageButtonDisabled: {
-    borderColor: '#9CA3AF',
-    opacity: 0.6,
-  },
-  addImageText: {
-    marginLeft: 8,
-    color: '#2563EB',
-    fontWeight: '500',
-  },
-  addImageTextDisabled: {
-    color: '#9CA3AF',
-  }
 });
 
 export default EditorComponent;

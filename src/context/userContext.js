@@ -17,28 +17,33 @@ export const UserProvider = ({ children }) => {
 
   const loadUser = async () => {
     try {
-      const savedUser = await AsyncStorage.getItem('user');
-      const authToken = await getAuthToken();
+      const [savedUser, authToken] = await Promise.all([
+        AsyncStorage.getItem('user'),
+        getAuthToken(),
+      ]);
 
       if (savedUser && authToken) {
         const parsedUser = JSON.parse(savedUser);
+        // Render from the local cache immediately. A profile refresh should not
+        // hold the app on a loading screen when usable data is already stored.
+        setUser(parsedUser);
+        setLoading(false);
 
-        try {
-          const currentProfile = await getCurrentProfile();
-          const lunchCard = currentProfile?.userprofile?.lunch_card;
-          console.log('userContext.loadUser: lunch_card from server', lunchCard ? 'found' : 'not found');
+        // Revalidate in the background and quietly keep the cache current.
+        getCurrentProfile()
+          .then(async (currentProfile) => {
+            const mergedUser = {
+              ...parsedUser,
+              ...currentProfile,
+              userprofile: currentProfile?.userprofile ?? parsedUser?.userprofile,
+            };
 
-          const mergedUser = {
-            ...parsedUser,
-            ...currentProfile,
-            userprofile: currentProfile?.userprofile ?? parsedUser?.userprofile,
-          };
-
-          setUser(mergedUser);
-          await AsyncStorage.setItem('user', JSON.stringify(mergedUser));
-        } catch (profileErr) {
-          setUser(parsedUser);
-        }
+            setUser(mergedUser);
+            await AsyncStorage.setItem('user', JSON.stringify(mergedUser));
+          })
+          .catch((profileErr) => {
+            console.log('Could not refresh cached user profile:', profileErr?.message || profileErr);
+          });
       } else if (savedUser && !authToken) {
         await AsyncStorage.removeItem('user');
         setUser(null);

@@ -350,7 +350,7 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   title: {
-    fontWeight: '600',
+    fontWeight : '600',
     marginBottom: 8,
     fontSize: 15,
     color: '#1F2937',
