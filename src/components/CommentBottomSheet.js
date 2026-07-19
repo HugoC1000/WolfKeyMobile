@@ -35,7 +35,7 @@ const CommentBottomSheet = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const bottomSheetRef = useRef(null);
 
-  const snapPoints = useMemo(() => ['20%', '50%', '75%', '85%'], []);
+  const snapPoints = useMemo(() => ['12%', '14%', '45%', '85%'], []);
 
   const handleSheetChanges = useCallback((index) => {
     if (index >= -1 && index < snapPoints.length) {

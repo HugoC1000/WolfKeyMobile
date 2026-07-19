@@ -243,13 +243,21 @@ const SettingsScreen = () => {
   };
 
   const scheduleForTab = useMemo(() => {
-    const blocks = profile?.userprofile?.schedule_blocks || {};
+    // New profiles expose schedule entries as { '1A': { course, course_id } }.
+    // Keep accepting the legacy schedule_blocks shape while clients transition.
+    const blocks = profile?.userprofile?.schedule ?? profile?.userprofile?.schedule_blocks ?? {};
     const result = {};
     Object.entries(blocks).forEach(([blockKey, courseObj]) => {
-      result[blockKey] = courseObj
+      const normalizedBlockKey = blockKey.startsWith('block_') ? blockKey : `block_${blockKey}`;
+      const courseName = typeof courseObj?.course === 'string'
+        ? courseObj.course
+        : courseObj?.name || courseObj?.course?.name || null;
+      const courseId = courseObj?.course_id ?? courseObj?.id ?? courseObj?.course?.id ?? null;
+
+      result[normalizedBlockKey] = courseObj
         ? {
-            course: courseObj.name || null,
-            course_id: courseObj.id || null,
+            course: courseName,
+            course_id: courseId,
             category: courseObj.category || null,
           }
         : {
