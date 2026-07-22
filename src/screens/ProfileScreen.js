@@ -1,15 +1,14 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
+  FlatList,
   Alert,
   ActivityIndicator,
-  RefreshControl,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { useFocusEffect } from '@react-navigation/native';
+import { useIsFocused } from '@react-navigation/native';
 import { useUser } from '../context/userContext';
 import BackgroundSvg from '../components/BackgroundSVG';
 import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';
@@ -28,6 +27,7 @@ const ProfileScreen = () => {
   const { user } = useUser();
   const params = useLocalSearchParams();
   const username = params?.username;
+  const isFocused = useIsFocused();
   const isCurrentUser = !username || username === user?.username;
   const cachedProfile = isCurrentUser ? user : null;
 
@@ -82,23 +82,25 @@ const ProfileScreen = () => {
     }
   };
 
-  useFocusEffect(
-    React.useCallback(() => {
-      const locallyAvailableProfile = isCurrentUser ? user : null;
-      const profileUsername = username || user?.username;
+  useEffect(() => {
+    // Native tabs may mount this route in the background at startup. Wait until
+    // it is actually the active screen before requesting profile data.
+    if (!isFocused) return;
 
-      setProfile(locallyAvailableProfile);
-      setLoading(!locallyAvailableProfile);
+    const locallyAvailableProfile = isCurrentUser ? user : null;
+    const profileUsername = username || user?.username;
 
-      // Start loading posts from the route username immediately, in parallel with
-      // the profile-detail request. This avoids making the posts request wait for
-      // the detail endpoint to return.
-      if (profileUsername) {
-        void fetchProfilePosts(profileUsername);
-      }
-      void fetchProfile(Boolean(profileUsername));
-    }, [username, user?.username])
-  );
+    setProfile(locallyAvailableProfile);
+    setLoading(!locallyAvailableProfile);
+
+    // Start loading posts from the route username immediately, in parallel with
+    // the profile-detail request. This avoids making the posts request wait for
+    // the detail endpoint to return.
+    if (profileUsername) {
+      void fetchProfilePosts(profileUsername);
+    }
+    void fetchProfile(Boolean(profileUsername));
+  }, [isFocused, username, user?.username]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -218,43 +220,44 @@ const ProfileScreen = () => {
         isSetting={isCurrentUser}
         contentPaddingTop={0}
       >
-        <ScrollView
+        <FlatList
           style={styles.content}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.contentPanel}>
-            <ProfileCard
-              profile={profile}
-              isCurrentUser={isCurrentUser}
-              onEditPress={handleEditPress}
-              onCompareSchedules={handleCompareSchedules}
-              onImagePress={handleImagePress}
-            />
-
-            {!isCurrentUser && (
-              <CourseComparisonCard
-                viewedProfile={profile}
-                currentProfile={user}
+          contentContainerStyle={styles.contentContainer}
+          data={posts}
+          keyExtractor={(post) => String(post.id)}
+          renderItem={({ item: post }) => <PostCard post={post} />}
+          ListHeaderComponent={
+            <View style={styles.contentPanel}>
+              <ProfileCard
+                profile={profile}
                 isCurrentUser={isCurrentUser}
+                onEditPress={handleEditPress}
+                onCompareSchedules={handleCompareSchedules}
+                onImagePress={handleImagePress}
               />
-            )}
 
-            <View style={styles.postsSection}>
-              {postsLoading ? (
-                <ActivityIndicator size="small" color="#2563eb" style={styles.postsLoadingIndicator} />
-              ) : posts.length > 0 ? (
-                posts.map((post) => (
-                  <PostCard key={post.id} post={post} />
-                ))
-              ) : (
-                <Text style={styles.placeholderText}>No posts yet.</Text>
+              {!isCurrentUser && (
+                <CourseComparisonCard
+                  viewedProfile={profile}
+                  currentProfile={user}
+                  isCurrentUser={isCurrentUser}
+                />
               )}
             </View>
-          </View>
-        </ScrollView>
+          }
+          ListEmptyComponent={
+            postsLoading ? (
+              <ActivityIndicator size="small" color="#2563eb" style={styles.postsLoadingIndicator} />
+            ) : (
+              <Text style={styles.placeholderText}>No posts yet.</Text>
+            )
+          }
+          ListFooterComponent={<View style={styles.listFooter} />}
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          showsVerticalScrollIndicator={false}
+          nestedScrollEnabled
+        />
       </ScrollableScreenWrapper>
     </View>
   );
@@ -266,12 +269,14 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingTop: 0,
+  },
+  contentContainer: {
+    flexGrow: 1,
+    backgroundColor: '#FFFFFF',
   },
   contentPanel: {
     marginHorizontal: 0,
     marginTop: 0,
-    marginBottom: 100,
     borderRadius: 38,
     backgroundColor: '#FFFFFF',
   },
@@ -283,15 +288,15 @@ const styles = StyleSheet.create({
   postsLoadingIndicator: {
     marginVertical: 4,
   },
-  postsSection: {
-    marginTop: 10,
-  },
   placeholderText: {
     color: '#374151',
     fontSize: 15,
     lineHeight: 22,
     textAlign: 'center',
-    marginBottom: 10,
+    marginVertical: 18,
+  },
+  listFooter: {
+    height: 100,
   },
   loadingContainer: {
     flex: 1,
