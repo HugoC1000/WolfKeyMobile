@@ -21,16 +21,13 @@ import { GestureHandlerRootView, GestureDetector, Gesture } from 'react-native-g
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import BackgroundSvg from '../components/BackgroundSVG';
 import SharedHeader from '../components/SharedHeader';
+import ScreenHeaderSpacer from '../components/ScreenHeaderSpacer';
 import { uploadLunchCard, getCurrentProfile } from '../api/profileService';
 import { getFullImageUrl } from '../api/config';
 import { useUser } from '../context/userContext';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { triggerPressHaptic, triggerSuccessHaptic } from '../utils/haptics';
 
-const HEADER_HEIGHT = 45;
-
 const LunchCardScreen = () => {
-  const insets = useSafeAreaInsets();
   const { user, updateUser } = useUser();
   const [image, setImage] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -303,10 +300,11 @@ const LunchCardScreen = () => {
       <BackgroundSvg hue={user?.userprofile?.background_hue} />
 
       <SharedHeader title="Lunch Card" isHome={false} />
+      <ScreenHeaderSpacer />
 
-      <View style={[styles.imageContainer, { paddingTop: insets.top + HEADER_HEIGHT + 20 }]}>
+      <View style={styles.imageContainer}>
         {!isOnline && (
-          <View style={[styles.offlineIndicator, { top: insets.top + HEADER_HEIGHT + 10 }]}>
+          <View style={styles.offlineIndicator}>
             <Ionicons name="cloud-offline-outline" size={16} color="#666" />
             <Text style={styles.offlineText}>Offline {isLocalCache && '(cached)'}</Text>
           </View>

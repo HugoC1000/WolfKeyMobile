@@ -1,18 +1,49 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Animated, StyleSheet, Text, View, Image, TouchableOpacity, Alert, Share, Clipboard } from 'react-native';
+import {
+  Alert,
+  Animated,
+  Image,
+  Linking,
+  Share,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
+import { GlassView } from 'expo-glass-effect';
 import { useUser } from '../context/userContext';
 import { likePost, unlikePost, followPost, unfollowPost } from '../api/postService';
 import { getFullImageUrl } from '../api/config';
 import { formatDateTime } from '../utils/timeUtils';
+import { triggerPressHaptic } from '../utils/haptics';
 import PollCard from './PollCard';
 import { TextWithLinks } from '../utils/linkParser';
+
+const MESSAGE_URL_FIELDS = {
+  Snapchat: 'snapchat_url',
+  Instagram: 'instagram_url',
+  LinkedIn: 'linkedin_url',
+};
 
 const PostCard = ({ post }) => {
   const router = useRouter();
   const { user } = useUser();
+  const authorProfile = post?.author?.userprofile;
+  const currentUserProfile = user?.userprofile;
+  const preferredMsgApp = authorProfile?.preferred_msg_app;
+  const preferredMsgUrl = authorProfile?.[MESSAGE_URL_FIELDS[preferredMsgApp]];
+  const currentUserHasPreferredApp = Boolean(
+    currentUserProfile?.[MESSAGE_URL_FIELDS[preferredMsgApp]]
+  );
+  const messageOptions = Object.entries(MESSAGE_URL_FIELDS)
+    .map(([app, urlField]) => ({ app, url: authorProfile?.[urlField] }))
+    .filter(({ url }) => Boolean(url));
+  const hasMessageOptions = messageOptions.length > 0;
 
+  const [isMessageMenuVisible, setIsMessageMenuVisible] = useState(false);
   const [isLiked, setIsLiked] = useState(Boolean(post.is_liked));
   const [likeCount, setLikeCount] = useState(Number(post.like_count) || 0);
   const [isFollowing, setIsFollowing] = useState(Boolean(post.is_following));
@@ -25,8 +56,41 @@ const PostCard = ({ post }) => {
     setIsFollowing(Boolean(post.is_following));
     setFollowerCount(Number(post.followers_count) || 0);
   }, [post]);
+
+  const openMessageUrl = async (url) => {
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (!supported) {
+        Alert.alert('Unable to open app', 'This messaging profile could not be opened.');
+        return;
+      }
+      await Linking.openURL(url);
+    } catch (error) {
+      console.error('Error opening preferred messaging app:', error);
+      Alert.alert('Unable to open app', 'This messaging profile could not be opened.');
+    }
+  };
+
+  const handleMessagePress = () => {
+    if (!hasMessageOptions) return;
+    void triggerPressHaptic();
+
+    if (preferredMsgUrl && currentUserHasPreferredApp) {
+      void openMessageUrl(preferredMsgUrl);
+      return;
+    }
+
+    setIsMessageMenuVisible((visible) => !visible);
+  };
+
+  const handleMessageOptionPress = (url) => {
+    setIsMessageMenuVisible(false);
+    void openMessageUrl(url);
+  };
   
   const handleLike = async () => {
+    void triggerPressHaptic();
+
     Animated.sequence([
       Animated.timing(likeScale, {
         toValue: 1.3,
@@ -58,6 +122,8 @@ const PostCard = ({ post }) => {
   };
   
   const handleFollow = async () => {
+    void triggerPressHaptic();
+
     try {
       if (isFollowing) {
         const response = await unfollowPost(post.id);
@@ -75,6 +141,8 @@ const PostCard = ({ post }) => {
   };
   
   const handleShare = async () => {
+    void triggerPressHaptic();
+
     try {
       const result = await Share.share({
         message: `Check out this post: https://wolfkey.net/post/${post.id}`,
@@ -217,50 +285,91 @@ const PostCard = ({ post }) => {
         
         {/* Interactions Row */}
         {user && (
-          <View style={styles.interactions}>
-            {/* Follow Button */}
-            <TouchableOpacity
-              style={[styles.interactionButton, isFollowing && styles.activeButton]}
-              onPress={handleFollow}
-            >
-              <MaterialIcons 
-                name={isFollowing ? "notifications" : "notifications-none"} 
-                size={20} 
-                color={isFollowing ? "#2196f3" : "#666"}
-              />
-              <Text style={[styles.interactionText, isFollowing && styles.activeText]}>
-                {followerCount}
-              </Text>
-            </TouchableOpacity>
+          <View style={styles.actionArea}>
+            {isMessageMenuVisible && !post.is_anonymous && hasMessageOptions && (
+              <GlassView
+                style={styles.messageMenu}
+                glassEffectStyle="regular"
+                isInteractive
+              >
+                {messageOptions.map(({ app, url }) => (
+                  <TouchableOpacity
+                    key={app}
+                    style={styles.messageOption}
+                    onPress={() => handleMessageOptionPress(url)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Message on ${app}`}
+                  >
+                    <Text style={styles.messageOptionText}>{app}</Text>
+                  </TouchableOpacity>
+                ))}
+              </GlassView>
+            )}
 
-            {/* Like Button */}
-            <TouchableOpacity
-              style={[styles.interactionButton, isLiked && styles.activeButton]}
-              onPress={handleLike}
-            >
-              <Animated.View style={{ transform: [{ scale: likeScale }] }}>
+            <View style={styles.interactions}>
+              {!post.is_anonymous && (
+                <TouchableOpacity
+                  style={[
+                    styles.interactionButton,
+                    !hasMessageOptions && styles.disabledInteractionButton,
+                  ]}
+                  onPress={handleMessagePress}
+                  disabled={!hasMessageOptions}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Message ${post.author.full_name || post.author.username}`}
+                  accessibilityState={{ disabled: !hasMessageOptions }}
+                >
+                  <Feather
+                    name="send"
+                    size={20}
+                    color={hasMessageOptions ? 'black' : '#C4C4C4'}
+                  />
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity
+                style={styles.interactionButton}
+                onPress={handleLike}
+                accessibilityRole="button"
+                accessibilityLabel={isLiked ? 'Unlike post' : 'Like post'}
+              >
+                <Animated.View style={{ transform: [{ scale: likeScale }] }}>
+                  <MaterialIcons
+                    name={isLiked ? 'favorite' : 'favorite-border'}
+                    size={20}
+                    color={isLiked ? '#E91E63' : 'black'}
+                  />
+                </Animated.View>
+                <Text style={[styles.interactionText, isLiked && styles.activeText]}>
+                  {likeCount}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.interactionButton}
+                onPress={handleFollow}
+                accessibilityRole="button"
+                accessibilityLabel={isFollowing ? 'Unfollow post' : 'Follow post'}
+              >
                 <MaterialIcons
-                  name={isLiked ? "favorite" : "favorite-border"}
+                  name={isFollowing ? 'notifications' : 'notifications-none'}
                   size={20}
-                  color={isLiked ? "#e91e63" : "#666"}
+                  color={isFollowing ? '#2196F3' : 'black'}
                 />
-              </Animated.View>
-              <Text style={[styles.interactionText, isLiked && styles.activeText]}>
-                {likeCount}
-              </Text>
-            </TouchableOpacity>
-            
-            {/* Share Button */}
-            <TouchableOpacity 
-              style={styles.interactionButton}
-              onPress={handleShare}
-            >
-              <MaterialIcons 
-                name="share" 
-                size={20} 
-                color="#666"
-              />
-            </TouchableOpacity>
+                <Text style={[styles.interactionText, isFollowing && styles.activeText]}>
+                  {followerCount}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.interactionButton}
+                onPress={handleShare}
+                accessibilityRole="button"
+                accessibilityLabel="Share post"
+              >
+                <MaterialIcons name="share" size={20} color="black" />
+              </TouchableOpacity>
+            </View>
           </View>
         )}
       </View>
@@ -322,13 +431,13 @@ const styles = StyleSheet.create({
   profilePic: {
     width: 35,
     height: 35,
-    borderRadius: 15,
+    borderRadius: 99,
     marginRight: 4,
   },
   profilePicPlaceholder: {
     width: 35,
     height: 35,
-    borderRadius: 15,
+    borderRadius: 99,
     marginRight: 4,
     backgroundColor: '#F3F4F6',
   },
@@ -398,10 +507,34 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#374151',
   },
+  actionArea: {
+    position: 'relative',
+    zIndex: 10,
+  },
   interactions: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-evenly',
+  },
+  messageMenu: {
+    position: 'absolute',
+    left: 4,
+    bottom: 44,
+    minWidth: 190,
+    padding: 8,
+    borderRadius: 16,
+    zIndex: 20,
+  },
+  messageOption: {
+    minHeight: 42,
+    paddingHorizontal: 10,
+    justifyContent: 'center',
+    borderRadius: 10,
+  },
+  messageOptionText: {
+    fontSize: 14,
+    color: '#111827',
+    fontWeight: '600',
   },
   interactionButton: {
     flexDirection: 'row',
@@ -412,6 +545,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     flex: 1,
     justifyContent: 'center',
+  },
+  disabledInteractionButton: {
+    opacity: 0.65,
   },
   interactionText: {
     fontSize: 12,

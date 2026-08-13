@@ -19,7 +19,6 @@ import { GlassView, GlassContainer, isLiquidGlassAvailable } from 'expo-glass-ef
 const ProfileCard = ({ 
   profile, 
   isCurrentUser = false, 
-  onEditPress, 
   onCompareSchedules,
   onImagePress 
 }) => {
@@ -167,11 +166,6 @@ const ProfileCard = ({
         <View style={styles.userInfo}> 
           <View style={styles.nameRow}>
             <Text style={styles.fullName}>{displayName}</Text>
-            {isCurrentUser && (
-              <TouchableOpacity style={styles.inlineEditButton} onPress={onEditPress}>
-                <Text style={styles.inlineEditText}>Edit</Text>
-              </TouchableOpacity>
-            )}
           </View>
           <Text style={styles.userBio} numberOfLines={2}>
             {profileData?.bio || 'No bio yet'}
@@ -309,7 +303,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     marginBottom: 12,
-    paddingTop: 90,
+    paddingTop: 16,
   },
   imageContainer: {
     position: 'relative',
@@ -355,19 +349,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 12,
     color: 'rgba(226, 232, 240, 0.85)',
-    fontWeight: '600',
-  },
-  inlineEditButton: {
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.45)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-  },
-  inlineEditText: {
-    color: '#e2e8f0',
-    fontSize: 12,
     fontWeight: '600',
   },
   metaRow: {

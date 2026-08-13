@@ -3,7 +3,7 @@ import { View, StyleSheet, StatusBar } from 'react-native';
 import SharedHeader from './SharedHeader';
 import BackgroundSvg from '../components/BackgroundSVG';
 import { useUser } from '../context/userContext';
-const ScrollableScreenWrapper = ({ children, title, isHome, backgroundHue, onSettingsPress, isSetting, contentPaddingTop }) => {
+const ScrollableScreenWrapper = ({ children, title, isHome, backgroundHue, onSettingsPress, isSetting }) => {
   const { user } = useUser();
 
   return (
@@ -13,7 +13,7 @@ const ScrollableScreenWrapper = ({ children, title, isHome, backgroundHue, onSet
         backgroundColor="transparent" 
         barStyle="dark-content" 
       />
-      <BackgroundSvg hue={backgroundHue || user?.userprofile?.background_hue} />
+      <BackgroundSvg hue={backgroundHue ?? user?.userprofile?.background_hue} />
       
       <View style={styles.container}>
         <SharedHeader 
@@ -22,7 +22,7 @@ const ScrollableScreenWrapper = ({ children, title, isHome, backgroundHue, onSet
           onSettingsPress={onSettingsPress}
           isSetting={isSetting}
         />
-        <View style={[styles.content, contentPaddingTop > 0 && { paddingTop: contentPaddingTop }]}>
+        <View style={styles.content}>
           {children}
         </View>
       </View>

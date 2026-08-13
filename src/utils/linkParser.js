@@ -175,6 +175,15 @@ export const TextWithLinks = React.memo(({ text, style, linkStyle, ...props }) =
     }
 
     if (token.startsWith('#')) {
+      const encodedCourseMatch = value.match(/^course_(\d+)-/i);
+      if (encodedCourseMatch) {
+        router.push({
+          pathname: '/subjects',
+          params: { course: encodedCourseMatch[1] },
+        });
+        return;
+      }
+
       router.push({ pathname: '/subjects', params: { course: value } });
       return;
     }

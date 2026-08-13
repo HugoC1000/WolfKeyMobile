@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Svg, {
   Defs,
@@ -9,13 +9,9 @@ import Svg, {
   G,
   Path,
 } from 'react-native-svg';
-import { useUser } from '../context/userContext';
 
 const BackgroundSvg = ({ hue = 200 }) => {
-  const { user } = useUser();
-  const [gradientColor, setGradientColor] = useState('rgba(255, 255, 255, 0.5)');
-
-  useEffect(() => {
+  const gradientColor = useMemo(() => {
     const h = hue / 360;
     const s = 0.8;
     const l = 0.6;
@@ -36,9 +32,8 @@ const BackgroundSvg = ({ hue = 200 }) => {
     const g = hue2rgb(p, q, h);
     const b = hue2rgb(p, q, h - 1 / 3);
 
-    const rgba = `rgba(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)}, 0.5)`;
-    setGradientColor(rgba);
-  }, [hue, user?.id]);
+    return `rgba(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)}, 0.5)`;
+  }, [hue]);
 
   return (
     <View style={[StyleSheet.absoluteFillObject, { zIndex: -1 }]}>
@@ -83,4 +78,4 @@ const BackgroundSvg = ({ hue = 200 }) => {
   );
 };
 
-export default BackgroundSvg;
+export default React.memo(BackgroundSvg);

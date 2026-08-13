@@ -142,6 +142,7 @@ const PostDetailScreen = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
+        <BackgroundSvg hue={user?.userprofile?.background_hue} />
         <ActivityIndicator size="large" />
       </View>
     );
@@ -157,10 +158,12 @@ const PostDetailScreen = () => {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
-          <ScreenHeaderSpacer includeSafeArea={false} />
+          <ScreenHeaderSpacer />
           {post && (
             <>
-              <PostDetailCard post={post} />
+              <View style={styles.postDetailCardContainer}>
+                <PostDetailCard post={post} />
+              </View>
               {renderSolutions()}
             </>
           )}
@@ -188,7 +191,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 170,
-    paddingHorizontal: 16,
+    paddingHorizontal: 9,
   },
   loadingContainer: {
     flex: 1,

@@ -12,6 +12,7 @@ import { useIsFocused } from '@react-navigation/native';
 import { useUser } from '../context/userContext';
 import BackgroundSvg from '../components/BackgroundSVG';
 import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';
+import ScreenHeaderSpacer from '../components/ScreenHeaderSpacer';
 import ProfileCard from '../components/ProfileCard';
 import CourseComparisonCard from '../components/CourseComparisonCard';
 import PostCard from '../components/PostCard';
@@ -189,10 +190,6 @@ const ProfileScreen = () => {
     }
   };
 
-  const handleEditPress = () => {
-    router.push('/edit-profile');
-  };
-
   const handleSettingsPress = () => {
     router.push('/settings');
   };
@@ -218,7 +215,6 @@ const ProfileScreen = () => {
         title={'Profile'}
         onSettingsPress={handleSettingsPress}
         isSetting={isCurrentUser}
-        contentPaddingTop={0}
       >
         <FlatList
           style={styles.content}
@@ -227,23 +223,25 @@ const ProfileScreen = () => {
           keyExtractor={(post) => String(post.id)}
           renderItem={({ item: post }) => <PostCard post={post} />}
           ListHeaderComponent={
-            <View style={styles.contentPanel}>
-              <ProfileCard
-                profile={profile}
-                isCurrentUser={isCurrentUser}
-                onEditPress={handleEditPress}
-                onCompareSchedules={handleCompareSchedules}
-                onImagePress={handleImagePress}
-              />
-
-              {!isCurrentUser && (
-                <CourseComparisonCard
-                  viewedProfile={profile}
-                  currentProfile={user}
+            <>
+              <ScreenHeaderSpacer />
+              <View style={styles.contentPanel}>
+                <ProfileCard
+                  profile={profile}
                   isCurrentUser={isCurrentUser}
+                  onCompareSchedules={handleCompareSchedules}
+                  onImagePress={handleImagePress}
                 />
-              )}
-            </View>
+
+                {!isCurrentUser && (
+                  <CourseComparisonCard
+                    viewedProfile={profile}
+                    currentProfile={user}
+                    isCurrentUser={isCurrentUser}
+                  />
+                )}
+              </View>
+            </>
           }
           ListEmptyComponent={
             postsLoading ? (

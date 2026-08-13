@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -8,23 +8,44 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Modal,
+  Pressable,
+  useWindowDimensions,
 } from 'react-native';
-import Slider from '@react-native-community/slider';
-import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useUser } from '../context/userContext';
 import BackgroundSvg from '../components/BackgroundSVG';
 import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';
+import ScreenHeaderSpacer from '../components/ScreenHeaderSpacer';
 import { MaterialIcons } from '@expo/vector-icons';
+import { GlassView } from 'expo-glass-effect';
 import { updateProfile, getCurrentProfile } from '../api/profileService';
-import { triggerSuccessHaptic } from '../utils/haptics';
 
-const HEADER_HEIGHT = 80;
+const PREFERRED_CONTACT_APPS = [
+  'Instagram',
+  'LinkedIn',
+  'Snapchat',
+  'Email',
+  'Discord',
+];
 
 const EditProfileScreen = () => {
+  const params = useLocalSearchParams();
+  const rawSection = params?.section;
+  const section = Array.isArray(rawSection) ? rawSection[0] : rawSection;
+  const showPersonalSection = !section || section === 'personal';
+  const showSocialSection = !section || section === 'social';
+  const screenTitle = section === 'social' ? 'Social Media' : 'Personal Information';
+  const { height: windowHeight } = useWindowDimensions();
   const { user, updateUser } = useUser();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
+  const [isReadyToSave, setIsReadyToSave] = useState(false);
+  const [isContactAppMenuOpen, setIsContactAppMenuOpen] = useState(false);
+  const lastSavedFormRef = useRef('');
+  const savingFormRef = useRef('');
+  const contactAppTriggerRef = useRef(null);
+  const [contactAppMenuAnchor, setContactAppMenuAnchor] = useState(null);
 
   const [formData, setFormData] = useState({
     first_name: '',
@@ -34,6 +55,7 @@ const EditProfileScreen = () => {
     snapchat_handle: '',
     linkedin_url: '',
     instagram_handle: '',
+    preferred_msg_app: '',
   });
 
   useEffect(() => {
@@ -46,7 +68,7 @@ const EditProfileScreen = () => {
       setProfile(profileData);
 
       const profileDataObj = profileData.userprofile || profileData;
-      setFormData({
+      const nextFormData = {
         first_name: profileData.first_name || '',
         last_name: profileData.last_name || '',
         bio: profileDataObj?.bio || '',
@@ -54,7 +76,11 @@ const EditProfileScreen = () => {
         snapchat_handle: extractHandle(profileDataObj?.snapchat_url, 'snapchat') || '',
         linkedin_url: profileDataObj?.linkedin_url || '',
         instagram_handle: extractHandle(profileDataObj?.instagram_url, 'instagram') || '',
-      });
+        preferred_msg_app: profileDataObj?.preferred_msg_app || '',
+      };
+      setFormData(nextFormData);
+      lastSavedFormRef.current = JSON.stringify(nextFormData);
+      setIsReadyToSave(true);
     } catch (error) {
       console.error('Error fetching profile:', error);
       Alert.alert('Error', 'Failed to load profile');
@@ -87,50 +113,110 @@ const EditProfileScreen = () => {
     return url.startsWith('www.linkedin.com/in/') || url.startsWith('https://www.linkedin.com/in/');
   };
 
-  const handleSave = async () => {
+  const buildUpdateData = (nextFormData) => {
+    const snapchatHandle = nextFormData.snapchat_handle.replace(/^@/, '');
+    const instagramHandle = nextFormData.instagram_handle.replace(/^@/, '');
+
+    return {
+      first_name: nextFormData.first_name,
+      last_name: nextFormData.last_name,
+      bio: nextFormData.bio,
+      background_hue: nextFormData.background_hue,
+      snapchat_handle: snapchatHandle,
+      linkedin_url: nextFormData.linkedin_url,
+      instagram_handle: instagramHandle,
+      ...(nextFormData.preferred_msg_app && {
+        preferred_msg_app: nextFormData.preferred_msg_app,
+      }),
+    };
+  };
+
+  const persistFormData = async (nextFormData) => {
+    const serializedForm = JSON.stringify(nextFormData);
+    if (
+      serializedForm === lastSavedFormRef.current ||
+      serializedForm === savingFormRef.current
+    ) {
+      return;
+    }
+
+    if (
+      nextFormData.linkedin_url &&
+      !validateLinkedInUrl(nextFormData.linkedin_url)
+    ) {
+      return;
+    }
+
+    savingFormRef.current = serializedForm;
+
     try {
-      setLoading(true);
-      
-      // Validate LinkedIn URL
-      if (formData.linkedin_url && !validateLinkedInUrl(formData.linkedin_url)) {
-        Alert.alert('Invalid LinkedIn URL', 'LinkedIn URL must start with www.linkedin.com/in/ or https://www.linkedin.com/in/');
-        setLoading(false);
-        return;
-      }
+      await updateProfile(buildUpdateData(nextFormData));
+      const snapchatHandle = nextFormData.snapchat_handle.replace(/^@/, '');
+      const instagramHandle = nextFormData.instagram_handle.replace(/^@/, '');
 
-      // Strip leading @ from handles
-      const snapchat_handle = formData.snapchat_handle.replace(/^@/, '');
-      const instagram_handle = formData.instagram_handle.replace(/^@/, '');
-
-      const updateData = {
-        first_name: formData.first_name,
-        last_name: formData.last_name,
-        bio: formData.bio,
-        background_hue: formData.background_hue,
-        snapchat_handle,
-        linkedin_url: formData.linkedin_url,
-        instagram_handle,
-      };
-
-      await updateProfile(updateData);
-      const refreshedProfile = await getCurrentProfile();
       await updateUser({
-        first_name: refreshedProfile?.first_name,
-        last_name: refreshedProfile?.last_name,
-        username: refreshedProfile?.username,
-        email: refreshedProfile?.email,
-        userprofile: refreshedProfile?.userprofile || {},
+        first_name: nextFormData.first_name,
+        last_name: nextFormData.last_name,
+        userprofile: {
+          ...(user?.userprofile || {}),
+          bio: nextFormData.bio,
+          background_hue: nextFormData.background_hue,
+          snapchat_url: snapchatHandle
+            ? `https://www.snapchat.com/add/${snapchatHandle}`
+            : '',
+          linkedin_url: nextFormData.linkedin_url,
+          instagram_url: instagramHandle
+            ? `https://www.instagram.com/${instagramHandle}`
+            : '',
+          preferred_msg_app: nextFormData.preferred_msg_app,
+        },
       });
-      
-      Alert.alert('Success', 'Profile updated successfully!');
-      router.back();
+
+      lastSavedFormRef.current = serializedForm;
     } catch (error) {
       console.error('Error updating profile:', error);
-      Alert.alert('Error', 'Failed to update profile');
     } finally {
-      setLoading(false);
+      if (savingFormRef.current === serializedForm) {
+        savingFormRef.current = '';
+      }
     }
   };
+
+  const handlePreferredAppChange = (app) => {
+    const nextFormData = {
+      ...formData,
+      preferred_msg_app: app,
+    };
+    setFormData(nextFormData);
+    void persistFormData(nextFormData);
+  };
+
+  const handleContactAppMenuPress = () => {
+    if (isContactAppMenuOpen) {
+      setIsContactAppMenuOpen(false);
+      return;
+    }
+
+    contactAppTriggerRef.current?.measureInWindow((x, y, width, height) => {
+      setContactAppMenuAnchor({ x, y, width, height });
+      setIsContactAppMenuOpen(true);
+    });
+  };
+
+  useEffect(() => {
+    if (!isReadyToSave) return undefined;
+
+    const serializedForm = JSON.stringify(formData);
+    if (serializedForm === lastSavedFormRef.current) {
+      return undefined;
+    }
+
+    const timeoutId = setTimeout(() => {
+      void persistFormData(formData);
+    }, 900);
+
+    return () => clearTimeout(timeoutId);
+  }, [formData, isReadyToSave]);
 
   const renderSection = (title, children) => (
     <View style={styles.section}>
@@ -148,6 +234,9 @@ const EditProfileScreen = () => {
         style={[styles.input, options.multiline && styles.textArea, options.flex && { flex: 1 }]}
         value={formData[field]}
         onChangeText={(value) => handleInputChange(field, value)}
+        onBlur={() => {
+          void persistFormData(formData);
+        }}
         placeholder={options.placeholder || `Enter ${label.toLowerCase()}`}
         keyboardType={options.keyboardType || 'default'}
         multiline={options.multiline || false}
@@ -158,16 +247,22 @@ const EditProfileScreen = () => {
       {options.helper && (
         <Text style={styles.helperText}>{options.helper}</Text>
       )}
+      {options.error && (
+        <Text style={styles.inputErrorText}>{options.error}</Text>
+      )}
     </View>
   );
 
   if (loading && !profile) {
     return (
       <View style={styles.container}>
-        <ScrollableScreenWrapper title="Edit Profile" contentPaddingTop={0}>
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#2563EB" />
-            <Text style={styles.loadingText}>Loading profile...</Text>
+        <ScrollableScreenWrapper title={screenTitle}>
+          <View style={styles.loadingScreen}>
+            <ScreenHeaderSpacer />
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#2563EB" />
+              <Text style={styles.loadingText}>Loading profile...</Text>
+            </View>
           </View>
         </ScrollableScreenWrapper>
       </View>
@@ -178,12 +273,12 @@ const EditProfileScreen = () => {
     <View style={styles.container}>
       <BackgroundSvg hue={formData.background_hue} />
       <ScrollableScreenWrapper 
-        title="Edit Profile" 
+        title={screenTitle}
         backgroundHue={formData.background_hue}
-        contentPaddingTop={0}
       >
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {renderSection('Personal Information', (
+          <ScreenHeaderSpacer />
+          {showPersonalSection && renderSection('Personal Information', (
             <>
               <View style={styles.nameRow}>
                 {renderInput('First Name', 'first_name', { flex: 1 })}
@@ -197,43 +292,7 @@ const EditProfileScreen = () => {
             </>
           ))}
 
-          {renderSection('Appearance', (
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Background Color</Text>
-              <View style={styles.hueDisplay}>
-                <Text style={styles.hueValue}>{formData.background_hue}°</Text>
-              </View>
-              <View style={styles.sliderContainer}>
-                <LinearGradient
-                  colors={[
-                    `hsl(0, 100%, 50%)`,
-                    `hsl(60, 100%, 50%)`,
-                    `hsl(120, 100%, 50%)`,
-                    `hsl(180, 100%, 50%)`,
-                    `hsl(240, 100%, 50%)`,
-                    `hsl(300, 100%, 50%)`,
-                    `hsl(360, 100%, 50%)`,
-                  ]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.spectrumGradient}
-                />
-                <Slider
-                  style={styles.slider}
-                  value={formData.background_hue}
-                  onValueChange={(value) => handleInputChange('background_hue', Math.round(value))}
-                  minimumValue={0}
-                  maximumValue={360}
-                  minimumTrackTintColor="transparent"
-                  maximumTrackTintColor="transparent"
-                  tapToSeek={true}
-                  thumbSize={24}
-                />
-              </View>
-            </View>
-          ))}
-
-          {renderSection('Social Media Links', (
+          {showSocialSection && renderSection('Social Media Links', (
             <>
               {renderInput('Snapchat', 'snapchat_handle', {
                 placeholder: '@username or username',
@@ -242,6 +301,10 @@ const EditProfileScreen = () => {
               {renderInput('LinkedIn', 'linkedin_url', {
                 placeholder: 'www.linkedin.com/in/yourname',
                 helper: 'Must start with www.linkedin.com/in/ or https://www.linkedin.com/in/',
+                error:
+                  formData.linkedin_url && !validateLinkedInUrl(formData.linkedin_url)
+                    ? 'Enter a valid LinkedIn URL to save.'
+                    : '',
               })}
               {renderInput('Instagram', 'instagram_handle', {
                 placeholder: '@username or username',
@@ -250,35 +313,111 @@ const EditProfileScreen = () => {
             </>
           ))}
 
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={() => router.back()}
-              disabled={loading}
-            >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
+          {showSocialSection && renderSection('Preferred Contact App', (
+            <View style={[styles.inputContainer, styles.contactAppDropdownContainer]}>
+              <Text style={styles.helperText}>
+                Choose the app people should use to contact you.
+              </Text>
+              <TouchableOpacity
+                ref={contactAppTriggerRef}
+                style={styles.contactAppDropdownTrigger}
+                onPress={handleContactAppMenuPress}
+                accessibilityRole="button"
+                accessibilityLabel="Preferred contact app"
+                accessibilityState={{ expanded: isContactAppMenuOpen }}
+              >
+                <Text
+                  style={[
+                    styles.contactAppDropdownValue,
+                    !formData.preferred_msg_app && styles.contactAppDropdownPlaceholder,
+                  ]}
+                >
+                  {formData.preferred_msg_app || 'Select an app'}
+                </Text>
+                <MaterialIcons
+                  name={isContactAppMenuOpen ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
+                  size={24}
+                  color="#6B7280"
+                />
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.saveButton}
-              onPress={() => {
-                void triggerSuccessHaptic();
-                handleSave();
-              }}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator size="small" color="white" />
-              ) : (
-                <>
-                  <MaterialIcons name="save" size={20} color="white" />
-                  <Text style={styles.saveButtonText}>Save Changes</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          </View>
+            </View>
+          ))}
+
+          <View style={styles.formFooter} />
         </ScrollView>
       </ScrollableScreenWrapper>
+
+      <Modal
+        visible={isContactAppMenuOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsContactAppMenuOpen(false)}
+      >
+        <Pressable
+          style={styles.contactAppModalOverlay}
+          onPress={() => setIsContactAppMenuOpen(false)}
+        >
+          {contactAppMenuAnchor && (
+            <GlassView
+              style={[
+                styles.contactAppDropdownMenu,
+                {
+                  left: contactAppMenuAnchor.x,
+                  top:
+                    contactAppMenuAnchor.y +
+                      contactAppMenuAnchor.height +
+                      8 +
+                      PREFERRED_CONTACT_APPS.length * 42 +
+                      12 >
+                    windowHeight
+                      ? Math.max(
+                          12,
+                          contactAppMenuAnchor.y -
+                            PREFERRED_CONTACT_APPS.length * 42 -
+                            20
+                        )
+                      : contactAppMenuAnchor.y + contactAppMenuAnchor.height + 8,
+                  width: contactAppMenuAnchor.width,
+                },
+              ]}
+              glassEffectStyle="regular"
+              isInteractive
+            >
+              {PREFERRED_CONTACT_APPS.map((app) => {
+                const isSelected = formData.preferred_msg_app === app;
+
+                return (
+                  <TouchableOpacity
+                    key={app}
+                    style={[
+                      styles.contactAppDropdownOption,
+                      isSelected && styles.contactAppDropdownOptionSelected,
+                    ]}
+                    onPress={() => {
+                      setIsContactAppMenuOpen(false);
+                      handlePreferredAppChange(app);
+                    }}
+                    accessibilityRole="menuitem"
+                  >
+                    <Text
+                      style={[
+                        styles.contactAppDropdownOptionText,
+                        isSelected && styles.contactAppDropdownOptionTextSelected,
+                      ]}
+                    >
+                      {app}
+                    </Text>
+                    {isSelected && (
+                      <MaterialIcons name="check" size={19} color="#2563EB" />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </GlassView>
+          )}
+        </Pressable>
+      </Modal>
     </View>
   );
 };
@@ -290,7 +429,9 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 16,
-    marginTop: HEADER_HEIGHT,
+  },
+  loadingScreen: {
+    flex: 1,
   },
   section: {
     backgroundColor: 'white',
@@ -343,35 +484,65 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     marginTop: 4,
   },
-  hueDisplay: {
-    backgroundColor: '#f3f4f6',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
+  inputErrorText: {
+    marginTop: 4,
+    fontSize: 12,
+    color: '#DC2626',
+  },
+  contactAppDropdownTrigger: {
+    marginTop: 12,
+    minHeight: 44,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: 12,
+    backgroundColor: '#F2F2F2',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
-  hueValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1f2937',
-  },
-  slider: {
-    width: '100%',
-    height: 10,
-    position: 'absolute',
-    zIndex: 10,
-  },
-  sliderContainer: {
+  contactAppDropdownContainer: {
     position: 'relative',
-    width: '100%',
-    height: 10,
   },
-  spectrumGradient: {
-    width: '100%',
-    height: 10,
-    borderRadius: 8,
+  contactAppDropdownValue: {
+    fontSize: 14,
+    color: '#111827',
+    fontWeight: '600',
+  },
+  contactAppDropdownPlaceholder: {
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  contactAppDropdownMenu: {
     position: 'absolute',
-    zIndex: 1,
+    padding: 6,
+    borderRadius: 14,
+    overflow: 'hidden',
+    zIndex: 30,
+    elevation: 12,
+  },
+  contactAppModalOverlay: {
+    flex: 1,
+  },
+  contactAppDropdownOption: {
+    minHeight: 42,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: 9,
+  },
+  contactAppDropdownOptionSelected: {
+    backgroundColor: 'rgba(37, 99, 235, 0.10)',
+  },
+  contactAppDropdownOptionText: {
+    fontSize: 14,
+    color: '#374151',
+    fontWeight: '500',
+  },
+  contactAppDropdownOptionTextSelected: {
+    color: '#1D4ED8',
+    fontWeight: '600',
   },
   loadingContainer: {
     flex: 1,
@@ -384,41 +555,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6B7280',
   },
-  buttonContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 32,
-  },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
-  },
-  saveButton: {
-    flex: 1,
-    backgroundColor: '#2563eb',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'white',
+  formFooter: {
+    height: 32,
   },
 });
 

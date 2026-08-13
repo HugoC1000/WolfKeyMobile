@@ -71,7 +71,14 @@ const EditorComponent = React.forwardRef(({
     }
 
     if (item.type === 'course') {
-      return `#${item.name || ''}`.trim();
+      const courseId = item.id ?? item.course_id;
+      const courseName = item.name || '';
+
+      if (courseId == null) {
+        return `#${courseName}`.trim();
+      }
+
+      return `#course_${courseId}-${courseName}`.trim();
     }
 
     return `@${item.username || ''}`.trim();

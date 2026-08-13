@@ -263,9 +263,12 @@ const NotificationsScreen = () => {
   if (loading) {
     return (
       <ScrollableScreenWrapper title="Notifications">
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Loading notifications...</Text>
+        <View style={styles.loadingScreen}>
+          <ScreenHeaderSpacer />
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+            <Text style={styles.loadingText}>Loading notifications...</Text>
+          </View>
         </View>
       </ScrollableScreenWrapper>
     );
@@ -280,12 +283,15 @@ const NotificationsScreen = () => {
     >
       <View style={styles.container}>
         {error ? (
-          <View style={styles.errorContainer}>
-            <MaterialIcons name="error" size={48} color="#EF4444" />
-            <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity style={styles.retryButton} onPress={() => fetchNotifications(1)}>
-              <Text style={styles.retryButtonText}>Try Again</Text>
-            </TouchableOpacity>
+          <View style={styles.errorScreen}>
+            <ScreenHeaderSpacer />
+            <View style={styles.errorContainer}>
+              <MaterialIcons name="error" size={48} color="#EF4444" />
+              <Text style={styles.errorText}>{error}</Text>
+              <TouchableOpacity style={styles.retryButton} onPress={() => fetchNotifications(1)}>
+                <Text style={styles.retryButtonText}>Try Again</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         ) : (
           <FlatList
@@ -324,6 +330,12 @@ const NotificationsScreen = () => {
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  loadingScreen: {
+    flex: 1,
+  },
+  errorScreen: {
     flex: 1,
   },
   listContent: {

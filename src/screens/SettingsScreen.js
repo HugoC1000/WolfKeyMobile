@@ -11,8 +11,10 @@ import {
 } from 'react-native';
 import { useAuth } from '../context/authContext';
 import { useUser } from '../context/userContext';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
+import Slider from '@react-native-community/slider';
+import { LinearGradient } from 'expo-linear-gradient';
 import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';
 import BackgroundSvg from '../components/BackgroundSVG';
 import { deleteAccount } from '../api/deleteAccountService';
@@ -24,6 +26,7 @@ import {
   removeExperience,
   removeHelpRequest,
   updateCourses,
+  updateProfile,
 } from '../api/profileService';
 import { GlassView, GlassContainer, isLiquidGlassAvailable } from 'expo-glass-effect';
 import ScheduleTab from '../components/ScheduleTab';
@@ -35,9 +38,14 @@ const SettingsScreen = () => {
   const { logout } = useAuth();
   const { user, clearUser, updateUser } = useUser();
   const router = useRouter();
+  const params = useLocalSearchParams();
+  const rawSection = params?.section;
+  const section = Array.isArray(rawSection) ? rawSection[0] : rawSection;
 
   const [allowScheduleComparison, setAllowScheduleComparison] = useState(true);
-  const [activeTab, setActiveTab] = useState('privacy');
+  const [backgroundHue, setBackgroundHue] = useState(
+    user?.userprofile?.background_hue ?? 220
+  );
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showCourseSelector, setShowCourseSelector] = useState(false);
@@ -58,6 +66,7 @@ const SettingsScreen = () => {
     try {
       const profileData = await getCurrentProfile();
       setProfile(profileData);
+      setBackgroundHue(profileData?.userprofile?.background_hue ?? 220);
       await updateUser({
         first_name: profileData?.first_name,
         last_name: profileData?.last_name,
@@ -79,6 +88,27 @@ const SettingsScreen = () => {
     } catch (error) {
       console.error('Logout failed:', error);
       Alert.alert('Error', 'Failed to logout');
+    }
+  };
+
+  const handleAppearanceChange = async (value) => {
+    const nextHue = Math.round(value);
+    setBackgroundHue(nextHue);
+
+    try {
+      await updateProfile({ background_hue: nextHue });
+      setProfile((currentProfile) => ({
+        ...currentProfile,
+        userprofile: {
+          ...currentProfile?.userprofile,
+          background_hue: nextHue,
+        },
+      }));
+      await updateUser({ background_hue: nextHue });
+    } catch (error) {
+      console.error('Error updating appearance:', error);
+      setBackgroundHue(user?.userprofile?.background_hue ?? 220);
+      Alert.alert('Error', 'Failed to update appearance');
     }
   };
 
@@ -270,11 +300,96 @@ const SettingsScreen = () => {
   }, [profile]);
 
   const glassAvailable = isLiquidGlassAvailable();
+  const sectionTitles = {
+    schedule: 'Schedule',
+    experience: 'Experience',
+    privacy: 'Privacy',
+    account: 'Account',
+  };
+  const settingsRows = [
+    {
+      key: 'personal',
+      label: 'Personal Information',
+      icon: 'person-outline',
+      onPress: () => router.push({
+        pathname: '/edit-profile',
+        params: { section: 'personal' },
+      }),
+    },
+    {
+      key: 'schedule',
+      label: 'Schedule',
+      icon: 'calendar-today',
+      onPress: () => router.push({
+        pathname: '/settings',
+        params: { section: 'schedule' },
+      }),
+    },
+    {
+      key: 'social',
+      label: 'Social Media',
+      icon: 'alternate-email',
+      onPress: () => router.push({
+        pathname: '/edit-profile',
+        params: { section: 'social' },
+      }),
+    },
+    {
+      key: 'experience',
+      label: 'Experience',
+      icon: 'school',
+      onPress: () => router.push({
+        pathname: '/settings',
+        params: { section: 'experience' },
+      }),
+    },
+    {
+      key: 'privacy',
+      label: 'Privacy',
+      icon: 'lock-outline',
+      onPress: () => router.push({
+        pathname: '/settings',
+        params: { section: 'privacy' },
+      }),
+    },
+    {
+      key: 'account',
+      label: 'Account',
+      icon: 'manage-accounts',
+      onPress: () => router.push({
+        pathname: '/settings',
+        params: { section: 'account' },
+      }),
+    },
+  ];
+
+  const settingsMenu = (
+    <View>
+      {settingsRows.map((item, index) => (
+        <TouchableOpacity
+          key={item.key}
+          style={[
+            styles.settingsRow,
+            index < settingsRows.length - 1 && styles.settingsRowBorder,
+          ]}
+          onPress={item.onPress}
+          accessibilityRole="button"
+          accessibilityLabel={item.label}
+        >
+          <View style={styles.settingsRowLabel}>
+            <MaterialIcons name={item.icon} size={21} color="#2563EB" />
+            <Text style={styles.settingsRowText}>{item.label}</Text>
+          </View>
+          <MaterialIcons name="chevron-right" size={24} color="#9CA3AF" />
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <BackgroundSvg hue={user?.userprofile?.background_hue} />
+        <BackgroundSvg hue={backgroundHue} />
         <ActivityIndicator size="large" color="#2563eb" />
       </View>
     );
@@ -282,29 +397,72 @@ const SettingsScreen = () => {
 
   return (
     <View style={styles.container}>
-      <BackgroundSvg hue={user?.userprofile?.background_hue} />
-      <ScrollableScreenWrapper title="Settings">
+      <ScrollableScreenWrapper
+        title={sectionTitles[section] || 'Profile & Settings'}
+        backgroundHue={backgroundHue}
+      >
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           <ScreenHeaderSpacer />
-          <View style={styles.tabBar}>
-            {[
-              { key: 'privacy', label: 'Privacy' },
-              { key: 'schedule', label: 'Schedule' },
-              { key: 'experience', label: 'Experience' },
-            ].map((tab) => (
-              <TouchableOpacity
-                key={tab.key}
-                style={[styles.tabButton, activeTab === tab.key && styles.activeTabButton]}
-                onPress={() => setActiveTab(tab.key)}
-              >
-                <Text style={[styles.tabText, activeTab === tab.key && styles.activeTabText]}>{tab.label}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
 
-          {activeTab === 'privacy' && (
+          {!section && (
             <>
-              <Text style={styles.sectionTitle}>Privacy & Account</Text>
+              <Text style={styles.sectionTitle}>Appearance</Text>
+              <View style={styles.appearanceCard}>
+                <View style={styles.appearanceHeader}>
+                  <Text style={styles.preferenceTitle}>Background color</Text>
+                  <Text style={styles.hueValue}>{backgroundHue}°</Text>
+                </View>
+                <View style={styles.sliderContainer}>
+                  <LinearGradient
+                    colors={[
+                      'hsl(0, 100%, 50%)',
+                      'hsl(60, 100%, 50%)',
+                      'hsl(120, 100%, 50%)',
+                      'hsl(180, 100%, 50%)',
+                      'hsl(240, 100%, 50%)',
+                      'hsl(300, 100%, 50%)',
+                      'hsl(360, 100%, 50%)',
+                    ]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.spectrumGradient}
+                  />
+                  <Slider
+                    style={styles.slider}
+                    value={backgroundHue}
+                    onValueChange={(value) => {
+                      const previewHue = Math.round(value / 5) * 5;
+                      setBackgroundHue((currentHue) => (
+                        currentHue === previewHue ? currentHue : previewHue
+                      ));
+                    }}
+                    onSlidingComplete={handleAppearanceChange}
+                    minimumValue={0}
+                    maximumValue={360}
+                    minimumTrackTintColor="transparent"
+                    maximumTrackTintColor="transparent"
+                    tapToSeek
+                    thumbSize={24}
+                  />
+                </View>
+              </View>
+
+              <Text style={styles.sectionTitle}>Profile</Text>
+              {glassAvailable ? (
+                <GlassContainer style={styles.menuCard} spacing={0}>
+                  <GlassView style={styles.menuCardContent}>
+                    {settingsMenu}
+                  </GlassView>
+                </GlassContainer>
+              ) : (
+                <View style={styles.regularMenuCard}>{settingsMenu}</View>
+              )}
+            </>
+          )}
+
+          {section === 'privacy' && (
+            <>
+              <Text style={styles.sectionTitle}>Privacy</Text>
               {glassAvailable ? (
                 <GlassContainer style={styles.glassCard} spacing={0}>
                   <GlassView style={styles.glassCardContent}>
@@ -315,12 +473,6 @@ const SettingsScreen = () => {
                         onValueChange={(value) => handleUpdatePreference('allow_schedule_comparison', value)}
                       />
                     </View>
-                    <TouchableOpacity style={styles.actionRow} onPress={handleLogout}>
-                      <Text style={styles.actionText}>Logout</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.actionRow} onPress={handleDeleteAccount}>
-                      <Text style={styles.actionTextDanger}>Delete Account</Text>
-                    </TouchableOpacity>
                   </GlassView>
                 </GlassContainer>
               ) : (
@@ -332,6 +484,27 @@ const SettingsScreen = () => {
                       onValueChange={(value) => handleUpdatePreference('allow_schedule_comparison', value)}
                     />
                   </View>
+                </View>
+              )}
+            </>
+          )}
+
+          {section === 'account' && (
+            <>
+              <Text style={styles.sectionTitle}>Account</Text>
+              {glassAvailable ? (
+                <GlassContainer style={styles.glassCard} spacing={0}>
+                  <GlassView style={styles.glassCardContent}>
+                    <TouchableOpacity style={styles.actionRow} onPress={handleLogout}>
+                      <Text style={styles.actionText}>Logout</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.actionRow} onPress={handleDeleteAccount}>
+                      <Text style={styles.actionTextDanger}>Delete Account</Text>
+                    </TouchableOpacity>
+                  </GlassView>
+                </GlassContainer>
+              ) : (
+                <View style={styles.regularCard}>
                   <TouchableOpacity style={styles.actionRow} onPress={handleLogout}>
                     <Text style={styles.actionText}>Logout</Text>
                   </TouchableOpacity>
@@ -343,7 +516,7 @@ const SettingsScreen = () => {
             </>
           )}
 
-          {activeTab === 'schedule' && (
+          {section === 'schedule' && (
             <ScheduleTab
               schedule={scheduleForTab}
               isCurrentUser
@@ -356,7 +529,7 @@ const SettingsScreen = () => {
             />
           )}
 
-          {activeTab === 'experience' && (
+          {section === 'experience' && (
             <ExperienceTab
               experiencedCourses={profile?.userprofile?.courses?.experienced_courses || []}
               helpNeededCourses={profile?.userprofile?.courses?.help_needed_courses || []}
@@ -394,37 +567,82 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  tabBar: {
-    marginHorizontal: 16,
-    marginBottom: 12,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    flexDirection: 'row',
-    overflow: 'hidden',
-  },
-  tabButton: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 10,
-  },
-  activeTabButton: {
-    borderBottomWidth: 3,
-    borderBottomColor: '#2563eb',
-  },
-  tabText: {
-    color: '#6b7280',
-    fontWeight: '600',
-  },
-  activeTabText: {
-    color: '#111827',
-    fontWeight: '700',
-  },
   sectionTitle: {
     marginHorizontal: 16,
+    marginTop: 8,
     marginBottom: 10,
     fontSize: 16,
     fontWeight: '700',
     color: '#1f2937',
+  },
+  appearanceCard: {
+    marginHorizontal: 16,
+    marginBottom: 18,
+    padding: 16,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.94)',
+  },
+  appearanceHeader: {
+    marginBottom: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  hueValue: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '600',
+  },
+  sliderContainer: {
+    position: 'relative',
+    height: 18,
+    justifyContent: 'center',
+  },
+  spectrumGradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 10,
+    borderRadius: 5,
+  },
+  slider: {
+    width: '100%',
+    height: 18,
+  },
+  menuCard: {
+    marginHorizontal: 16,
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  menuCardContent: {
+    overflow: 'hidden',
+  },
+  regularMenuCard: {
+    marginHorizontal: 16,
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.94)',
+  },
+  settingsRow: {
+    minHeight: 52,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  settingsRowBorder: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(156,163,175,0.35)',
+  },
+  settingsRowLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  settingsRowText: {
+    marginLeft: 12,
+    fontSize: 16,
+    color: '#111827',
+    fontWeight: '500',
   },
   glassCard: {
     marginHorizontal: 16,
