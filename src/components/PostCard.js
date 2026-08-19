@@ -20,6 +20,7 @@ import { getFullImageUrl } from '../api/config';
 import { formatDateTime } from '../utils/timeUtils';
 import { triggerPressHaptic } from '../utils/haptics';
 import PollCard from './PollCard';
+import PetitionCard from './PetitionCard';
 import { TextWithLinks } from '../utils/linkParser';
 
 const MESSAGE_URL_FIELDS = {
@@ -27,6 +28,10 @@ const MESSAGE_URL_FIELDS = {
   Instagram: 'instagram_url',
   LinkedIn: 'linkedin_url',
 };
+
+const isValidPetitionData = (petitionData) => (
+  petitionData && typeof petitionData === 'object' && !Array.isArray(petitionData)
+);
 
 const PostCard = ({ post }) => {
   const router = useRouter();
@@ -238,6 +243,9 @@ const PostCard = ({ post }) => {
 
               {post.poll_data && (
                 <PollCard postId={post.id} pollData={post.poll_data} />
+              )}
+              {isValidPetitionData(post.petition_data) && (
+                <PetitionCard postId={post.id} petitionData={post.petition_data} />
               )}
             </View>
           </View>

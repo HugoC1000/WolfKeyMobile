@@ -21,12 +21,17 @@ import { followPost, likePost, unfollowPost, unlikePost } from '../api/postServi
 import { useUser } from '../context/userContext';
 import { triggerPressHaptic } from '../utils/haptics';
 import PollCard from './PollCard';
+import PetitionCard from './PetitionCard';
 
 const MESSAGE_URL_FIELDS = {
   Snapchat: 'snapchat_url',
   Instagram: 'instagram_url',
   LinkedIn: 'linkedin_url',
 };
+
+const isValidPetitionData = (petitionData) => (
+  petitionData && typeof petitionData === 'object' && !Array.isArray(petitionData)
+);
 
 const PostDetailCard = ({
   post,
@@ -59,6 +64,7 @@ const PostDetailCard = ({
     user_vote: post?.user_vote,
   };
   const hasPollData = Array.isArray(detailPollData?.poll_options) && detailPollData.poll_options.length > 0;
+  const hasPetitionData = isValidPetitionData(post?.petition_data);
 
   useEffect(() => {
     setIsLiked(Boolean(post.is_liked));
@@ -211,6 +217,13 @@ const PostDetailCard = ({
         <PollCard
           postId={post.id}
           pollData={detailPollData}
+          isVotable={pollIsVotable}
+        />
+      )}
+      {hasPetitionData && (!isReference || showPollWhenReference) && (
+        <PetitionCard
+          postId={post.id}
+          petitionData={post.petition_data}
           isVotable={pollIsVotable}
         />
       )}

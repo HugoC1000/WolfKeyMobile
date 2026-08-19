@@ -41,7 +41,7 @@ const ExploreScreen = () => {
                                 : setLoadingMore(true);
 
     try {
-      const res = await api.get(`all-posts/?page=${pageNum}&limit=${PAGE_SIZE}`);
+      const res = await api.get(`all-posts/?page=${pageNum}&limit=${PAGE_SIZE}&compact=true`);
       const data = res.data;
 
       // Transform course data to Course instances

@@ -105,3 +105,25 @@ export const removePollVote = async (postId) => {
     throw error;
   }
 };
+
+// Petitions use the poll-style card, but have fixed Support/Oppose stances and
+// therefore their own API endpoints rather than poll option IDs.
+export const setPetitionStance = async (postId, stance) => {
+  try {
+    const response = await api.post(`posts/${postId}/petition-stance/`, { stance });
+    return response.data;
+  } catch (error) {
+    console.error('Error setting petition stance:', error);
+    throw error;
+  }
+};
+
+export const removePetitionStance = async (postId) => {
+  try {
+    const response = await api.post(`posts/${postId}/remove-petition-stance/`);
+    return response.data;
+  } catch (error) {
+    console.error('Error removing petition stance:', error);
+    throw error;
+  }
+};

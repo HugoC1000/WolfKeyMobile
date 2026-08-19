@@ -66,7 +66,7 @@ export const getProfileByUsername = async (username) => {
 export const getProfilePosts = async (username, page = 1, limit = 3) => {
   try {
     const response = await api.get(`profiles/${encodeURIComponent(username)}/posts/`, {
-      params: { page, limit },
+      params: { page, limit, compact: true },
     });
     const data = response.data || {};
 
