@@ -145,16 +145,6 @@ const ScheduleTab = ({
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.content}>
-        {/* Header Row */}
-        <View style={styles.headerRow}>
-          <View style={styles.headerColumn}>
-            <Text style={styles.columnHeader}>Day 1</Text>
-          </View>
-          <View style={styles.headerColumn}>
-            <Text style={styles.columnHeader}>Day 2</Text>
-          </View>
-        </View>
-        
         {/* Block Rows */}
         {renderBlockRow('1A', '2A')}
         {renderBlockRow('1B', '2B')}
@@ -175,22 +165,6 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 3,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    marginBottom: 14,
-    paddingBottom: 12,
-    borderBottomWidth: 2,
-    borderBottomColor: '#e5e7eb',
-  },
-  headerColumn: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  columnHeader: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#1f2937',
   },
   blockRow: {
     flexDirection: 'row',

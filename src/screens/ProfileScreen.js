@@ -6,13 +6,15 @@ import {
   FlatList,
   Alert,
   ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useUser } from '../context/userContext';
 import BackgroundSvg from '../components/BackgroundSVG';
 import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';
-import ScreenHeaderSpacer from '../components/ScreenHeaderSpacer';
 import ProfileCard from '../components/ProfileCard';
 import CourseComparisonCard from '../components/CourseComparisonCard';
 import PostCard from '../components/PostCard';
@@ -29,6 +31,7 @@ const ProfileScreen = () => {
   const params = useLocalSearchParams();
   const username = params?.username;
   const isFocused = useIsFocused();
+  const insets = useSafeAreaInsets();
   const isCurrentUser = !username || username === user?.username;
   const cachedProfile = isCurrentUser ? user : null;
 
@@ -215,6 +218,8 @@ const ProfileScreen = () => {
         title={'Profile'}
         onSettingsPress={handleSettingsPress}
         isSetting={isCurrentUser}
+        showHeader={!isCurrentUser}
+        headerInFlow={!isCurrentUser}
       >
         <FlatList
           style={styles.content}
@@ -223,25 +228,34 @@ const ProfileScreen = () => {
           keyExtractor={(post) => String(post.id)}
           renderItem={({ item: post }) => <PostCard post={post} />}
           ListHeaderComponent={
-            <>
-              <ScreenHeaderSpacer />
-              <View style={styles.contentPanel}>
-                <ProfileCard
-                  profile={profile}
-                  isCurrentUser={isCurrentUser}
-                  onCompareSchedules={handleCompareSchedules}
-                  onImagePress={handleImagePress}
-                />
+            <View style={styles.contentPanel}>
+              <ProfileCard
+                profile={profile}
+                isCurrentUser={isCurrentUser}
+                onCompareSchedules={handleCompareSchedules}
+                onImagePress={handleImagePress}
+                topInset={isCurrentUser ? insets.top : 0}
+              />
 
-                {!isCurrentUser && (
-                  <CourseComparisonCard
-                    viewedProfile={profile}
-                    currentProfile={user}
-                    isCurrentUser={isCurrentUser}
-                  />
-                )}
-              </View>
-            </>
+              {isCurrentUser && (
+                <TouchableOpacity
+                  style={[styles.settingsButton, { top: insets.top + 8 }]}
+                  onPress={handleSettingsPress}
+                  accessibilityRole="button"
+                  accessibilityLabel="Open settings"
+                >
+                  <MaterialIcons name="settings" size={22} color="#FFFFFF" />
+                </TouchableOpacity>
+              )}
+
+              {!isCurrentUser && (
+                <CourseComparisonCard
+                  viewedProfile={profile}
+                  currentProfile={user}
+                  isCurrentUser={isCurrentUser}
+                />
+              )}
+            </View>
           }
           ListEmptyComponent={
             postsLoading ? (
@@ -277,6 +291,16 @@ const styles = StyleSheet.create({
     marginTop: 0,
     borderRadius: 38,
     backgroundColor: '#FFFFFF',
+  },
+  settingsButton: {
+    position: 'absolute',
+    right: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(3, 12, 29, 0.42)',
   },
   postsTitle: {
     color: '#111827',

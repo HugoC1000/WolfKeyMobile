@@ -31,8 +31,8 @@ export default function TabsLayout() {
         })}
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="explore">
-        <Label>Explore</Label>
+      <NativeTabs.Trigger name="community">
+        <Label>Community</Label>
         {Platform.select({
           ios: <Icon sf={{ default: 'safari', selected: 'safari' }} />,
           android: <Icon src={<VectorIcon family={Ionicons} name="compass" />} />,

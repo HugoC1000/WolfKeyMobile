@@ -15,6 +15,8 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { scheduleService } from '../api/scheduleService';
 import { useUser } from '../context/userContext';
 import { useFocusEffect } from '@react-navigation/native';
+import { router } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { triggerPressHaptic, triggerSelectionHaptic } from '../utils/haptics';
 
 const getScheduleCacheKey = (userId) => `scheduleCache_${userId || 'guest'}`;
@@ -520,6 +522,26 @@ const Schedule = () => {
             {renderSchedulePage(currentDayOffset + 1)}
           </View>
         </Animated.ScrollView>
+        <TouchableOpacity
+          style={styles.uploadScheduleButtonTouch}
+          onPress={() => router.push({
+            pathname: '/settings',
+            params: { section: 'schedule' },
+          })}
+          accessibilityRole="button"
+          accessibilityLabel="Upload your schedule now"
+        >
+          <LinearGradient
+            colors={['#000000', '#000000']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.uploadScheduleButton}
+          >
+            <MaterialIcons name="upload-file" size={18} color="#FFFFFF" />
+            <Text style={styles.uploadScheduleButtonText}>Upload your schedule now!</Text>
+            <MaterialIcons name="chevron-right" size={20} color="#FFFFFF" />
+          </LinearGradient>
+        </TouchableOpacity>
       </View>
 
       <Modal
@@ -632,6 +654,27 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 16,
     overflow: 'hidden',
+  },
+  uploadScheduleButton: {
+    minHeight: 38,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  uploadScheduleButtonTouch: {
+    marginHorizontal: 12,
+    marginBottom: 12,
+    borderRadius: 12,
+  },
+  uploadScheduleButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
   headerContainer: {
     flexDirection: 'row',

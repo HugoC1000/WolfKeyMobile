@@ -331,7 +331,7 @@ const HomeScreen = () => {
               void triggerPressHaptic();
               setFabOpen(false);
               router.push({
-                pathname: '/(tabs)/explore',
+                pathname: '/explore',
                 params: { focusSearch: Date.now().toString() },
               });
             }}

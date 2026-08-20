@@ -33,6 +33,7 @@ import ScheduleTab from '../components/ScheduleTab';
 import ExperienceTab from '../components/ExperienceTab';
 import CourseSelector from '../components/CourseSelector';
 import ScreenHeaderSpacer from '../components/ScreenHeaderSpacer';
+import ScheduleImport from '../components/ScheduleImport';
 
 const SettingsScreen = () => {
   const { logout } = useAuth();
@@ -517,16 +518,19 @@ const SettingsScreen = () => {
           )}
 
           {section === 'schedule' && (
-            <ScheduleTab
-              schedule={scheduleForTab}
-              isCurrentUser
-              onCoursePress={handleCoursePress}
-              onAddExperience={handleAddExperience}
-              onAddHelp={handleAddHelp}
-              experiencedCourses={profile?.userprofile?.courses?.experienced_courses || []}
-              helpNeededCourses={profile?.userprofile?.courses?.help_needed_courses || []}
-              autoCompleteLoading={false}
-            />
+            <>
+              <ScheduleImport onApplied={fetchProfile} />
+              <ScheduleTab
+                schedule={scheduleForTab}
+                isCurrentUser
+                onCoursePress={handleCoursePress}
+                onAddExperience={handleAddExperience}
+                onAddHelp={handleAddHelp}
+                experiencedCourses={profile?.userprofile?.courses?.experienced_courses || []}
+                helpNeededCourses={profile?.userprofile?.courses?.help_needed_courses || []}
+                autoCompleteLoading={false}
+              />
+            </>
           )}
 
           {section === 'experience' && (

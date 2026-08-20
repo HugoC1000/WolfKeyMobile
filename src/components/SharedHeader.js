@@ -13,15 +13,39 @@ import { triggerPressHaptic } from '../utils/haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const HEADER_HEIGHT = 45;
-const SharedHeader = ({ title, isHome, onSettingsPress, isSetting }) => {
+const SharedHeader = ({
+  title,
+  isHome,
+  onSettingsPress,
+  isSetting,
+  inFlow = false,
+}) => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
   return (
     <>
       {/* Header Content */}
-      <Animated.View style={[styles.headerContent, { top: insets.top }]}>
-        <GlassContainer style={styles.headerContentContainer}>
+      <Animated.View
+        style={[
+          styles.headerContent,
+          inFlow
+            ? [
+                styles.headerContentInFlow,
+                {
+                  height: HEADER_HEIGHT + insets.top,
+                  paddingTop: insets.top,
+                },
+              ]
+            : { top: insets.top },
+        ]}
+      >
+        <GlassContainer
+          style={[
+            styles.headerContentContainer,
+            inFlow && styles.headerContentContainerInFlow,
+          ]}
+        >
           <GlassView
             glassEffectStyle="regular"
             style={styles.leftContent}
@@ -92,11 +116,19 @@ const styles = StyleSheet.create({
     height: HEADER_HEIGHT,
     zIndex: 1001,
   },
+  headerContentInFlow: {
+    position: 'relative',
+    backgroundColor: '#FFFFFF',
+  },
   headerContentContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
+    height: HEADER_HEIGHT,
+  },
+  headerContentContainerInFlow: {
+    flex: 0,
     height: HEADER_HEIGHT,
   },
   leftContent: {

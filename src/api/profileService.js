@@ -127,6 +127,54 @@ export const updateCourses = async (coursesData) => {
   }
 };
 
+// Preview a pasted or photographed schedule. The backend accepts exactly one
+// multipart field per request: `text` or `image`.
+export const previewScheduleImport = async ({ text, image }) => {
+  const hasText = typeof text === 'string' && text.trim().length > 0;
+  const hasImage = Boolean(image?.uri);
+
+  if (hasText === hasImage) {
+    throw new Error('Schedule import requires exactly one of text or image.');
+  }
+
+  const formData = new FormData();
+  if (hasText) {
+    formData.append('text', text.trim());
+  } else {
+    formData.append('image', {
+      uri: image.uri,
+      name: image.name || 'schedule.jpg',
+      type: image.type || 'image/jpeg',
+    });
+  }
+
+  const response = await api.post('schedule-import/preview/', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+    timeout: 120000,
+  });
+  return response.data;
+};
+
+// Applying is intentionally all-or-nothing: callers must include every block,
+// using a numeric course ID or null to clear it.
+export const applyScheduleImport = async (assignments) => {
+  const requiredBlocks = ['1A', '1B', '1D', '1E', '2A', '2B', '2C', '2D', '2E'];
+  const completeAssignments = Object.fromEntries(requiredBlocks.map((block) => {
+    const value = assignments?.[block];
+    if (value !== null && !Number.isInteger(value)) {
+      throw new Error(`Block ${block} must be a numeric course ID or null.`);
+    }
+    return [block, value];
+  }));
+
+  const response = await api.post('schedule-import/apply/', {
+    assignments: completeAssignments,
+  });
+  return response.data;
+};
+
 // Add experience
 export const addExperience = async (courseId) => {
   try {

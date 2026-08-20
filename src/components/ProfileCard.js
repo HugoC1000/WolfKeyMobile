@@ -20,7 +20,8 @@ const ProfileCard = ({
   profile, 
   isCurrentUser = false, 
   onCompareSchedules,
-  onImagePress 
+  onImagePress,
+  topInset = 0,
 }) => {
   // Add safety check for profile data
   if (!profile) {
@@ -226,7 +227,7 @@ const ProfileCard = ({
           end={{ x: 1, y: 1 }}
           style={styles.gradientLayer}
         >
-          <GlassView style={styles.glassContent}>
+          <GlassView style={[styles.glassContent, topInset > 0 && { paddingTop: 16 + topInset }]}>
             {containerContent}
                   <Animated.View
                     pointerEvents="none"
@@ -262,7 +263,7 @@ const ProfileCard = ({
       end={{ x: 1, y: 1 }}
       style={styles.container}
     >
-      <View>
+      <View style={[styles.fallbackContent, topInset > 0 && { paddingTop: 16 + topInset }]}>
         {containerContent}
       </View>
     </LinearGradient>
@@ -292,6 +293,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(3, 12, 29, 0.8)',
   },
   glassContent: {
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+  },
+  fallbackContent: {
     paddingVertical: 16,
     paddingHorizontal: 16,
   },
