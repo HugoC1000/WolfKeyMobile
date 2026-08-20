@@ -270,9 +270,11 @@ const Schedule = () => {
       setLoading(false);
       initialLoadDone.current = true;
       
-      // Preload adjacent days in background (don't wait for them)
-      fetchScheduleForOffset(currentDayOffset - 1);
-      fetchScheduleForOffset(currentDayOffset + 1);
+      // Only request adjacent days after today's request has completed.
+      await Promise.all([
+        fetchScheduleForOffset(currentDayOffset - 1),
+        fetchScheduleForOffset(currentDayOffset + 1),
+      ]);
     };
 
     loadInitialSchedules();
@@ -299,11 +301,22 @@ const Schedule = () => {
 
   useEffect(() => {
     // Only preload if initial load is done
-    if (initialLoadDone.current) {
-      fetchScheduleForOffset(currentDayOffset - 1);
-      fetchScheduleForOffset(currentDayOffset);
-      fetchScheduleForOffset(currentDayOffset + 1);
-    }
+    if (!initialLoadDone.current) return;
+
+    let cancelled = false;
+    const loadSelectedDayThenAdjacent = async () => {
+      await fetchScheduleForOffset(currentDayOffset);
+      if (cancelled) return;
+      await Promise.all([
+        fetchScheduleForOffset(currentDayOffset - 1),
+        fetchScheduleForOffset(currentDayOffset + 1),
+      ]);
+    };
+
+    void loadSelectedDayThenAdjacent();
+    return () => {
+      cancelled = true;
+    };
   }, [currentDayOffset]);
 
   useEffect(() => {
