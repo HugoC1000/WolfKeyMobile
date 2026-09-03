@@ -23,6 +23,8 @@ import { triggerPressHaptic } from '../utils/haptics';
 import PollCard from './PollCard';
 import PetitionCard from './PetitionCard';
 
+const VERIFIED_BADGE = require('../../assets/verified-badge-compact.png');
+
 const MESSAGE_URL_FIELDS = {
   Snapchat: 'snapchat_url',
   Instagram: 'instagram_url',
@@ -203,6 +205,9 @@ const PostDetailCard = ({
               <View style={styles.profilePicPlaceholder} />
             )}
             <Text style={styles.authorName}>{post.is_anonymous ? 'Anonymous' : post.author.full_name}</Text>
+            {!post.is_anonymous && (post.author?.is_community_account || post.author?.is_paid_user) && (
+              <Image source={VERIFIED_BADGE} style={styles.verifiedBadge} accessibilityLabel="Verified account" />
+            )}
             <Text style={styles.timestamp}>
               {formatDateTime(post.created_at)}
             </Text>
@@ -432,6 +437,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     color: '#1a1a1b',
+  },
+  verifiedBadge: {
+    width: 17,
+    height: 17,
+    marginLeft: 4,
+    resizeMode: 'contain',
   },
   courseContext: {
     fontSize: 11,

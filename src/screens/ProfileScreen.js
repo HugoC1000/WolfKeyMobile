@@ -22,6 +22,7 @@ import {
   getProfileByUsername,
   getProfilePosts,
   uploadProfilePicture,
+  toggleCommunityFollow,
 } from '../api/profileService';
 
 const ProfileScreen = () => {
@@ -38,6 +39,7 @@ const ProfileScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [posts, setPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(false);
+  const [isTogglingCommunityFollow, setIsTogglingCommunityFollow] = useState(false);
 
   const fetchProfilePosts = async (profileUsername) => {
     if (!profileUsername) {
@@ -199,6 +201,23 @@ const ProfileScreen = () => {
     Alert.alert('Coming Soon', 'Schedule comparison feature is being updated.');
   };
 
+  const handleToggleCommunityFollow = async () => {
+    if (!profile?.id || !profile?.is_community_account) return;
+    try {
+      setIsTogglingCommunityFollow(true);
+      const result = await toggleCommunityFollow(profile.id);
+      setProfile((current) => current ? {
+        ...current,
+        is_following_community: result.following,
+      } : current);
+    } catch (error) {
+      console.error('Error following community:', error);
+      Alert.alert('Error', 'Could not update this follow.');
+    } finally {
+      setIsTogglingCommunityFollow(false);
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -230,6 +249,8 @@ const ProfileScreen = () => {
                 isCurrentUser={isCurrentUser}
                 onCompareSchedules={handleCompareSchedules}
                 onImagePress={handleImagePress}
+                onToggleCommunityFollow={handleToggleCommunityFollow}
+                isTogglingCommunityFollow={isTogglingCommunityFollow}
                 topInset={insets.top + 20}
               />
 

@@ -25,6 +25,8 @@ const CreatePostScreen = () => {
   const [error, setError] = useState(null);
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [isIdentityMenuOpen, setIsIdentityMenuOpen] = useState(false);
+  const canPostAnonymously = !user?.is_community_account;
+  const postAnonymously = canPostAnonymously && isAnonymous;
   const [allowTeacher, setAllowTeacher] = useState(true);
   const [editorKey, setEditorKey] = useState(Date.now());
   const [isCourseBottomSheetVisible, setIsCourseBottomSheetVisible] = useState(false);
@@ -93,7 +95,7 @@ const CreatePostScreen = () => {
     try {
       const requestPayload = {
         title,
-        is_anonymous: isAnonymous,
+        is_anonymous: postAnonymously,
         allow_teacher: allowTeacher,
         courses: selectedCourses.map((course) => course.id),
         content: JSON.stringify(content),
@@ -163,7 +165,7 @@ const CreatePostScreen = () => {
           <ScreenHeaderSpacer />
           <View style={[styles.composerSurface, postType === 'poll' && styles.pollComposerSurface]}>
             <View style={styles.authorPreview}>
-              {isAnonymous ? (
+              {postAnonymously ? (
                 <View style={styles.authorAvatarPlaceholder}>
                   <MaterialIcons name="visibility-off" size={18} color="#6B7280" />
                 </View>
@@ -179,20 +181,27 @@ const CreatePostScreen = () => {
               )}
               <TouchableOpacity
                 style={styles.authorDropdownTrigger}
-                onPress={() => setIsIdentityMenuOpen((open) => !open)}
+                onPress={() => {
+                  if (canPostAnonymously) {
+                    setIsIdentityMenuOpen((open) => !open);
+                  }
+                }}
+                disabled={!canPostAnonymously}
               >
                 <Text style={styles.authorPreviewName}>
-                  {isAnonymous ? 'Anonymous' : user?.full_name || user?.username || 'My profile'}
+                  {postAnonymously ? 'Anonymous' : user?.full_name || user?.username || 'My profile'}
                 </Text>
-                <MaterialIcons
-                  name={isIdentityMenuOpen ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
-                  size={20}
-                  color="#4B5563"
-                />
+                {canPostAnonymously && (
+                  <MaterialIcons
+                    name={isIdentityMenuOpen ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
+                    size={20}
+                    color="#4B5563"
+                  />
+                )}
               </TouchableOpacity>
             </View>
 
-            {isIdentityMenuOpen && (
+            {canPostAnonymously && isIdentityMenuOpen && (
               <View style={styles.identityDropdown}>
                 <TouchableOpacity
                   style={styles.identityDropdownOption}

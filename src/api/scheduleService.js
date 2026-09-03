@@ -122,5 +122,28 @@ export const scheduleService = {
       });
       throw error;
     }
+  },
+
+  // Keep date-scoped community data independent from the personalized
+  // combined schedule response.
+  getCommunityLunchesForDate: async (isoDate) => {
+    try {
+      const response = await api.get(`community/lunches/date/${encodeURIComponent(isoDate)}/`, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        params: { t: new Date().getTime() },
+      });
+      return response.data.lunches || [];
+    } catch (error) {
+      console.error('Error fetching community lunches:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message,
+        url: error.config?.url,
+      });
+      throw error;
+    }
   }
 };

@@ -62,6 +62,30 @@ export const getProfileByUsername = async (username) => {
   }
 };
 
+export const toggleCommunityFollow = async (communityId) => {
+  const response = await api.post(`community/${communityId}/follow/`);
+  return response.data;
+};
+
+export const getCommunityLunches = async () => {
+  const response = await api.get('community/lunches/');
+  return response.data.lunches || [];
+};
+
+export const createCommunityLunch = async ({ date, location }) => {
+  const response = await api.post('community/lunches/', { date, location });
+  return response.data.lunch;
+};
+
+export const updateCommunityLunch = async (lunchId, updates) => {
+  const response = await api.patch(`community/lunches/${lunchId}/`, updates);
+  return response.data.lunch;
+};
+
+export const deleteCommunityLunch = async (lunchId) => {
+  await api.delete(`community/lunches/${lunchId}/`);
+};
+
 // Get a user's public posts
 export const getProfilePosts = async (username, page = 1, limit = 3) => {
   try {

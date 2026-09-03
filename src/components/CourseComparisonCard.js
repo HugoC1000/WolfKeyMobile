@@ -31,19 +31,22 @@ const CourseComparisonCard = ({ viewedProfile, currentProfile, isCurrentUser }) 
 
   const getCourseNameFromBlock = (courseData) => {
     if (!courseData) return null;
-    if (typeof courseData === 'string') return courseData;
-    return courseData.name || courseData.course_name || null;
+    return courseData.course || null;
   };
+
+  const getScheduleBlocks = (profile) => profile?.userprofile?.schedule || {};
+
+  const getBlockCode = (blockKey) => String(blockKey).toUpperCase();
 
   const getCurrentUserBlocks = (day) => {
     const localProfile = currentProfile || user;
-    const blocks = localProfile?.userprofile?.schedule_blocks || {};
-    const dayPrefix = day === 'day1' ? '_1' : '_2'; // Look for "_1A", "_1B" or "_2A", "_2B"
+    const blocks = getScheduleBlocks(localProfile);
+    const dayPrefix = day === 'day1' ? '1' : '2';
     
     return Object.entries(blocks)
-      .filter(([blockKey]) => blockKey.toString().includes(dayPrefix))
+      .filter(([blockKey]) => getBlockCode(blockKey).startsWith(dayPrefix))
       .map(([blockKey, courseData], idx) => {
-        const blockLabel = blockKey.toString().toUpperCase().split('_')[1] || blockKey; // Extract "A" from "block_1A"
+        const blockLabel = getBlockCode(blockKey);
         return {
           id: `current-${blockKey}-${idx}`,
           blockKey: blockLabel,
@@ -54,13 +57,13 @@ const CourseComparisonCard = ({ viewedProfile, currentProfile, isCurrentUser }) 
   };
 
   const getViewedUserBlocks = (day) => {
-    const blocks = viewedProfile?.userprofile?.schedule_blocks || {};
-    const dayPrefix = day === 'day1' ? '_1' : '_2'; // Look for "_1A", "_1B" or "_2A", "_2B"
+    const blocks = getScheduleBlocks(viewedProfile);
+    const dayPrefix = day === 'day1' ? '1' : '2';
     
     return Object.entries(blocks)
-      .filter(([blockKey]) => blockKey.toString().includes(dayPrefix))
+      .filter(([blockKey]) => getBlockCode(blockKey).startsWith(dayPrefix))
       .map(([blockKey, courseData], idx) => {
-        const blockLabel = blockKey.toString().toUpperCase().split('_')[1] || blockKey; // Extract "A" from "block_1A"
+        const blockLabel = getBlockCode(blockKey);
         return {
           id: `viewed-${blockKey}-${idx}`,
           blockKey: blockLabel,

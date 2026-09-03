@@ -23,6 +23,8 @@ import PollCard from './PollCard';
 import PetitionCard from './PetitionCard';
 import { TextWithLinks } from '../utils/linkParser';
 
+const VERIFIED_BADGE = require('../../assets/verified-badge-compact.png');
+
 const MESSAGE_URL_FIELDS = {
   Snapchat: 'snapchat_url',
   Instagram: 'instagram_url',
@@ -33,10 +35,19 @@ const isValidPetitionData = (petitionData) => (
   petitionData && typeof petitionData === 'object' && !Array.isArray(petitionData)
 );
 
-const PostCard = ({ post }) => {
+const PostCard = ({
+  post,
+  showCommunityPin = false,
+  isCommunityFollowing = false,
+  onToggleCommunityFollow,
+  isTogglingCommunityFollow = false,
+}) => {
   const router = useRouter();
   const { user } = useUser();
   const authorProfile = post?.author?.userprofile;
+  const authorName = post?.author?.full_name || post?.author?.username || 'Community';
+  const title = typeof post?.title === 'string' ? post.title.trim() : '';
+  const previewText = typeof post?.preview_text === 'string' ? post.preview_text.trim() : '';
   const currentUserProfile = user?.userprofile;
   const preferredMsgApp = authorProfile?.preferred_msg_app;
   const preferredMsgUrl = authorProfile?.[MESSAGE_URL_FIELDS[preferredMsgApp]];
@@ -195,7 +206,7 @@ const PostCard = ({ post }) => {
         </View>
       )}
       
-      <View style={styles.cardBody}>
+      <View>
         {/* Author and Date Section */}
         <View style={styles.header}>
           <View style={styles.authorInfo}>
@@ -227,19 +238,38 @@ const PostCard = ({ post }) => {
               </View>
             )}
 
-            <View style={styles.authorDetails}>
+            <View style={styles.postContent}>
               <View style={styles.authorNameRow}>
                 {post.author?.username ? (
                   <TouchableOpacity onPress={handleAuthorPress} activeOpacity={0.7}>
-                    <Text style={styles.authorName}>{post.author.full_name || 'Anonymous'}</Text>
+                    <Text style={styles.authorName}>{authorName}</Text>
                   </TouchableOpacity>
                 ) : (
-                  <Text style={styles.authorName}>{post.author.full_name || 'Anonymous'}</Text>
+                  <Text style={styles.authorName}>{post.is_anonymous ? 'Anonymous' : authorName}</Text>
+                )}
+                {!post.is_anonymous && (post.author?.is_community_account || post.author?.is_paid_user) && (
+                  <Image source={VERIFIED_BADGE} style={styles.verifiedBadge} accessibilityLabel="Verified account" />
+                )}
+                {showCommunityPin && post.is_pinned_in_community && (
+                  <MaterialIcons name="push-pin" size={14} color="#92400E" accessibilityLabel="Pinned" />
+                )}
+                {user && post.author?.is_community_account && onToggleCommunityFollow && (
+                  <TouchableOpacity
+                    style={[styles.headerFollowButton, isCommunityFollowing && styles.headerFollowingButton]}
+                    onPress={(event) => { event?.stopPropagation?.(); onToggleCommunityFollow(); }}
+                    disabled={isTogglingCommunityFollow}
+                    accessibilityRole="button"
+                    accessibilityLabel={isCommunityFollowing ? 'Leave community' : 'Join community'}
+                  >
+                    <Text style={[styles.headerFollowText, isCommunityFollowing && styles.headerFollowingText]}>
+                      {isCommunityFollowing ? 'Joined' : 'Join'}
+                    </Text>
+                  </TouchableOpacity>
                 )}
                 <Text style={styles.timestamp}>{formatDateTime(post.created_at)}</Text>
               </View>
-              <Text style={styles.title}>{post.title}</Text>
-              {post.preview_text ? <TextWithLinks text={post.preview_text} style={styles.text} /> : null}
+              <Text style={styles.title}>{title || previewText}</Text>
+              {previewText && previewText !== title ? <TextWithLinks text={previewText} style={styles.text} /> : null}
 
               {post.poll_data && (
                 <PollCard postId={post.id} pollData={post.poll_data} />
@@ -416,14 +446,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
-  cardBody: {
-    flex: 1,
-  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 8,
   },
   authorInfo: {
     flexDirection: 'row',
@@ -449,13 +475,36 @@ const styles = StyleSheet.create({
     marginRight: 4,
     backgroundColor: '#F3F4F6',
   },
-  authorDetails: {
+  verifiedBadge: {
+    width: 18,
+    height: 18,
+    marginLeft: -4,
+    resizeMode: 'contain',
+  },
+  postContent: {
     flex: 1,
   },
   authorNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 4,
+  },
+  headerFollowButton: {
+    backgroundColor: '#2563EB',
+    borderRadius: 10,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+  },
+  headerFollowingButton: {
+    backgroundColor: '#E5E7EB',
+  },
+  headerFollowText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  headerFollowingText: {
+    color: '#374151',
   },
   authorName: {
     fontSize: 11,
@@ -468,28 +517,25 @@ const styles = StyleSheet.create({
   },
   title: {
     fontWeight : '600',
-    marginBottom: 8,
     fontSize: 15,
     color: '#1F2937',
     marginTop: 4,
   },
   text: {
-    fontSize: 12,
-    marginBottom: 8,
+    fontSize: 13,
     color: '#4B5563',
     fontWeight: 400,
-    lineHeight: 20,
+    lineHeight: 18,
   },
   contentImage: {
     width: '100%',
     height: 200,
     borderRadius: 8,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   courseContextContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: 12,
   },
   courseContext: {
     fontSize: 12,
@@ -503,8 +549,7 @@ const styles = StyleSheet.create({
   nonInteractions: {
     flexDirection: 'row',
     justifyContent: 'flex-start',
-    marginBottom: 2,
-    paddingVertical: 4,
+    paddingVertical: 2,
   },
   statText: {
     fontSize: 13,

@@ -19,7 +19,15 @@ import ScrollableScreenWrapper from '../components/ScrollableScreenWrapper';
 import ScreenHeaderSpacer from '../components/ScreenHeaderSpacer';
 import { MaterialIcons } from '@expo/vector-icons';
 import { GlassView } from 'expo-glass-effect';
-import { updateProfile, getCurrentProfile } from '../api/profileService';
+import { Calendar } from 'react-native-calendars';
+import {
+  createCommunityLunch,
+  deleteCommunityLunch,
+  getCommunityLunches,
+  getCurrentProfile,
+  updateCommunityLunch,
+  updateProfile,
+} from '../api/profileService';
 
 const PREFERRED_CONTACT_APPS = [
   'Instagram',
@@ -35,7 +43,10 @@ const EditProfileScreen = () => {
   const section = Array.isArray(rawSection) ? rawSection[0] : rawSection;
   const showPersonalSection = !section || section === 'personal';
   const showSocialSection = !section || section === 'social';
-  const screenTitle = section === 'social' ? 'Social Media' : 'Personal Information';
+  const showCommunityLunchSection = section === 'community-lunches';
+  const screenTitle = section === 'social'
+    ? 'Social Media'
+    : showCommunityLunchSection ? 'Club Lunch Dates' : 'Personal Information';
   const { height: windowHeight } = useWindowDimensions();
   const { user, updateUser } = useUser();
   const [loading, setLoading] = useState(true);
@@ -46,6 +57,12 @@ const EditProfileScreen = () => {
   const savingFormRef = useRef('');
   const contactAppTriggerRef = useRef(null);
   const [contactAppMenuAnchor, setContactAppMenuAnchor] = useState(null);
+  const [communityLunches, setCommunityLunches] = useState([]);
+  const [newLunchDate, setNewLunchDate] = useState('');
+  const [isLunchCalendarOpen, setIsLunchCalendarOpen] = useState(false);
+  const [editingLunchDateId, setEditingLunchDateId] = useState(null);
+  const [newLunchLocation, setNewLunchLocation] = useState('');
+  const [savingLunches, setSavingLunches] = useState(false);
 
   const [formData, setFormData] = useState({
     first_name: '',
@@ -67,6 +84,10 @@ const EditProfileScreen = () => {
       const profileData = await getCurrentProfile();
       setProfile(profileData);
 
+      if (showCommunityLunchSection && profileData.is_community_account && profileData.is_active) {
+        setCommunityLunches(await getCommunityLunches());
+      }
+
       const profileDataObj = profileData.userprofile || profileData;
       const nextFormData = {
         first_name: profileData.first_name || '',
@@ -86,6 +107,108 @@ const EditProfileScreen = () => {
       Alert.alert('Error', 'Failed to load profile');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const addLunchDate = async () => {
+    const date = newLunchDate;
+    const location = newLunchLocation.trim();
+    if (!date) {
+      Alert.alert('Choose a date', 'Select a lunch date from the calendar.');
+      return;
+    }
+    if (!location) {
+      Alert.alert('Enter a location', 'Add where the club will meet on this date.');
+      return;
+    }
+    const existingDates = communityLunches.map((lunch) => lunch.date);
+    if (existingDates.includes(date)) {
+      Alert.alert('Already added', 'That lunch date is already listed.');
+      return;
+    }
+    try {
+      setSavingLunches(true);
+      const lunch = await createCommunityLunch({ date, location });
+      setCommunityLunches((current) => [...current, lunch].sort((a, b) => a.date.localeCompare(b.date)));
+      setNewLunchDate('');
+      setNewLunchLocation('');
+    } catch (error) {
+      console.error('Error adding community lunch:', error);
+      Alert.alert('Error', error?.response?.data?.error || 'Could not add this lunch date.');
+    } finally {
+      setSavingLunches(false);
+    }
+  };
+
+  const openLunchCalendar = (lunch = null) => {
+    setEditingLunchDateId(lunch?.id ?? null);
+    setIsLunchCalendarOpen(true);
+  };
+
+  const handleLunchDateSelect = async ({ dateString }) => {
+    const lunchId = editingLunchDateId;
+    setIsLunchCalendarOpen(false);
+
+    if (!lunchId) {
+      setNewLunchDate(dateString);
+      return;
+    }
+
+    const lunch = communityLunches.find((item) => item.id === lunchId);
+    if (!lunch || lunch.date === dateString) return;
+    if (communityLunches.some((item) => item.id !== lunchId && item.date === dateString)) {
+      Alert.alert('Already added', 'That lunch date is already listed.');
+      return;
+    }
+
+    try {
+      setSavingLunches(true);
+      const updatedLunch = await updateCommunityLunch(lunchId, { date: dateString });
+      setCommunityLunches((current) => current
+        .map((item) => item.id === lunchId ? updatedLunch : item)
+        .sort((a, b) => a.date.localeCompare(b.date)));
+    } catch (error) {
+      console.error('Error updating community lunch date:', error);
+      Alert.alert('Error', error?.response?.data?.error || 'Could not update this lunch date.');
+    } finally {
+      setSavingLunches(false);
+      setEditingLunchDateId(null);
+    }
+  };
+
+  const selectedLunchCalendarDate = editingLunchDateId
+    ? communityLunches.find((item) => item.id === editingLunchDateId)?.date
+    : newLunchDate;
+
+  const saveLunchLocations = async () => {
+    if (communityLunches.some((lunch) => !lunch.location?.trim())) {
+      Alert.alert('Enter every location', 'Each lunch date needs a location.');
+      return;
+    }
+    try {
+      setSavingLunches(true);
+      const updated = await Promise.all(communityLunches.map((lunch) => (
+        updateCommunityLunch(lunch.id, { location: lunch.location.trim() })
+      )));
+      setCommunityLunches(updated.sort((a, b) => a.date.localeCompare(b.date)));
+    } catch (error) {
+      console.error('Error updating lunch locations:', error);
+      Alert.alert('Error', error?.response?.data?.error || 'Could not save lunch locations.');
+    } finally {
+      setSavingLunches(false);
+    }
+  };
+
+  const removeLunchDate = async (lunchId) => {
+    try {
+      setSavingLunches(true);
+      await deleteCommunityLunch(lunchId);
+      setCommunityLunches((current) => current.filter((item) => item.id !== lunchId));
+    } catch (error) {
+      console.error('Error deleting community lunch:', error);
+      Alert.alert('Error', error?.response?.data?.error || 'Could not remove this lunch date.');
+    } finally {
+      setSavingLunches(false);
     }
   };
 
@@ -344,6 +467,75 @@ const EditProfileScreen = () => {
             </View>
           ))}
 
+          {showCommunityLunchSection && renderSection('Upcoming Lunch Dates', (
+            <>
+              <Text style={styles.helperText}>Choose each planned club lunch from the calendar. You can change these whenever plans change.</Text>
+              <View style={styles.lunchInputRow}>
+                <TouchableOpacity
+                  style={[styles.lunchDatePickerButton, !newLunchDate && styles.lunchDatePickerPlaceholder]}
+                  onPress={() => openLunchCalendar()}
+                  accessibilityRole="button"
+                  accessibilityLabel="Choose lunch date from calendar"
+                >
+                  <MaterialIcons name="calendar-today" size={14} color="#2563EB" />
+                  <Text style={styles.lunchDatePickerText}>{newLunchDate || 'Choose date'}</Text>
+                </TouchableOpacity>
+                <TextInput
+                  value={newLunchLocation}
+                  onChangeText={setNewLunchLocation}
+                  placeholder="Location"
+                  maxLength={120}
+                  style={[styles.input, styles.lunchLocationInput]}
+                />
+                <TouchableOpacity style={styles.lunchAddButton} onPress={addLunchDate} disabled={savingLunches}>
+                  <Text style={styles.lunchAddButtonText}>Add</Text>
+                </TouchableOpacity>
+              </View>
+              {communityLunches.map((lunch) => (
+                <View key={lunch.id} style={styles.lunchDateRow}>
+                  <View style={styles.lunchDetails}>
+                    <TouchableOpacity
+                      style={styles.lunchSavedDateButton}
+                      onPress={() => openLunchCalendar(lunch)}
+                      disabled={savingLunches}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Change date from ${lunch.date}`}
+                    >
+                      <Text style={styles.lunchDateText}>{lunch.date}</Text>
+                      <MaterialIcons name="calendar-today" size={15} color="#2563EB" />
+                    </TouchableOpacity>
+                    <TextInput
+                      value={lunch.location || ''}
+                      onChangeText={(location) => setCommunityLunches((current) => current.map((item) => (
+                        item.id === lunch.id ? { ...item, location } : item
+                      )))}
+                      placeholder="Location"
+                      maxLength={120}
+                      style={[styles.input, styles.savedLunchLocationInput]}
+                    />
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => removeLunchDate(lunch.id)}
+                    disabled={savingLunches}
+                    accessibilityLabel={`Remove ${lunch.date}`}
+                  >
+                    <Text style={styles.lunchRemoveText}>Remove</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+              {communityLunches.length > 0 && (
+                <TouchableOpacity
+                  style={styles.saveLunchLocationsButton}
+                  onPress={saveLunchLocations}
+                  disabled={savingLunches}
+                >
+                  <Text style={styles.lunchAddButtonText}>{savingLunches ? 'Saving…' : 'Save locations'}</Text>
+                </TouchableOpacity>
+              )}
+              {!communityLunches.length && <Text style={styles.helperText}>No lunch dates planned yet.</Text>}
+            </>
+          ))}
+
           <View style={styles.formFooter} />
         </ScrollView>
       </ScrollableScreenWrapper>
@@ -417,6 +609,44 @@ const EditProfileScreen = () => {
             </GlassView>
           )}
         </Pressable>
+      </Modal>
+
+      <Modal
+        visible={isLunchCalendarOpen}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setIsLunchCalendarOpen(false)}
+      >
+        <TouchableOpacity style={styles.lunchCalendarOverlay} activeOpacity={1} onPress={() => setIsLunchCalendarOpen(false)}>
+          <TouchableOpacity activeOpacity={1} onPress={(event) => event.stopPropagation()}>
+          <View style={styles.lunchCalendarModal}>
+            <View style={styles.lunchCalendarHeader}>
+              <Text style={styles.lunchCalendarTitle}>Select Date</Text>
+              <TouchableOpacity onPress={() => setIsLunchCalendarOpen(false)} accessibilityLabel="Close calendar">
+                <Text style={styles.lunchCalendarCloseButton}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <Calendar
+              current={selectedLunchCalendarDate || undefined}
+              onDayPress={handleLunchDateSelect}
+              markedDates={selectedLunchCalendarDate ? {
+                [selectedLunchCalendarDate]: { selected: true, selectedColor: '#2563EB' },
+              } : {}}
+              theme={{
+                todayTextColor: '#2563EB',
+                selectedDayBackgroundColor: '#2563EB',
+                selectedDayTextColor: '#FFFFFF',
+                arrowColor: '#2563EB',
+                monthTextColor: '#111827',
+                textMonthFontWeight: '600',
+                textDayFontSize: 14,
+                textMonthFontSize: 16,
+                textDayHeaderFontSize: 12,
+              }}
+            />
+          </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
     </View>
   );
@@ -557,6 +787,125 @@ const styles = StyleSheet.create({
   },
   formFooter: {
     height: 32,
+  },
+  lunchInputRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+    marginBottom: 10,
+  },
+  lunchLocationInput: {
+    flex: 1.25,
+  },
+  lunchDatePickerButton: {
+    flex: 1,
+    minHeight: 44,
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    borderRadius: 12,
+    backgroundColor: '#EFF6FF',
+  },
+  lunchDatePickerPlaceholder: {
+    backgroundColor: '#F8FAFC',
+    borderColor: '#E5E7EB',
+  },
+  lunchDatePickerText: {
+    color: '#1F2937',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  lunchAddButton: {
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: '#2563EB',
+  },
+  lunchAddButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  lunchDateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  lunchDetails: {
+    flex: 1,
+    marginRight: 10,
+  },
+  savedLunchLocationInput: {
+    marginTop: 6,
+    paddingVertical: 9,
+  },
+  lunchDateText: {
+    color: '#1F2937',
+    fontWeight: '600',
+  },
+  lunchSavedDateButton: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  lunchRemoveText: {
+    color: '#DC2626',
+    fontWeight: '700',
+  },
+  saveLunchLocationsButton: {
+    alignSelf: 'flex-start',
+    marginTop: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: '#2563EB',
+  },
+  lunchCalendarOverlay: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  lunchCalendarModal: {
+    width: '100%',
+    maxWidth: 400,
+    overflow: 'hidden',
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  lunchCalendarHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  lunchCalendarTitle: {
+    color: '#111827',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  lunchCalendarCloseButton: {
+    fontSize: 24,
+    color: '#6B7280',
+    fontWeight: '300',
   },
 });
 

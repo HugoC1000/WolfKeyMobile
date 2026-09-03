@@ -19,7 +19,9 @@ import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { triggerPressHaptic, triggerSelectionHaptic } from '../utils/haptics';
 
-const getScheduleCacheKey = (userId) => `scheduleCache_${userId || 'guest'}`;
+// Bump this when the combined schedule response gains rendered fields so older
+// persisted entries cannot hide new schedule content.
+const getScheduleCacheKey = (userId) => `scheduleCache_v2_${userId || 'guest'}`;
 const MAX_PERSISTED_DAY_OFFSET = 7;
 const getPersistableSchedules = (cache) => Object.fromEntries(
   Object.entries(cache).filter(([offset]) => Math.abs(Number(offset)) <= MAX_PERSISTED_DAY_OFFSET)
@@ -34,6 +36,12 @@ const formatLocalISODate = (date) => {
 const Schedule = () => {
   const { user } = useUser();
   const scrollViewRef = useRef(null);
+  const fetchScheduleRef = useRef(null);
+  const fetchLunchesRef = useRef(null);
+  const scheduleCacheRef = useRef({});
+  const currentDayOffsetRef = useRef(0);
+  const activeUserIdRef = useRef(user?.id ?? null);
+  const previousUserIdRef = useRef(user?.id ?? null);
   const [pageWidth, setPageWidth] = useState(0);
   const [currentDayOffset, setCurrentDayOffset] = useState(() => {
     // If today is Saturday (6) or Sunday (0), offset to next Monday
@@ -51,6 +59,9 @@ const Schedule = () => {
   const baseDate = useRef(new Date());
   const lastFetchDate = useRef(new Date().toDateString());
   const isFetching = useRef({});
+  const isFetchingLunches = useRef({});
+  const scheduleRequestVersions = useRef({});
+  const lunchRequestVersions = useRef({});
   const initialLoadDone = useRef(false);
   const persistenceTimer = useRef(null);
   const pendingRecenter = useRef(false);
@@ -58,6 +69,10 @@ const Schedule = () => {
   const animatedPageHeight = useRef(new Animated.Value(0)).current;
   const targetPageHeight = useRef(0);
   const [hasMeasuredCurrentPage, setHasMeasuredCurrentPage] = useState(false);
+
+  scheduleCacheRef.current = scheduleCache;
+  currentDayOffsetRef.current = currentDayOffset;
+  activeUserIdRef.current = user?.id ?? null;
 
   const animateToPageHeight = useCallback((height, animated = true) => {
     if (!height) return;
@@ -103,15 +118,37 @@ const Schedule = () => {
 
   useEffect(() => () => clearTimeout(persistenceTimer.current), []);
 
+  useEffect(() => {
+    const nextUserId = user?.id ?? null;
+    if (previousUserIdRef.current === nextUserId) return;
+
+    previousUserIdRef.current = nextUserId;
+    clearTimeout(persistenceTimer.current);
+    scheduleCacheRef.current = {};
+    setScheduleCache({});
+    isFetching.current = {};
+    isFetchingLunches.current = {};
+    initialLoadDone.current = false;
+    pageHeights.current = {};
+    void fetchScheduleRef.current?.(currentDayOffsetRef.current, true);
+  }, [user?.id]);
+
   const hydrateScheduleCache = useCallback(async () => {
+    const hydrationUserId = user?.id ?? null;
     try {
-      const savedCache = await AsyncStorage.getItem(getScheduleCacheKey(user?.id));
-      if (!savedCache) return;
+      const savedCache = await AsyncStorage.getItem(getScheduleCacheKey(hydrationUserId));
+      if (!savedCache || activeUserIdRef.current !== hydrationUserId) return;
 
       const parsedCache = JSON.parse(savedCache);
       if (parsedCache && typeof parsedCache === 'object') {
         const persistableCache = getPersistableSchedules(parsedCache);
-        setScheduleCache(persistableCache);
+        // A network response can win the race with AsyncStorage hydration.
+        // Preserve those fresh entries instead of overwriting them with disk data.
+        setScheduleCache(currentCache => (
+          activeUserIdRef.current === hydrationUserId
+            ? { ...persistableCache, ...currentCache }
+            : currentCache
+        ));
 
         // Clean up entries written by older versions of the app.
         if (Object.keys(persistableCache).length !== Object.keys(parsedCache).length) {
@@ -199,6 +236,38 @@ const Schedule = () => {
     return scheduleArray;
   };
 
+  const fetchCommunityLunchesForOffset = async (offset) => {
+    if (!user?.id || isFetchingLunches.current[offset]) return;
+
+    const requestUserId = user.id;
+    const requestDate = formatLocalISODate(getDateForOffset(offset));
+    const requestVersion = (lunchRequestVersions.current[offset] || 0) + 1;
+    lunchRequestVersions.current[offset] = requestVersion;
+    isFetchingLunches.current[offset] = true;
+    try {
+      const communityLunches = await scheduleService.getCommunityLunchesForDate(requestDate);
+      setScheduleCache(prev => {
+        const isCurrentRequest = lunchRequestVersions.current[offset] === requestVersion;
+        const isCurrentDate = formatLocalISODate(getDateForOffset(offset)) === requestDate;
+        if (!prev[offset] || !isCurrentRequest || !isCurrentDate || activeUserIdRef.current !== requestUserId) {
+          return prev;
+        }
+        const nextCache = {
+          ...prev,
+          [offset]: { ...prev[offset], communityLunches },
+        };
+        persistScheduleCache(nextCache);
+        return nextCache;
+      });
+    } catch (error) {
+      console.error('Community lunch fetch failed:', error);
+    } finally {
+      if (lunchRequestVersions.current[offset] === requestVersion) {
+        isFetchingLunches.current[offset] = false;
+      }
+    }
+  };
+
   const fetchScheduleForOffset = async (offset, force = false) => {
     // Prevent duplicate fetches
     if (isFetching.current[offset]) {
@@ -206,9 +275,16 @@ const Schedule = () => {
     }
 
     const cachedSchedule = scheduleCache[offset];
-    if (cachedSchedule && !force) return;
+    if (cachedSchedule && !force) {
+      void fetchCommunityLunchesForOffset(offset);
+      return;
+    }
 
     isFetching.current[offset] = true;
+    const requestUserId = user?.id ?? null;
+    const requestDate = formatLocalISODate(getDateForOffset(offset));
+    const requestVersion = (scheduleRequestVersions.current[offset] || 0) + 1;
+    scheduleRequestVersions.current[offset] = requestVersion;
 
     try {
       if (!user?.id) {
@@ -225,15 +301,15 @@ const Schedule = () => {
         return;
       }
 
-      const date = getDateForOffset(offset);
-      const dateString = formatDate(date);
-      const isoDate = formatLocalISODate(date);
+      const combinedData = await scheduleService.getCombinedSchedule(user.id, requestDate);
 
-      // Use new combined endpoint (single call instead of two)
-      const combinedData = await scheduleService.getCombinedSchedule(user.id, isoDate);
+      const isCurrentRequest = scheduleRequestVersions.current[offset] === requestVersion;
+      const isCurrentDate = formatLocalISODate(getDateForOffset(offset)) === requestDate;
+      if (!isCurrentRequest || !isCurrentDate || activeUserIdRef.current !== requestUserId) return;
 
       const schedule = {
         blocks: transformScheduleData(combinedData.processed_schedule),
+        communityLunches: cachedSchedule?.communityLunches || [],
         uniformRequired: combinedData.ceremonial_uniform_required || false,
         earlyDismissal: combinedData.early_dismissal || false,
         lateStart: combinedData.late_start || false,
@@ -244,6 +320,8 @@ const Schedule = () => {
         persistScheduleCache(nextCache);
         return nextCache;
       });
+
+      void fetchCommunityLunchesForOffset(offset);
     } catch (error) {
       console.error('Schedule fetch failed:', error);
       if (!cachedSchedule) {
@@ -258,9 +336,14 @@ const Schedule = () => {
         });
       }
     } finally {
-      isFetching.current[offset] = false;
+      if (scheduleRequestVersions.current[offset] === requestVersion) {
+        isFetching.current[offset] = false;
+      }
     }
   };
+
+  fetchScheduleRef.current = fetchScheduleForOffset;
+  fetchLunchesRef.current = fetchCommunityLunchesForOffset;
 
   useEffect(() => {
     const loadInitialSchedules = async () => {
@@ -323,14 +406,27 @@ const Schedule = () => {
     const handleAppStateChange = (nextAppState) => {
       if (nextAppState === 'active') {
         const currentDate = new Date().toDateString();
+        // A request suspended while the app was backgrounded may never clear
+        // its in-flight guard. Reset it before deciding whether recovery is
+        // needed; valid cached pages remain untouched.
+        isFetching.current = {};
+        isFetchingLunches.current = {};
+
         if (currentDate !== lastFetchDate.current) {
           console.log('Date changed, resetting to today...');
           baseDate.current = new Date();
           lastFetchDate.current = currentDate;
           setCurrentDayOffset(0);
           setScheduleCache({});
-          isFetching.current = {};
-          void AsyncStorage.removeItem(getScheduleCacheKey(user?.id));
+          void AsyncStorage.removeItem(getScheduleCacheKey(user?.id))
+            .catch((error) => console.error('Failed to clear stale schedule cache:', error))
+            .then(() => fetchScheduleRef.current?.(0, true));
+        } else {
+          const visibleOffset = currentDayOffsetRef.current;
+          void fetchLunchesRef.current?.(visibleOffset);
+          if (!scheduleCacheRef.current[visibleOffset]) {
+            void fetchScheduleRef.current?.(visibleOffset, true);
+          }
         }
       }
     };
@@ -408,6 +504,29 @@ const Schedule = () => {
       month: 'long', 
       day: 'numeric'})}` 
     : formatDate(date);
+    const communityLunchGroup = schedule.communityLunches?.length > 0 ? (
+      <View style={styles.lunchPills}>
+        {schedule.communityLunches.map((lunch) => {
+          const community = lunch.community || {};
+          const username = community.username;
+          return (
+            <TouchableOpacity
+              key={lunch.id}
+              style={styles.lunchPill}
+              disabled={!username}
+              onPress={() => router.push({ pathname: '/users/[username]', params: { username } })}
+              accessibilityRole="button"
+              accessibilityLabel={`Open ${community.full_name || community.username || 'community'} profile`}
+            >
+              <Text style={styles.lunchPillText}>
+                {community.full_name || community.username || 'Community'} · {lunch.location || 'Location TBD'}
+              </Text>
+              <MaterialIcons name="chevron-right" size={14} color="#4338CA" />
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    ) : null;
 
     return (
       <View
@@ -463,11 +582,15 @@ const Schedule = () => {
           </View>
         )}
         {schedule.blocks.map((block, index) => (
-          <View key={index} style={styles.blockContainer}>
-            <Text style={styles.blockName}>{block.block}</Text>
-            <Text style={styles.blockTime}>{block.time}</Text>
-          </View>
+          <React.Fragment key={index}>
+            <View style={styles.blockContainer}>
+              <Text style={styles.blockName}>{block.block}</Text>
+              <Text style={styles.blockTime}>{block.time}</Text>
+            </View>
+            {index === 2 && communityLunchGroup}
+          </React.Fragment>
         ))}
+        {schedule.blocks.length < 3 && communityLunchGroup}
       </View>
     );
   };
@@ -769,7 +892,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 6,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
@@ -783,6 +906,28 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     textAlign: 'right',
     minWidth: 110,
+  },
+  lunchPills: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    paddingTop: 8,
+    paddingBottom: 1,
+  },
+  lunchPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    maxWidth: '100%',
+    paddingHorizontal: 7,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: '#EEF2FF',
+  },
+  lunchPillText: {
+    flexShrink: 1,
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#4338CA',
   },
   modalOverlay: {
     flex: 1,

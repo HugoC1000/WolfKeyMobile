@@ -16,11 +16,15 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { getFullImageUrl } from '../api/config';
 import { GlassView, GlassContainer, isLiquidGlassAvailable } from 'expo-glass-effect';
 
+const VERIFIED_BADGE = require('../../assets/verified-badge-compact.png');
+
 const ProfileCard = ({ 
   profile, 
   isCurrentUser = false, 
   onCompareSchedules,
   onImagePress,
+  onToggleCommunityFollow,
+  isTogglingCommunityFollow = false,
   topInset = 0,
 }) => {
   // Add safety check for profile data
@@ -101,6 +105,7 @@ const ProfileCard = ({
   const solutionsCount = stats.solutions_count || 0;
   const contributionsCount = postsCount + solutionsCount;
   const gradeLevel = profileData?.grade_level ?? profile?.grade_level;
+  const canFollowCommunity = !isCurrentUser && profile.is_community_account && profile.is_active;
 
   const accountAgeYears = (() => {
     const created = profile.user?.date_joined || profileData?.created_at || profile.created_at;
@@ -167,6 +172,9 @@ const ProfileCard = ({
         <View style={styles.userInfo}> 
           <View style={styles.nameRow}>
             <Text style={styles.fullName}>{displayName}</Text>
+            {(profile?.is_community_account || profile?.is_paid_user) && (
+              <Image source={VERIFIED_BADGE} style={styles.verifiedBadge} accessibilityLabel="Verified account" />
+            )}
           </View>
           <Text style={styles.userBio} numberOfLines={2}>
             {profileData?.bio || 'No bio yet'}
@@ -174,6 +182,19 @@ const ProfileCard = ({
           <Text style={styles.gradeLevelText}>
             Grade level: {profileData.grade_level ?? 'N/A'}
           </Text>
+          {canFollowCommunity && (
+            <TouchableOpacity
+              style={[styles.followButton, profile.is_following_community && styles.followingButton]}
+              onPress={onToggleCommunityFollow}
+              disabled={isTogglingCommunityFollow}
+              accessibilityRole="button"
+              accessibilityLabel={profile.is_following_community ? 'Leave community' : 'Join community'}
+            >
+              <Text style={styles.followButtonText}>
+                {isTogglingCommunityFollow ? 'Saving…' : profile.is_following_community ? 'Joined' : 'Join'}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -334,7 +355,7 @@ const styles = StyleSheet.create({
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 3,
     marginBottom: 6,
   },
   fullName: {
@@ -355,6 +376,30 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: 'rgba(226, 232, 240, 0.85)',
     fontWeight: '600',
+  },
+  followButton: {
+    alignSelf: 'flex-start',
+    marginTop: 10,
+    paddingHorizontal: 13,
+    paddingVertical: 7,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+  },
+  verifiedBadge: {
+    width: 50,
+    height: 50,
+    marginLeft: 0,
+    resizeMode: 'contain',
+  },
+  followingButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.7)',
+  },
+  followButtonText: {
+    color: '#3730A3',
+    fontSize: 12,
+    fontWeight: '800',
   },
   metaRow: {
     flexDirection: 'row',

@@ -335,6 +335,15 @@ const SettingsScreen = () => {
         params: { section: 'social' },
       }),
     },
+    ...(profile?.is_community_account && profile?.is_active ? [{
+      key: 'community-lunches',
+      label: 'Club Lunch Dates',
+      icon: 'event',
+      onPress: () => router.push({
+        pathname: '/edit-profile',
+        params: { section: 'community-lunches' },
+      }),
+    }] : []),
     {
       key: 'experience',
       label: 'Experience',
